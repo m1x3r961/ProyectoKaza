@@ -2,17 +2,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Configuración de cliente Supabase para Kaza
 class SupabaseConfig {
-  // URL del proyecto obtenido de Supabase Dashboard
-  static const String supabaseUrl = 'https://mgzbfklvtxprqofiaivl.supabase.co';
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://mgzbfklvtxprqofiaivl.supabase.co',
+  );
 
-  // ⚠️ REEMPLAZAR con la clave 'anon' 'public' obtenida en:
-  // Settings (⚙️) -> API -> Project API keys -> anon (public)
-  static const String supabaseAnonKey = 'TU_SUPABASE_ANON_KEY_AQUI';
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
 
   static Future<void> initialize() async {
+    if (supabaseAnonKey.isEmpty) return;
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: supabaseAnonKey, // ignore: deprecated_member_use
+      anonKey: supabaseAnonKey,
     );
   }
 

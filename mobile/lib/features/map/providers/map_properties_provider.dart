@@ -35,97 +35,36 @@ class PropertyMapItem {
 
 /// Provider de Riverpod para consultar propiedades desde Supabase PostgreSQL + PostGIS
 final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async {
-  // Si Supabase no está inicializado con la clave anon, retornar datos demo
-  if (SupabaseConfig.supabaseAnonKey == 'TU_SUPABASE_ANON_KEY_AQUI') {
-    return _getDemoProperties();
-  }
-
   try {
     final response = await SupabaseConfig.client
         .from('properties')
-        .select('id, property_type, total_surface_m2, rooms, bathrooms, address_canonical');
+        .select('id, property_type, total_surface_m2, rooms, bathrooms, address_canonical, price_usd, latitude, longitude');
 
     final List<PropertyMapItem> items = [];
     for (final row in response) {
+      final double lat = (row['latitude'] as num?)?.toDouble() ?? -17.7833;
+      final double lng = (row['longitude'] as num?)?.toDouble() ?? -63.1821;
+      final num price = (row['price_usd'] as num?) ?? 0;
+
       items.add(PropertyMapItem(
         id: row['id'] as String,
         title: row['address_canonical'] ?? 'Propiedad Kaza',
-        price: '\$ 120,000',
+        price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
         operation: 'VENTA',
         type: row['property_type'] ?? 'Departamento',
-        location: const LatLng(-17.7833, -63.1821),
-        bedrooms: (row['rooms'] as num?)?.toInt() ?? 2,
-        bathrooms: (row['bathrooms'] as num?)?.toInt() ?? 2,
-        surface: '${row['total_surface_m2'] ?? 80} m²',
+        location: LatLng(lat, lng),
+        bedrooms: (row['rooms'] as num?)?.toInt() ?? 0,
+        bathrooms: (row['bathrooms'] as num?)?.toInt() ?? 0,
+        surface: '${row['total_surface_m2'] ?? 0} m²',
         isPlus: true,
         trustLabel: 'Actor Verificado',
         isOrg: true,
       ));
     }
 
-    return items.isEmpty ? _getDemoProperties() : items;
+    return items;
   } catch (e) {
-    return _getDemoProperties();
+    // Si la base de datos está vacía o ocurre un error de conexión, retornar lista vacía (0 mapa limpio)
+    return [];
   }
 });
-
-List<PropertyMapItem> _getDemoProperties() {
-  return [
-    PropertyMapItem(
-      id: 'prop-1',
-      title: 'Departamento Ejecutivo Equipetrol',
-      price: '\$ 128,000',
-      operation: 'VENTA',
-      type: 'Departamento',
-      location: const LatLng(-17.7780, -63.1810),
-      bedrooms: 2,
-      bathrooms: 2,
-      surface: '85 m²',
-      isPlus: true,
-      trustLabel: 'Inmobiliaria Verificada',
-      isOrg: true,
-    ),
-    PropertyMapItem(
-      id: 'prop-2',
-      title: 'Casa Moderna en Urubó West',
-      price: '\$ 340,000',
-      operation: 'VENTA',
-      type: 'Casa',
-      location: const LatLng(-17.7650, -63.2050),
-      bedrooms: 4,
-      bathrooms: 4,
-      surface: '320 m²',
-      isPlus: true,
-      trustLabel: 'Propietario Legítimo',
-      isOrg: false,
-    ),
-    PropertyMapItem(
-      id: 'prop-3',
-      title: 'Oficina Comercial Sirari',
-      price: '\$ 950 / mes',
-      operation: 'ALQUILER',
-      type: 'Oficina',
-      location: const LatLng(-17.7890, -63.1780),
-      bedrooms: 1,
-      bathrooms: 1,
-      surface: '50 m²',
-      isPlus: false,
-      trustLabel: 'Agente Certificado',
-      isOrg: true,
-    ),
-    PropertyMapItem(
-      id: 'prop-4',
-      title: 'Terreno Residencial El Bosque',
-      price: '\$ 85,000',
-      operation: 'VENTA',
-      type: 'Terreno',
-      location: const LatLng(-17.7950, -63.1950),
-      bedrooms: 0,
-      bathrooms: 0,
-      surface: '450 m²',
-      isPlus: true,
-      trustLabel: 'Propietario Verificado',
-      isOrg: false,
-    ),
-  ];
-}

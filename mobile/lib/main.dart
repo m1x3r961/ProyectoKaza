@@ -8,9 +8,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    if (SupabaseConfig.supabaseAnonKey != 'TU_SUPABASE_ANON_KEY_AQUI') {
-      await SupabaseConfig.initialize();
-    }
+    await SupabaseConfig.initialize();
   } catch (e) {
     debugPrint('Supabase init notice: $e');
   }
