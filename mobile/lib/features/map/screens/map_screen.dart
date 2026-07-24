@@ -39,21 +39,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  String _getPinAssetForType(String type) {
+  IconData _getIconForType(String type) {
     switch (type.toLowerCase()) {
       case 'casa':
-        return 'assets/pins/pin_casa.png';
+        return Icons.home_work_rounded;
       case 'departamento':
       case 'condominio':
-        return 'assets/pins/pin_departamento.png';
+        return Icons.apartment_rounded;
       case 'terreno':
       case 'lote':
-        return 'assets/pins/pin_terreno.png';
+        return Icons.landscape_rounded;
       case 'oficina':
       case 'comercial':
-        return 'assets/pins/pin_oficina.png';
+        return Icons.business_rounded;
       default:
-        return 'assets/pins/pin_casa.png';
+        return Icons.location_on_rounded;
     }
   }
 
@@ -151,12 +151,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   MarkerLayer(
                     markers: properties.map((prop) {
                       final isSelected = _selectedProperty?.id == prop.id;
-                      final pinAsset = _getPinAssetForType(prop.type);
+                      final typeIcon = _getIconForType(prop.type);
 
                       return Marker(
                         point: prop.location,
                         width: isSelected ? 135 : 120,
-                        height: 52,
+                        height: 48,
                         child: GestureDetector(
                           onTap: () {
                             setState(() => _selectedProperty = prop);
@@ -167,8 +167,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? KazaTheme.accentGold
-                                  : (prop.isPlus ? KazaTheme.cardSurface.withValues(alpha: 0.95) : KazaTheme.cardSurface),
-                              borderRadius: BorderRadius.circular(20),
+                                  : KazaTheme.cardSurface.withValues(alpha: 0.95),
+                              borderRadius: BorderRadius.circular(22),
                               border: Border.all(
                                 color: isSelected
                                     ? Colors.white
@@ -186,10 +186,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Image.asset(
-                                  pinAsset,
-                                  height: 26,
-                                  fit: BoxFit.contain,
+                                Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.black.withValues(alpha: 0.15)
+                                        : KazaTheme.primaryCoral.withValues(alpha: 0.25),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? Colors.black87 : KazaTheme.primaryCoralLight,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    typeIcon,
+                                    size: 14,
+                                    color: isSelected ? Colors.black : KazaTheme.primaryCoralLight,
+                                  ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
