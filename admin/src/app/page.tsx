@@ -66,10 +66,10 @@ export default function AdminDashboardSuite() {
   const [dbLatencyMs, setDbLatencyMs] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Real Database Counts from Supabase
-  const [realActiveListingsCount, setRealActiveListingsCount] = useState<number>(1420);
-  const [realUsersCount, setRealUsersCount] = useState<number>(8940);
-  const [realPendingCasesCount, setRealPendingCasesCount] = useState<number>(3);
+  // Real Database Counts from Supabase (Exact count from DB)
+  const [realActiveListingsCount, setRealActiveListingsCount] = useState<number>(0);
+  const [realUsersCount, setRealUsersCount] = useState<number>(0);
+  const [realPendingCasesCount, setRealPendingCasesCount] = useState<number>(0);
 
   // Data Collections
   const [users, setUsers] = useState<AdminUser[]>([
@@ -126,7 +126,8 @@ export default function AdminDashboardSuite() {
         .select('*', { count: 'exact', head: true });
 
       if (!propError && propCount !== null) {
-        setRealActiveListingsCount(propCount > 0 ? propCount : 1420);
+        setIsConnectedToSupabase(true);
+        setRealActiveListingsCount(propCount);
       }
 
       // 3. Fetch Real Users Count from Supabase DB
@@ -135,7 +136,8 @@ export default function AdminDashboardSuite() {
         .select('*', { count: 'exact', head: true });
 
       if (!usersError && usersCount !== null) {
-        setRealUsersCount(usersCount > 0 ? usersCount : 8940);
+        setIsConnectedToSupabase(true);
+        setRealUsersCount(usersCount);
       }
 
       const endPing = performance.now();
