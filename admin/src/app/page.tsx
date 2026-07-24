@@ -634,12 +634,12 @@ export default function AdminDashboardSuite() {
                 <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Suscripción Inmobiliarias PRO</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FFF', marginTop: '4px' }}>$ 299 / mes</div>
-                  <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>48 Inmobiliarias registradas</div>
+                  <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>{users.filter(u => u.role === 'ORGANIZATION').length} Inmobiliarias registradas</div>
                 </div>
                 <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px' }}>
                   <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Destacados Plus (Pago por Listing)</div>
                   <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#F6BD7B', marginTop: '4px' }}>$ 19 / anuncio</div>
-                  <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>210 anuncios promocionados</div>
+                  <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>{listings.filter(l => l.status === 'PUBLISHED').length} anuncios promocionados</div>
                 </div>
               </div>
             </div>
