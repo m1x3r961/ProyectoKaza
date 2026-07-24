@@ -31,7 +31,17 @@ class _PublishScreenState extends State<PublishScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Publicar Inmueble'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              height: 28,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 10),
+            const Text('Publicar Inmueble'),
+          ],
+        ),
       ),
       body: Theme(
         data: Theme.of(context).copyWith(

@@ -29,7 +29,17 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis Listas & Guardados'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              height: 28,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 10),
+            const Text('Mis Listas & Guardados'),
+          ],
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: KazaTheme.primaryTealLight,

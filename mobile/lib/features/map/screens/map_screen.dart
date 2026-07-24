@@ -203,20 +203,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                     child: Row(
                       children: [
-                        const SizedBox(width: 16),
-                        const Icon(Icons.search, color: KazaTheme.primaryTealLight),
                         const SizedBox(width: 12),
+                        Image.asset(
+                          'assets/images/logo.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.search, color: KazaTheme.primaryCoralLight, size: 20),
+                        const SizedBox(width: 8),
                         const Expanded(
                           child: TextField(
                             decoration: InputDecoration(
-                              hintText: 'Buscar ciudad, zona, barrio o edificio...',
-                              hintStyle: TextStyle(color: KazaTheme.textMuted, fontSize: 14),
+                              hintText: 'Buscar ciudad, zona, barrio...',
+                              hintStyle: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
                               border: InputBorder.none,
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.tune, color: KazaTheme.primaryTealLight),
+                          icon: const Icon(Icons.tune, color: KazaTheme.primaryCoralLight),
                           onPressed: _openFilterBottomSheet,
                         ),
                       ],

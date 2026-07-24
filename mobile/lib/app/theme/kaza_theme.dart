@@ -4,13 +4,24 @@ import 'package:flutter/material.dart';
 /// Premium Dark Mode with HSL Slate Navy background, Teal & Gold accents, 
 /// glassmorphism cards and modern typography.
 class KazaTheme {
-  // Brand Palette
+  // Brand Palette - Derived from assets/images/logo.png
   static const Color darkBackground = Color(0xFF0B0F17); // Deep Slate
-  static const Color cardSurface = Color(0xFF161E2E); // Dark Navy Surface
+  static const Color cardSurface = Color(0xFF161C26); // Dark Navy Surface
   static const Color glassBorder = Color(0x22FFFFFF); // Glass Border
-  static const Color primaryTeal = Color(0xFF0D9488); // Kaza Teal
-  static const Color primaryTealLight = Color(0xFF14B8A6);
-  static const Color accentGold = Color(0xFFF59E0B); // Plus / Pro Accent
+
+  // Primary Coral Red / Terracotta Palette (From Logo Location Pin)
+  static const Color primaryCoral = Color(0xFFE05A47); // Kaza Coral Red
+  static const Color primaryCoralLight = Color(0xFFEE7263); // Light Coral Highlight
+  static const Color primaryCoralDark = Color(0xFFC84332);
+
+  // Backward compatibility alias for primary color tokens
+  static const Color primaryTeal = primaryCoral;
+  static const Color primaryTealLight = primaryCoralLight;
+
+  // Sunset Peach Gold (From Logo Roof)
+  static const Color accentGold = Color(0xFFF6BD7B); // Kaza Peach Gold Accent
+  static const Color accentGoldBright = Color(0xFFF8C88B);
+  
   static const Color trustBlue = Color(0xFF2563EB); // Trust Badge Blue
   static const Color verifiedGreen = Color(0xFF10B981); // Verification Green
 
@@ -32,7 +43,7 @@ class KazaTheme {
       scaffoldBackgroundColor: darkBackground,
       colorScheme: const ColorScheme.dark(
         surface: cardSurface,
-        primary: primaryTeal,
+        primary: primaryCoral,
         secondary: accentGold,
         onSurface: textPrimary,
       ),
@@ -49,7 +60,7 @@ class KazaTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: cardSurface,
-        selectedItemColor: primaryTealLight,
+        selectedItemColor: primaryCoralLight,
         unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 10,
@@ -65,7 +76,7 @@ class KazaTheme {
       chipTheme: ChipThemeData(
         backgroundColor: cardSurface,
         labelStyle: const TextStyle(color: textPrimary, fontSize: 13),
-        secondarySelectedColor: primaryTeal,
+        secondarySelectedColor: primaryCoral,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),

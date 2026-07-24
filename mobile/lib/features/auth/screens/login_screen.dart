@@ -80,15 +80,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       padding: const EdgeInsets.all(24),
       children: [
         Center(
-          child: Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: KazaTheme.primaryTeal.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: KazaTheme.primaryTealLight, width: 2),
-            ),
-            child: const Icon(Icons.home_work, color: KazaTheme.primaryTealLight, size: 36),
+          child: Image.asset(
+            'assets/images/logo.png',
+            height: 90,
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(height: 16),

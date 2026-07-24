@@ -14,7 +14,17 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Perfil & Cuenta'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo.png',
+              height: 28,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 10),
+            const Text('Perfil & Cuenta'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
