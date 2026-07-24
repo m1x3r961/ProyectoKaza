@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,24 +38,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       setState(() {
         _selectedProperty = null;
       });
-    }
-  }
-
-  String _getPinAssetForType(String type) {
-    switch (type.toLowerCase()) {
-      case 'casa':
-        return 'assets/pins/pin_casa.png';
-      case 'departamento':
-      case 'condominio':
-        return 'assets/pins/pin_departamento.png';
-      case 'terreno':
-      case 'lote':
-        return 'assets/pins/pin_terreno.png';
-      case 'oficina':
-      case 'comercial':
-        return 'assets/pins/pin_oficina.png';
-      default:
-        return 'assets/pins/pin_casa.png';
     }
   }
 
@@ -169,7 +153,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   MarkerLayer(
                     markers: properties.map((prop) {
                       final isSelected = _selectedProperty?.id == prop.id;
-                      final pinAsset = _getPinAssetForType(prop.type);
                       final typeIcon = _getIconForType(prop.type);
 
                       return Marker(
@@ -228,21 +211,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                       ],
                                     ),
                                   )
-                                : Container(
+                                : SizedBox(
                                     key: ValueKey('unsel_${prop.id}'),
-                                    decoration: const BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black38,
-                                          blurRadius: 6,
-                                          offset: Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Image.asset(
-                                      pinAsset,
-                                      height: 42,
-                                      fit: BoxFit.contain,
+                                    width: 38,
+                                    height: 48,
+                                    child: CustomPaint(
+                                      painter: KazaPinPainter(
+                                        icon: typeIcon,
+                                        isSelected: false,
+                                      ),
                                     ),
                                   ),
                           ),
@@ -500,4 +477,98 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ),
     );
   }
+}
+
+// =============================================================================
+// CUSTOM PAINTER: Pin Teardrop Vectorial de Kaza con Transparencia 100% Real
+// =============================================================================
+class KazaPinPainter extends CustomPainter {
+  final IconData icon;
+  final bool isSelected;
+
+  KazaPinPainter({required this.icon, this.isSelected = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double width = size.width;
+    final double height = size.height;
+    final double radius = width / 2;
+
+    // Teardrop Pin Path
+    final ui.Path pinPath = ui.Path();
+    pinPath.moveTo(radius, height); // Bottom point
+    // Right curve up to circle
+    pinPath.cubicTo(
+      width, height * 0.55,
+      width, radius * 0.8,
+      width, radius,
+    );
+    // Top circle arc
+    pinPath.arcTo(
+      Rect.fromCircle(center: Offset(radius, radius), radius: radius),
+      0,
+      -math.pi,
+      false,
+    );
+    // Left curve down to bottom point
+    pinPath.cubicTo(
+      0, radius * 0.8,
+      0, height * 0.55,
+      radius, height,
+    );
+    pinPath.close();
+
+    // 1. Soft Shadow matching teardrop path
+    final Paint shadowPaint = Paint()
+      ..color = Colors.black38
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawPath(pinPath.shift(const Offset(0, 3)), shadowPaint);
+
+    // 2. Kaza Gradient Fill (Peach Gold roof to Coral Red base)
+    final Paint fillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFFF6BD7B), // Peach Gold
+          Color(0xFFE05A47), // Coral Red
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, width, height));
+
+    canvas.drawPath(pinPath, fillPaint);
+
+    // 3. Crisp White Border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isSelected ? 2.5 : 1.5;
+    canvas.drawPath(pinPath, borderPaint);
+
+    // 4. Central Inner Circle
+    final double innerRadius = radius * 0.52;
+    final Paint innerCirclePaint = Paint()..color = Colors.white;
+    canvas.drawCircle(Offset(radius, radius * 0.92), innerRadius, innerCirclePaint);
+
+    // 5. Category Icon inside central circle
+    final TextSpan span = TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: innerRadius * 1.3,
+        fontFamily: icon.fontFamily,
+        package: icon.fontPackage,
+        color: const Color(0xFFE05A47),
+      ),
+    );
+
+    final TextPainter tp = TextPainter(
+      text: span,
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout();
+    tp.paint(canvas, Offset(radius - tp.width / 2, (radius * 0.92) - tp.height / 2));
+  }
+
+  @override
+  bool shouldRepaint(covariant KazaPinPainter oldDelegate) =>
+      oldDelegate.isSelected != isSelected || oldDelegate.icon != icon;
 }
