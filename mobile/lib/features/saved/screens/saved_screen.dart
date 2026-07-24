@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/network/supabase_config.dart';
 import '../../../core/widgets/kaza_badges.dart';
 
 /// 🔖 GUARDADOS Y LISTAS - Kaza Saved & Comparator
@@ -12,11 +13,35 @@ class SavedScreen extends StatefulWidget {
 
 class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<Map<String, dynamic>> _savedItems = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _fetchSavedProperties();
+  }
+
+  Future<void> _fetchSavedProperties() async {
+    try {
+      final response = await SupabaseConfig.client
+          .from('saved_properties')
+          .select('*, properties(*)');
+      if (mounted) {
+        setState(() {
+          _savedItems = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _savedItems = [];
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -27,6 +52,9 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final ventaItems = _savedItems.where((i) => i['operation'] != 'ALQUILER').toList();
+    final alquilerItems = _savedItems.where((i) => i['operation'] == 'ALQUILER').toList();
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -45,10 +73,10 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
           indicatorColor: KazaTheme.primaryTealLight,
           labelColor: KazaTheme.primaryTealLight,
           unselectedLabelColor: KazaTheme.textMuted,
-          tabs: const [
-            Tab(text: 'Venta (2)'),
-            Tab(text: 'Alquiler (1)'),
-            Tab(text: 'Comparador'),
+          tabs: [
+            Tab(text: 'Venta (${ventaItems.length})'),
+            Tab(text: 'Alquiler (${alquilerItems.length})'),
+            const Tab(text: 'Comparador'),
           ],
         ),
       ),
@@ -56,92 +84,96 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
         controller: _tabController,
         children: [
           // 1. Guardados Venta
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildSavedCard(
-                title: 'Departamento Ejecutivo Equipetrol',
-                price: '\$ 128,000',
-                surface: '85 m²',
-                rooms: '2 dorms',
-                location: 'Equipetrol Norte, Santa Cruz',
-                isPlus: true,
-              ),
-              const SizedBox(height: 12),
-              _buildSavedCard(
-                title: 'Casa Moderna en Urubó West',
-                price: '\$ 340,000',
-                surface: '320 m²',
-                rooms: '4 dorms',
-                location: 'Urubó, Porongo',
-                isPlus: true,
-              ),
-            ],
-          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ventaItems.isEmpty
+                  ? _buildEmptySavedState('Venta')
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: ventaItems.length,
+                      itemBuilder: (context, index) {
+                        final item = ventaItems[index];
+                        return _buildSavedCard(
+                          title: item['title'] ?? 'Inmueble Guardado',
+                          price: item['price'] ?? '\$ 0',
+                          surface: item['surface'] ?? '0 m²',
+                          rooms: item['rooms'] ?? '0 dorms',
+                          location: item['location'] ?? 'Santa Cruz',
+                          isPlus: true,
+                        );
+                      },
+                    ),
 
           // 2. Guardados Alquiler
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildSavedCard(
-                title: 'Oficina Comercial Sirari',
-                price: '\$ 950 / mes',
-                surface: '50 m²',
-                rooms: '1 ambiente',
-                location: 'Sirari, Santa Cruz',
-                isPlus: false,
-              ),
-            ],
-          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : alquilerItems.isEmpty
+                  ? _buildEmptySavedState('Alquiler')
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: alquilerItems.length,
+                      itemBuilder: (context, index) {
+                        final item = alquilerItems[index];
+                        return _buildSavedCard(
+                          title: item['title'] ?? 'Alquiler Guardado',
+                          price: item['price'] ?? '\$ 0',
+                          surface: item['surface'] ?? '0 m²',
+                          rooms: item['rooms'] ?? '0 dorms',
+                          location: item['location'] ?? 'Santa Cruz',
+                          isPlus: false,
+                        );
+                      },
+                    ),
 
           // 3. Comparador de Inmuebles
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Comparación de Propiedades (Venta)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'El comparador solo enfrenta cohortes de la misma operación para ofrecer métricas precisas.',
-                  style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildComparisonColumn(
-                          title: 'Departamento Equipetrol',
-                          price: '\$ 128,000',
-                          priceM2: '\$ 1,505 / m²',
-                          surface: '85 m²',
-                          rooms: '2',
-                          bathrooms: '2',
-                          dom: '14 días en mercado',
-                        ),
-                        const SizedBox(width: 16),
-                        _buildComparisonColumn(
-                          title: 'Casa Urubó West',
-                          price: '\$ 340,000',
-                          priceM2: '\$ 1,062 / m²',
-                          surface: '320 m²',
-                          rooms: '4',
-                          bathrooms: '4',
-                          dom: '42 días en mercado',
-                        ),
-                      ],
-                    ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.compare_arrows, size: 64, color: KazaTheme.primaryTealLight),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Sin propiedades para comparar',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Guarda 2 o más propiedades de la misma modalidad para analizar su precio por m², días en mercado y características lado a lado.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySavedState(String category) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.bookmark_border, size: 64, color: KazaTheme.primaryTealLight),
+            const SizedBox(height: 16),
+            Text(
+              'No tienes guardados en $category',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Explora el mapa y presiona el ícono 🔖 en tus inmuebles favoritos para conservarlos en tu lista personalizada.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+            ),
+          ],
+        ),
       ),
     );
   }
