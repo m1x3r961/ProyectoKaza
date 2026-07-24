@@ -39,6 +39,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  String _getPinAssetForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'casa':
+        return 'assets/pins/pin_casa.png';
+      case 'departamento':
+      case 'condominio':
+        return 'assets/pins/pin_departamento.png';
+      case 'terreno':
+      case 'lote':
+        return 'assets/pins/pin_terreno.png';
+      case 'oficina':
+      case 'comercial':
+        return 'assets/pins/pin_oficina.png';
+      default:
+        return 'assets/pins/pin_casa.png';
+    }
+  }
+
   IconData _getIconForType(String type) {
     switch (type.toLowerCase()) {
       case 'casa':
@@ -151,70 +169,82 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   MarkerLayer(
                     markers: properties.map((prop) {
                       final isSelected = _selectedProperty?.id == prop.id;
+                      final pinAsset = _getPinAssetForType(prop.type);
                       final typeIcon = _getIconForType(prop.type);
 
                       return Marker(
                         point: prop.location,
-                        width: isSelected ? 135 : 120,
-                        height: 48,
+                        width: isSelected ? 135 : 44,
+                        height: isSelected ? 48 : 44,
                         child: GestureDetector(
                           onTap: () {
                             setState(() => _selectedProperty = prop);
                           },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? KazaTheme.accentGold
-                                  : KazaTheme.cardSurface.withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.white
-                                    : (prop.isPlus ? KazaTheme.primaryCoralLight : KazaTheme.glassBorder),
-                                width: isSelected ? 2.5 : 1.5,
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black54,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? Colors.black.withValues(alpha: 0.15)
-                                        : KazaTheme.primaryCoral.withValues(alpha: 0.25),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isSelected ? Colors.black87 : KazaTheme.primaryCoralLight,
-                                      width: 1,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: isSelected
+                                ? Container(
+                                    key: ValueKey('sel_${prop.id}'),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: KazaTheme.accentGold,
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2.5,
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black54,
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black12,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            typeIcon,
+                                            size: 14,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          prop.price,
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : Container(
+                                    key: ValueKey('unsel_${prop.id}'),
+                                    decoration: const BoxDecoration(
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black38,
+                                          blurRadius: 6,
+                                          offset: Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Image.asset(
+                                      pinAsset,
+                                      height: 42,
+                                      fit: BoxFit.contain,
                                     ),
                                   ),
-                                  child: Icon(
-                                    typeIcon,
-                                    size: 14,
-                                    color: isSelected ? Colors.black : KazaTheme.primaryCoralLight,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  prop.price,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.black : Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                       );
