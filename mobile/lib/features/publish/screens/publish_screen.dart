@@ -4,17 +4,20 @@ import '../../../core/network/supabase_config.dart';
 import '../../media/models/kaza_media_item.dart';
 import '../../media/widgets/media_picker_widget.dart';
 
-/// ➕ PUBLICAR WIZARD - Wizard oficial de publicación según Kaza Master v0.2
-class PublishScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/providers/auth_provider.dart';
+
+/// ➕ PUBLICAR WIZARD - Wizard oficial de publicación vinculado al Agente en Supabase DB
+class PublishScreen extends ConsumerStatefulWidget {
   const PublishScreen({super.key});
 
   @override
-  State<PublishScreen> createState() => _PublishScreenState();
+  ConsumerState<PublishScreen> createState() => _PublishScreenState();
 }
 
-class _PublishScreenState extends State<PublishScreen> {
+class _PublishScreenState extends ConsumerState<PublishScreen> {
   int _currentStep = 0;
-  String _selectedWorkspace = 'Personal Workspace';
+  String _publisherRoleType = 'AGENTE'; // 'AGENTE' vs 'PROPIETARIO'
   String _operationType = 'VENTA';
   String _propertyType = 'Departamento';
   final TextEditingController _priceController = TextEditingController(text: '120000');
@@ -30,6 +33,10 @@ class _PublishScreenState extends State<PublishScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(kazaAuthProvider);
+    final agentName = authState.fullName ?? 'Agente / Publicador Verificado';
+    final agentEmail = authState.email ?? 'agente@kaza.bo';
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -70,6 +77,8 @@ class _PublishScreenState extends State<PublishScreen> {
                   'status': 'PUBLISHED',
                   'latitude': -17.7833,
                   'longitude': -63.1821,
+                  'publisher_name': agentName,
+                  'publisher_email': agentEmail,
                 });
               } catch (_) {}
 
@@ -89,32 +98,65 @@ class _PublishScreenState extends State<PublishScreen> {
             }
           },
           steps: [
-            // Step 1: Workspace & Identidad
+            // Step 1: Identidad del Agente / Anunciante Real (Conectado a Supabase DB)
             Step(
-              title: const Text('1. Workspace & Identidad'),
-              subtitle: Text(_selectedWorkspace),
+              title: const Text('1. Identidad del Agente & Anunciante'),
+              subtitle: Text(agentName),
               isActive: _currentStep >= 0,
-              content: Column(
-                children: [
-                  const Text(
-                    'Selecciona el Workspace desde el cual publicarás. Si es una inmobiliaria, el Listing pertenecerá al Organization Workspace.',
-                    style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _selectedWorkspace,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Workspace Activo',
+              content: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: KazaTheme.cardSurface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: KazaTheme.glassBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: KazaTheme.primaryTeal,
+                          child: Icon(Icons.verified_user, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                agentName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                agentEmail,
+                                style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    items: ['Personal Workspace', 'Inmobiliaria Kaza Pro (Organization)', 'Developer Projects'].map((ws) {
-                      return DropdownMenuItem(value: ws, child: Text(ws));
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedWorkspace = val);
-                    },
-                  ),
-                ],
+                    const Divider(height: 24, color: KazaTheme.glassBorder),
+                    const Text('Modalidad de Publicación:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'AGENTE', label: Text('Agente / Inmobiliaria')),
+                        ButtonSegment(value: 'PROPIETARIO', label: Text('Propietario Directo')),
+                      ],
+                      selected: {_publisherRoleType},
+                      onSelectionChanged: (val) {
+                        setState(() => _publisherRoleType = val.first);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '✓ Este anuncio quedará registrado bajo tu perfil real de agente en Supabase DB para auditar la veracidad del activo.',
+                      style: TextStyle(color: KazaTheme.primaryTealLight, fontSize: 11),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -238,7 +280,7 @@ class _PublishScreenState extends State<PublishScreen> {
                       ),
                       const Divider(color: KazaTheme.glassBorder),
                       Text('Título: ${_titleController.text}'),
-                      Text('Workspace: $_selectedWorkspace'),
+                      Text('Anunciante: $agentName ($_publisherRoleType)'),
                       Text('Operación: $_operationType'),
                       Text('Tipo: $_propertyType'),
                       Text('Precio: \$ ${_priceController.text} USD'),
