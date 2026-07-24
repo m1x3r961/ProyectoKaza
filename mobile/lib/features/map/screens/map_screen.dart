@@ -6,6 +6,7 @@ import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
 import '../widgets/map_filter_bottom_sheet.dart';
+import 'property_detail_screen.dart';
 
 /// 🗺️ MAPA (Home) - Kaza Map-First Experience & Polygon Drawing Engine
 class MapScreen extends ConsumerStatefulWidget {
@@ -342,70 +343,81 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               left: 16,
               right: 16,
               bottom: 16,
-              child: Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 90,
-                          height: 90,
-                          color: Colors.grey.shade800,
-                          child: const Icon(Icons.home, color: Colors.white54, size: 36),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PropertyDetailScreen(property: _selectedProperty!),
+                    ),
+                  );
+                },
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 90,
+                            height: 90,
+                            color: Colors.grey.shade800,
+                            child: const Icon(Icons.home, color: Colors.white54, size: 36),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children: [
-                                if (_selectedProperty!.isPlus) ...[
-                                  const KazaPlusBadge(),
-                                  const SizedBox(width: 6),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  if (_selectedProperty!.isPlus) ...[
+                                    const KazaPlusBadge(),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  KazaTrustBadge(
+                                    label: _selectedProperty!.trustLabel,
+                                    isOrganization: _selectedProperty!.isOrg,
+                                  ),
                                 ],
-                                KazaTrustBadge(
-                                  label: _selectedProperty!.trustLabel,
-                                  isOrganization: _selectedProperty!.isOrg,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _selectedProperty!.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _selectedProperty!.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_selectedProperty!.bedrooms} Dorm · ${_selectedProperty!.bathrooms} Baños · ${_selectedProperty!.surface}',
-                              style: const TextStyle(
-                                color: KazaTheme.textMuted,
-                                fontSize: 12,
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_selectedProperty!.bedrooms} Dorm · ${_selectedProperty!.bathrooms} Baños · ${_selectedProperty!.surface}',
+                                style: const TextStyle(
+                                  color: KazaTheme.textMuted,
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _selectedProperty!.price,
-                              style: const TextStyle(
-                                color: KazaTheme.primaryTealLight,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
+                              const SizedBox(height: 6),
+                              Text(
+                                _selectedProperty!.price,
+                                style: const TextStyle(
+                                  color: KazaTheme.primaryCoralLight,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        const Icon(Icons.chevron_right, color: KazaTheme.textMuted),
+                      ],
+                    ),
                   ),
                 ),
               ),
