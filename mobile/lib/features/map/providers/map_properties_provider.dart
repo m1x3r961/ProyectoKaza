@@ -113,5 +113,19 @@ List<PropertyMapItem> _getDemoProperties() {
       trustLabel: 'Agente Certificado',
       isOrg: true,
     ),
+    PropertyMapItem(
+      id: 'prop-4',
+      title: 'Terreno Residencial El Bosque',
+      price: '\$ 85,000',
+      operation: 'VENTA',
+      type: 'Terreno',
+      location: const LatLng(-17.7950, -63.1950),
+      bedrooms: 0,
+      bathrooms: 0,
+      surface: '450 m²',
+      isPlus: true,
+      trustLabel: 'Propietario Verificado',
+      isOrg: false,
+    ),
   ];
 }
