@@ -71,26 +71,10 @@ export default function AdminDashboardSuite() {
   const [realUsersCount, setRealUsersCount] = useState<number>(0);
   const [realPendingCasesCount, setRealPendingCasesCount] = useState<number>(0);
 
-  // Data Collections
-  const [users, setUsers] = useState<AdminUser[]>([
-    { id: 'usr-1', name: 'Inmobiliaria Kaza Pro', email: 'contacto@kazapro.bo', role: 'ORGANIZATION', status: 'ACTIVE', trustScore: 98, listingsCount: 42, registeredAt: '12 Ene 2026' },
-    { id: 'usr-2', name: 'Carlos Mendoza', email: 'cmendoza@agentes.bo', role: 'AGENT', status: 'ACTIVE', trustScore: 92, listingsCount: 15, registeredAt: '15 Feb 2026' },
-    { id: 'usr-3', name: 'Constructora El Bosque', email: 'ventas@elbosque.bo', role: 'ORGANIZATION', status: 'PENDING', trustScore: 75, listingsCount: 8, registeredAt: '01 Mar 2026' },
-    { id: 'usr-4', name: 'Lucía Gutiérrez', email: 'lucia.g@gmail.com', role: 'USER', status: 'SUSPENDED', trustScore: 40, listingsCount: 1, registeredAt: '10 Abr 2026' },
-  ]);
-
-  const [listings, setListings] = useState<AdminListing[]>([
-    { id: 'prop-101', title: 'Casa Moderna en Equipetrol Sirari', type: 'Casa', price: '$ 340,000', location: 'Equipetrol, Santa Cruz', mediaStatus: 'VERIFIED_REAL', status: 'PUBLISHED', publisher: 'Carlos Mendoza', createdAt: 'Hace 2 horas' },
-    { id: 'prop-102', title: 'Penthouse de Lujo - Condominio La Riviera', type: 'Departamento', price: '$ 128,000', location: 'Centro, Santa Cruz', mediaStatus: 'RENDER_FLAGGED', status: 'UNDER_REVIEW', publisher: 'Inmobiliaria Kaza Pro', createdAt: 'Hace 5 horas' },
-    { id: 'prop-103', title: 'Terreno Residencial Urubó - Lote 500m²', type: 'Terreno', price: '$ 85,000', location: 'Urubó Village', mediaStatus: 'VERIFIED_REAL', status: 'PUBLISHED', publisher: 'Constructora El Bosque', createdAt: 'Ayer' },
-    { id: 'prop-104', title: 'Oficina Corporativa Torre Empresarial', type: 'Oficina', price: '$ 950 / mes', location: 'Sirari', mediaStatus: 'PENDING_REVIEW', status: 'DRAFT', publisher: 'Lucía Gutiérrez', createdAt: 'Hace 3 días' },
-  ]);
-
-  const [cases, setCases] = useState<AdminCase[]>([
-    { id: 'c1111111-1111-1111-1111-111111111111', type: 'USER_VERIFICATION', priority: 'HIGH', status: 'NEW', title: 'Verificación de Identidad: Inmobiliaria Kaza Pro', description: 'Solicitud de insignia Trust Badge con certificado de comercio.', createdAt: 'Hace 25 min' },
-    { id: 'c2222222-2222-2222-2222-222222222222', type: 'MEDIA_VERACITY', priority: 'MEDIUM', status: 'IN_REVIEW', title: 'Reporte de Veracidad: Foto RENDER etiquetada como REAL', description: 'Usuario reporta discrepancia entre foto real e imagen 3D computarizada.', createdAt: 'Hace 2 horas' },
-    { id: 'c3333333-3333-3333-3333-333333333333', type: 'DUPLICATE_LISTING', priority: 'CRITICAL', status: 'IN_REVIEW', title: 'Alerta de Duplicado de Propiedad en Urubó', description: 'Detección automática PostGIS de discrepancia de precio sobre coordenada canónica.', createdAt: 'Ayer' },
-  ]);
+  // Data Collections (Start at 0 for clean database)
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [listings, setListings] = useState<AdminListing[]>([]);
+  const [cases, setCases] = useState<AdminCase[]>([]);
 
   // ---------------------------------------------------------------------------
   // LIVE SUPABASE FETCHING & LATENCY MONITOR
@@ -374,7 +358,7 @@ export default function AdminDashboardSuite() {
 
               <div style={{ backgroundColor: '#161C26', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'bold' }}>INGRESOS MENSUALES (MRR)</div>
-                <div style={{ fontSize: '32px', fontWeight: '900', color: '#10B981', marginTop: '6px' }}>$ 18,450</div>
+                <div style={{ fontSize: '32px', fontWeight: '900', color: '#10B981', marginTop: '6px' }}>$ 0</div>
                 <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>Suscripciones Pro + Destacados</div>
               </div>
 
@@ -433,61 +417,69 @@ export default function AdminDashboardSuite() {
               </div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-                  <th style={{ padding: '12px' }}>Usuario / Entidad</th>
-                  <th style={{ padding: '12px' }}>Rol</th>
-                  <th style={{ padding: '12px' }}>Trust Score</th>
-                  <th style={{ padding: '12px' }}>Listings</th>
-                  <th style={{ padding: '12px' }}>Estado DB</th>
-                  <th style={{ padding: '12px' }}>Acciones Mutación Supabase</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.filter(u => filterRole === 'ALL' || u.role === filterRole).map(u => (
-                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{u.name}</div>
-                      <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{u.email}</div>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: '#F6BD7B' }}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#10B981' }}>{u.trustScore} pts</td>
-                    <td style={{ padding: '12px' }}>{u.listingsCount} anuncios</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
-                        backgroundColor: u.status === 'ACTIVE' ? 'rgba(16,185,129,0.15)' : u.status === 'PENDING' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
-                        color: u.status === 'ACTIVE' ? '#10B981' : u.status === 'PENDING' ? '#F59E0B' : '#EF4444'
-                      }}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {u.status === 'ACTIVE' ? (
-                        <button
-                          onClick={() => handleUserStatusToggle(u.id, 'SUSPENDED')}
-                          style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
-                        >
-                          Suspender en DB
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleUserStatusToggle(u.id, 'ACTIVE')}
-                          style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                        >
-                          Activar / Aprobar en DB
-                        </button>
-                      )}
-                    </td>
+            {users.length === 0 ? (
+              <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
+                <Users size={32} color="#E05A47" style={{ marginBottom: '8px', opacity: 0.8 }} />
+                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>Base de datos limpia (0 Usuarios & Agentes)</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>Aún no existen registros en la tabla `profiles` de Supabase. Los nuevos registros aparecerán aquí automáticamente.</div>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
+                    <th style={{ padding: '12px' }}>Usuario / Entidad</th>
+                    <th style={{ padding: '12px' }}>Rol</th>
+                    <th style={{ padding: '12px' }}>Trust Score</th>
+                    <th style={{ padding: '12px' }}>Listings</th>
+                    <th style={{ padding: '12px' }}>Estado DB</th>
+                    <th style={{ padding: '12px' }}>Acciones Mutación Supabase</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {users.filter(u => filterRole === 'ALL' || u.role === filterRole).map(u => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#FFF' }}>{u.name}</div>
+                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{u.email}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: '#F6BD7B' }}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#10B981' }}>{u.trustScore} pts</td>
+                      <td style={{ padding: '12px' }}>{u.listingsCount} anuncios</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
+                          backgroundColor: u.status === 'ACTIVE' ? 'rgba(16,185,129,0.15)' : u.status === 'PENDING' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
+                          color: u.status === 'ACTIVE' ? '#10B981' : u.status === 'PENDING' ? '#F59E0B' : '#EF4444'
+                        }}>
+                          {u.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {u.status === 'ACTIVE' ? (
+                          <button
+                            onClick={() => handleUserStatusToggle(u.id, 'SUSPENDED')}
+                            style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                          >
+                            Suspender en DB
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUserStatusToggle(u.id, 'ACTIVE')}
+                            style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                          >
+                            Activar / Aprobar en DB
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
@@ -495,62 +487,70 @@ export default function AdminDashboardSuite() {
         {activeModule === 'LISTINGS' && (
           <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '16px' }}>Revisión de Contenido & Veracidad de Inmuebles</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-                  <th style={{ padding: '12px' }}>Propiedad</th>
-                  <th style={{ padding: '12px' }}>Precio & Zona</th>
-                  <th style={{ padding: '12px' }}>Veracidad Media</th>
-                  <th style={{ padding: '12px' }}>Estado</th>
-                  <th style={{ padding: '12px' }}>Acciones Mutación Supabase</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listings.map(l => (
-                  <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{l.title}</div>
-                      <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Publicado por: {l.publisher}</div>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#F6BD7B' }}>{l.price}</div>
-                      <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{l.location}</div>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
-                        backgroundColor: l.mediaStatus === 'VERIFIED_REAL' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                        color: l.mediaStatus === 'VERIFIED_REAL' ? '#10B981' : '#EF4444'
-                      }}>
-                        {l.mediaStatus === 'VERIFIED_REAL' ? '✓ FOTO REAL VERIFICADA' : '⚠️ RENDER DETECTADO'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.06)', color: '#FFF' }}>
-                        {l.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {l.status === 'PUBLISHED' ? (
-                        <button
-                          onClick={() => handleListingStatusToggle(l.id, 'BANNED')}
-                          style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
-                        >
-                          Pausar en DB
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleListingStatusToggle(l.id, 'PUBLISHED')}
-                          style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                        >
-                          Aprobar Publicación
-                        </button>
-                      )}
-                    </td>
+            {listings.length === 0 ? (
+              <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
+                <Building2 size={32} color="#E05A47" style={{ marginBottom: '8px', opacity: 0.8 }} />
+                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>Base de datos limpia (0 Inmuebles Publicados)</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>Aún no hay propiedades creadas en la tabla `properties` de Supabase. Al publicar un inmueble desde la App, aparecerá aquí.</div>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
+                    <th style={{ padding: '12px' }}>Propiedad</th>
+                    <th style={{ padding: '12px' }}>Precio & Zona</th>
+                    <th style={{ padding: '12px' }}>Veracidad Media</th>
+                    <th style={{ padding: '12px' }}>Estado</th>
+                    <th style={{ padding: '12px' }}>Acciones Mutación Supabase</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {listings.map(l => (
+                    <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#FFF' }}>{l.title}</div>
+                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Publicado por: {l.publisher}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#F6BD7B' }}>{l.price}</div>
+                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{l.location}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
+                          backgroundColor: l.mediaStatus === 'VERIFIED_REAL' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                          color: l.mediaStatus === 'VERIFIED_REAL' ? '#10B981' : '#EF4444'
+                        }}>
+                          {l.mediaStatus === 'VERIFIED_REAL' ? '✓ FOTO REAL VERIFICADA' : '⚠️ RENDER DETECTADO'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.06)', color: '#FFF' }}>
+                          {l.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {l.status === 'PUBLISHED' ? (
+                          <button
+                            onClick={() => handleListingStatusToggle(l.id, 'BANNED')}
+                            style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                          >
+                            Pausar en DB
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleListingStatusToggle(l.id, 'PUBLISHED')}
+                            style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                          >
+                            Aprobar Publicación
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
@@ -567,53 +567,61 @@ export default function AdminDashboardSuite() {
               </button>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-                  <th style={{ padding: '12px' }}>ID & Prioridad</th>
-                  <th style={{ padding: '12px' }}>Tipo de Caso</th>
-                  <th style={{ padding: '12px' }}>Detalles de la Incidencia</th>
-                  <th style={{ padding: '12px' }}>Estado DB</th>
-                  <th style={{ padding: '12px' }}>Acción Mutación Supabase</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cases.map(c => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#F6BD7B' }}>{c.id.substring(0, 13)}...</div>
-                      <span style={{ fontSize: '10px', fontWeight: 'bold', color: c.priority === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>
-                        {c.priority}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', fontWeight: 'bold', color: '#E05A47' }}>{c.type}</td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#FFF' }}>{c.title}</div>
-                      <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>{c.description}</div>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
-                        backgroundColor: c.status === 'RESOLVED' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
-                        color: c.status === 'RESOLVED' ? '#10B981' : '#F59E0B'
-                      }}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {c.status !== 'RESOLVED' && (
-                        <button
-                          onClick={() => handleCaseResolveInSupabase(c.id)}
-                          style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                        >
-                          Resolver en Supabase DB
-                        </button>
-                      )}
-                    </td>
+            {cases.length === 0 ? (
+              <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
+                <AlertTriangle size={32} color="#10B981" style={{ marginBottom: '8px', opacity: 0.8 }} />
+                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>0 Casos Pendientes en Supabase DB</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>No hay casos de moderación o reportes sin resolver en la tabla `admin_cases`.</div>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
+                    <th style={{ padding: '12px' }}>ID & Prioridad</th>
+                    <th style={{ padding: '12px' }}>Tipo de Caso</th>
+                    <th style={{ padding: '12px' }}>Detalles de la Incidencia</th>
+                    <th style={{ padding: '12px' }}>Estado DB</th>
+                    <th style={{ padding: '12px' }}>Acción Mutación Supabase</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cases.map(c => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#F6BD7B' }}>{c.id.substring(0, 13)}...</div>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: c.priority === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>
+                          {c.priority}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#E05A47' }}>{c.type}</td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#FFF' }}>{c.title}</div>
+                        <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>{c.description}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
+                          backgroundColor: c.status === 'RESOLVED' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+                          color: c.status === 'RESOLVED' ? '#10B981' : '#F59E0B'
+                        }}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        {c.status !== 'RESOLVED' && (
+                          <button
+                            onClick={() => handleCaseResolveInSupabase(c.id)}
+                            style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                          >
+                            Resolver en Supabase DB
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
