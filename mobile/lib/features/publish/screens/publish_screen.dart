@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../map/providers/map_properties_provider.dart';
 import '../../media/models/kaza_media_item.dart';
 import '../../media/widgets/media_picker_widget.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../auth/providers/auth_provider.dart';
-
-/// ➕ PUBLICAR WIZARD - Wizard oficial de publicación vinculado al Agente en Supabase DB
+/// ➕ PUBLICAR WIZARD - Wizard oficial de publicación vinculado al Mapa Home y Supabase DB
 class PublishScreen extends ConsumerStatefulWidget {
   const PublishScreen({super.key});
 
@@ -20,6 +22,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   String _publisherRoleType = 'AGENTE'; // 'AGENTE' vs 'PROPIETARIO'
   String _operationType = 'VENTA';
   String _propertyType = 'Departamento';
+  double _selectedLat = -17.7833;
+  double _selectedLng = -63.1821;
   final TextEditingController _priceController = TextEditingController(text: '120000');
   final TextEditingController _titleController = TextEditingController(text: 'Departamento de Lujo en Equipetrol');
   List<KazaMediaItem> _mediaItems = [];
@@ -29,6 +33,176 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     _priceController.dispose();
     _titleController.dispose();
     super.dispose();
+  }
+
+  void _openMapPickerModal(BuildContext context) {
+    double tempLat = _selectedLat;
+    double tempLng = _selectedLng;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: KazaTheme.cardSurface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on, color: KazaTheme.primaryTealLight),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Seleccionar Ubicación Exacta',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                'Toca en el mapa para colocar el PIN del inmueble',
+                                style: TextStyle(color: KazaTheme.textMuted, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Map Container
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        FlutterMap(
+                          options: MapOptions(
+                            initialCenter: LatLng(tempLat, tempLng),
+                            initialZoom: 15.0,
+                            onTap: (tapPos, point) {
+                              setModalState(() {
+                                tempLat = point.latitude;
+                                tempLng = point.longitude;
+                              });
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                              subdomains: const ['a', 'b', 'c', 'd'],
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: LatLng(tempLat, tempLng),
+                                  width: 50,
+                                  height: 50,
+                                  child: Image.asset(
+                                    _propertyType == 'Casa'
+                                        ? 'assets/pins/pin_casa.png'
+                                        : _propertyType == 'Terreno'
+                                            ? 'assets/pins/pin_terreno.png'
+                                            : 'assets/pins/pin_departamento.png',
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.location_pin,
+                                        color: Colors.redAccent,
+                                        size: 44,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        // Coordinates Floating Badge
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          right: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: KazaTheme.cardSurface.withOpacity(0.95),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: KazaTheme.glassBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.my_location, size: 18, color: KazaTheme.primaryTealLight),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Coordenadas: ${tempLat.toStringAsFixed(4)}, ${tempLng.toStringAsFixed(4)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Confirm Button
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: KazaTheme.primaryTeal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.check_circle_outline),
+                        label: const Text(
+                          'Confirmar Ubicación del Inmueble',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _selectedLat = tempLat;
+                            _selectedLng = tempLng;
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -70,22 +244,24 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                 await SupabaseConfig.client.from('properties').insert({
                   'address_canonical': _titleController.text,
                   'property_type': _propertyType,
+                  'operation': _operationType,
                   'price_usd': priceNum,
                   'total_surface_m2': 85,
                   'rooms': 2,
                   'bathrooms': 2,
                   'status': 'PUBLISHED',
-                  'latitude': -17.7833,
-                  'longitude': -63.1821,
+                  'latitude': _selectedLat,
+                  'longitude': _selectedLng,
                   'publisher_name': agentName,
                   'publisher_email': agentEmail,
                 });
+                ref.invalidate(mapPropertiesProvider);
               } catch (_) {}
 
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('🎉 ¡Publicación insertada exitosamente en Supabase DB!'),
+                    content: Text('🎉 ¡Publicación insertada y visible en el Mapa Principal!'),
                     backgroundColor: KazaTheme.primaryTeal,
                   ),
                 );
@@ -209,29 +385,56 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
             // Step 3: Ubicación y PIN Canónico
             Step(
               title: const Text('3. Ubicación & PIN Canónico'),
-              subtitle: const Text('Coordenada confirmada por publisher'),
+              subtitle: Text('Lat: ${_selectedLat.toStringAsFixed(4)}, Lng: ${_selectedLng.toStringAsFixed(4)}'),
               isActive: _currentStep >= 2,
-              content: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: KazaTheme.cardSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: KazaTheme.glassBorder),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.location_on, size: 40, color: KazaTheme.primaryTealLight),
-                    SizedBox(height: 8),
-                    Text(
-                      'PIN en Ubicación Canónica Confirmada',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'La coordenada exacta permanece protegida internamente. En la búsqueda pública se aplicará el modo exacto o aproximado según tu configuración.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                    ),
-                  ],
+              content: InkWell(
+                onTap: () => _openMapPickerModal(context),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: KazaTheme.cardSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: KazaTheme.primaryTealLight, width: 1.5),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: KazaTheme.primaryTeal.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.edit_location_alt, size: 44, color: KazaTheme.primaryTealLight),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '📍 Seleccionar Ubicación en el Mapa',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Coordenadas: ${_selectedLat.toStringAsFixed(4)}, ${_selectedLng.toStringAsFixed(4)}',
+                        style: const TextStyle(color: KazaTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Toca aquí para abrir el mapa interactivo y colocar el PIN en el lugar exacto del inmueble.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: KazaTheme.primaryTeal,
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.map),
+                        label: const Text('Abrir Mapa e Indicar PIN'),
+                        onPressed: () => _openMapPickerModal(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
