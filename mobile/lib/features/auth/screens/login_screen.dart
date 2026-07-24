@@ -210,59 +210,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  // 1. VISTA DE REGISTRO RÁPIDO PARA USUARIO / BUSCADOR (SOLO GOOGLE / EMAIL)
+  // 1. VISTA DE REGISTRO RÁPIDO PARA USUARIO / BUSCADOR (SOLO BOTÓN GOOGLE)
   Widget _buildUserForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: KazaTheme.cardSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: KazaTheme.glassBorder),
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: KazaTheme.cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: KazaTheme.glassBorder),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.g_mobiledata, size: 56, color: KazaTheme.primaryTealLight),
           ),
-          child: Column(
-            children: [
-              const Icon(Icons.g_mobiledata, size: 50, color: KazaTheme.primaryTealLight),
-              const Text(
-                'Registro 1-Clic con Google',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Sin formularios largos. Tu cuenta se sincroniza automáticamente con tu correo de Google.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-              ),
-              const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          const Text(
+            'Registro 1-Clic con Google',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Inicia sesión al instante con tu cuenta de Google sin necesidad de escribir ningún correo ni contraseña.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 28),
 
-              TextField(
-                controller: _userEmailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Correo Electrónico de Google',
-                  prefixIcon: Icon(Icons.email_outlined, color: KazaTheme.primaryTealLight),
-                  border: OutlineInputBorder(),
+          // Botón Oficial de Google
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black87,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: KazaTheme.primaryTeal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                icon: const Icon(Icons.login),
-                label: const Text('Continuar con Google', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                onPressed: _handleGoogleAuth,
+              onPressed: _handleGoogleAuth,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.g_mobiledata, size: 32, color: Color(0xFF4285F4)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Continuar con Google',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
