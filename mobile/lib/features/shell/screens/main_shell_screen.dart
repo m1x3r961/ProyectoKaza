@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/providers/auth_provider.dart';
+
 /// 🏛️ MAIN SHELL SCREEN - 5-Tab Bottom Navigation Host
-class MainShellScreen extends StatelessWidget {
+class MainShellScreen extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainShellScreen({
@@ -12,7 +15,7 @@ class MainShellScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
@@ -25,10 +28,25 @@ class MainShellScreen extends StatelessWidget {
         child: BottomNavigationBar(
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
-            navigationShell.goBranch(
-              index,
-              initialLocation: index == navigationShell.currentIndex,
-            );
+            // Requerir autenticación para publicar (index 2) o ver mensajes (index 3)
+            if (index == 2 || index == 3) {
+              checkProgressiveAuth(
+                context: context,
+                ref: ref,
+                actionName: index == 2 ? 'Publicar un Inmueble' : 'Ver tus Mensajes y Chats',
+                onAuthenticatedAction: () {
+                  navigationShell.goBranch(
+                    index,
+                    initialLocation: index == navigationShell.currentIndex,
+                  );
+                },
+              );
+            } else {
+              navigationShell.goBranch(
+                index,
+                initialLocation: index == navigationShell.currentIndex,
+              );
+            }
           },
           selectedItemColor: KazaTheme.primaryTealLight,
           unselectedItemColor: KazaTheme.textMuted,

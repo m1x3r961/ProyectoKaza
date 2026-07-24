@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/network/supabase_config.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import 'chat_detail_screen.dart';
 
@@ -13,11 +14,35 @@ class MessagesScreen extends StatefulWidget {
 
 class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<Map<String, dynamic>> _realMessages = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchRealMessages();
+  }
+
+  Future<void> _fetchRealMessages() async {
+    try {
+      final response = await SupabaseConfig.client
+          .from('messages')
+          .select('*');
+      if (mounted) {
+        setState(() {
+          _realMessages = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _realMessages = [];
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -55,9 +80,9 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           indicatorColor: KazaTheme.primaryTealLight,
           labelColor: KazaTheme.primaryTealLight,
           unselectedLabelColor: KazaTheme.textMuted,
-          tabs: const [
-            Tab(text: 'Conversaciones (2)'),
-            Tab(text: 'Citas & Visitas (1)'),
+          tabs: [
+            Tab(text: 'Conversaciones (${_realMessages.length})'),
+            const Tab(text: 'Citas & Visitas (0)'),
           ],
         ),
       ),
@@ -65,99 +90,69 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
         controller: _tabController,
         children: [
           // 1. Conversaciones Chat List
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildChatTile(
-                name: 'Carlos Mendoza',
-                subtitle: 'Consulta sobre Dpto. Equipetrol: "¿Acepta financiamiento bancario?"',
-                time: '10:42 AM',
-                unread: true,
-                isOrgChat: true,
-                orgName: 'Inmobiliaria Kaza Pro',
-              ),
-              const Divider(color: KazaTheme.glassBorder),
-              _buildChatTile(
-                name: 'Ana Gutiérrez (Propietaria)',
-                subtitle: 'Confirmado para la visita de mañana a las 3:00 PM',
-                time: 'Ayer',
-                unread: false,
-                isOrgChat: false,
-                orgName: null,
-              ),
-            ],
-          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _realMessages.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.chat_bubble_outline, size: 64, color: KazaTheme.primaryTealLight),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Sin conversaciones aún',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Al comunicarte con un propietario o agente desde un inmueble, tus chats y negociaciones aparecerán aquí.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _realMessages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _realMessages[index];
+                        return _buildChatTile(
+                          name: msg['sender_name'] ?? 'Usuario Kaza',
+                          subtitle: msg['content'] ?? '',
+                          time: 'Hoy',
+                          unread: true,
+                          isOrgChat: false,
+                          orgName: null,
+                        );
+                      },
+                    ),
 
-          // 2. Visitas (Visit Safety)
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.security, color: KazaTheme.primaryTealLight, size: 20),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Visit Safety Protocol',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: KazaTheme.primaryTealLight),
-                          ),
-                          const Spacer(),
-                          const KazaStatusBadge(status: 'CONFIRMED'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Visita Programada: Casa Moderna en Urubó West',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '📅 Mañana, 25 de Julio · 15:00 PM',
-                        style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        '👤 Coordinada con: Ana Gutiérrez',
-                        style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
-                      ),
-                      const Divider(height: 24, color: KazaTheme.glassBorder),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.share, size: 16),
-                              label: const Text('Compartir Cita'),
-                              onPressed: () {
-                                _openChatDetail('Carlos Mendoza', 'Inmobiliaria Kaza Pro');
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: KazaTheme.primaryTeal,
-                                foregroundColor: Colors.white,
-                              ),
-                              icon: const Icon(Icons.location_on, size: 16),
-                              label: const Text('Abrir Chat'),
-                              onPressed: () {
-                                _openChatDetail('Carlos Mendoza', 'Inmobiliaria Kaza Pro');
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+          // 2. Visitas (Visit Safety) - Limpio en 0
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.calendar_today_outlined, size: 64, color: KazaTheme.primaryTealLight),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Sin visitas programadas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Coordina citas de inspección con protocolo de veracidad y seguridad desde el detalle de cada inmueble.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),

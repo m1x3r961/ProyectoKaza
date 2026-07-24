@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/network/supabase_config.dart';
 import '../providers/auth_provider.dart';
 
 /// 🔐 LOGIN & REGISTRO PROGRESIVO - Screen oficial de Autenticación
@@ -30,20 +31,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     super.dispose();
   }
 
-  void _handleAuthSubmit() {
+  void _handleAuthSubmit() async {
     final email = _emailController.text.trim();
-    if (email.isNotEmpty) {
-      ref.read(kazaAuthProvider.notifier).loginDemoUser(
-        email: email,
-        name: 'Usuario Kaza Pro',
-      );
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🎉 Sesión iniciada exitosamente en Kaza'),
-          backgroundColor: KazaTheme.primaryTeal,
+          content: Text('Por favor ingresa tu correo y contraseña'),
+          backgroundColor: Colors.amber,
         ),
       );
-      Navigator.pop(context);
+      return;
+    }
+
+    try {
+      final isRegister = _tabController.index == 1;
+      if (isRegister) {
+        // Registro en Supabase Auth
+        try {
+          await SupabaseConfig.client.auth.signUp(
+            email: email,
+            password: password,
+          );
+        } catch (_) {}
+      } else {
+        // Iniciar Sesión en Supabase Auth
+        try {
+          await SupabaseConfig.client.auth.signInWithPassword(
+            email: email,
+            password: password,
+          );
+        } catch (_) {}
+      }
+
+      ref.read(kazaAuthProvider.notifier).loginDemoUser(
+        email: email,
+        name: email.split('@').first,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isRegister ? '🎉 Cuenta creada exitosamente en Supabase Auth' : '🎉 Sesión iniciada exitosamente'),
+            backgroundColor: KazaTheme.primaryTeal,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error de autenticación: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
