@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/network/supabase_config.dart';
 import '../../auth/screens/login_screen.dart';
 
 class KazaAuthState {
@@ -40,14 +42,46 @@ class KazaAuthState {
 }
 
 class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
-  KazaAuthNotifier() : super(KazaAuthState());
+  KazaAuthNotifier() : super(KazaAuthState()) {
+    _initSupabaseAuth();
+  }
+
+  void _initSupabaseAuth() {
+    try {
+      final user = SupabaseConfig.client.auth.currentUser;
+      if (user != null) {
+        _setUser(user);
+      }
+      SupabaseConfig.client.auth.onAuthStateChange.listen((data) {
+        final sessionUser = data.session?.user;
+        if (sessionUser != null) {
+          _setUser(sessionUser);
+        } else if (data.event == AuthChangeEvent.signedOut) {
+          logout();
+        }
+      });
+    } catch (_) {}
+  }
+
+  void _setUser(User user) {
+    final name = user.userMetadata?['full_name'] ??
+        user.userMetadata?['name'] ??
+        user.email?.split('@').first ??
+        'Usuario Verificado';
+    state = state.copyWith(
+      isAuthenticated: true,
+      userId: user.id,
+      email: user.email,
+      fullName: name,
+    );
+  }
 
   void loginDemoUser({required String email, String? name}) {
     state = state.copyWith(
       isAuthenticated: true,
-      userId: 'usr-demo-123',
+      userId: 'usr-${DateTime.now().millisecondsSinceEpoch}',
       email: email,
-      fullName: name ?? 'Usuario Kaza Verificado',
+      fullName: name ?? email.split('@').first,
     );
   }
 
@@ -59,6 +93,9 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
   }
 
   void logout() {
+    try {
+      SupabaseConfig.client.auth.signOut();
+    } catch (_) {}
     state = KazaAuthState();
   }
 }

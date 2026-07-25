@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../providers/auth_provider.dart';
@@ -61,7 +63,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       inputEmail = _loginEmailController.text.trim();
     }
 
-    final targetEmail = inputEmail.isNotEmpty ? inputEmail : 'mi.cuenta.google@gmail.com';
+    // 1. Si no hay correo tipeado, lanza el selector de cuentas nativo de Google OAuth (accounts.google.com)
+    if (inputEmail.isEmpty) {
+      try {
+        await SupabaseConfig.client.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: kIsWeb ? null : 'io.supabase.flutter://login-callback',
+        );
+        return;
+      } catch (e) {
+        debugPrint('OAuth error: $e');
+      }
+    }
+
+    // 2. Si hay un correo específico ingresado por el usuario
+    final targetEmail = inputEmail;
     final name = (isRegister && _selectedRole == 'AGENT')
         ? (_agentNameController.text.isNotEmpty ? _agentNameController.text : 'Agente Profesional')
         : targetEmail.split('@').first;
@@ -106,10 +122,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(!isRegister
-                ? '🎉 Sesión iniciada correctamente con Google'
+                ? '🎉 Sesión iniciada correctamente como $targetEmail'
                 : (_selectedRole == 'USER'
-                    ? '🎉 Sesión iniciada con Google como Usuario / Buscador'
-                    : '🎉 Registro Profesional de Agente guardado en Supabase DB')),
+                    ? '🎉 Cuenta de usuario creada para $targetEmail'
+                    : '🎉 Perfil de Agente guardado en Supabase DB')),
             backgroundColor: KazaTheme.primaryTeal,
           ),
         );
