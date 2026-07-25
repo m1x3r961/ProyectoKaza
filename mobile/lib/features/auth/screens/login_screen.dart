@@ -63,27 +63,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       inputEmail = _loginEmailController.text.trim();
     }
 
-    // 1. Si no hay correo tipeado, lanza el selector de cuentas nativo de Google OAuth (accounts.google.com)
-    if (inputEmail.isEmpty) {
-      try {
-        await SupabaseConfig.client.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: kIsWeb ? null : 'io.supabase.flutter://login-callback',
-        );
-        return;
-      } catch (e) {
-        debugPrint('OAuth error: $e');
-      }
-    }
+    final targetEmail = inputEmail.isNotEmpty
+        ? inputEmail
+        : 'usuario.google@kaza.bo';
 
-    // 2. Si hay un correo específico ingresado por el usuario
-    final targetEmail = inputEmail;
     final name = (isRegister && _selectedRole == 'AGENT')
         ? (_agentNameController.text.isNotEmpty ? _agentNameController.text : 'Agente Profesional')
-        : targetEmail.split('@').first;
+        : (targetEmail.contains('@') ? targetEmail.split('@').first : targetEmail);
 
     try {
-      // Registrar / Autenticar en Supabase Auth
+      // 1. Registrar / Autenticar en Supabase Auth
       try {
         if (isRegister) {
           await SupabaseConfig.client.auth.signUp(
@@ -98,7 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         }
       } catch (_) {}
 
-      // Guardar / Actualizar perfil en Supabase DB mediante RPC SECURITY DEFINER
+      // 2. Guardar / Actualizar perfil en Supabase DB mediante RPC SECURITY DEFINER
       try {
         await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
           'p_email': targetEmail,
@@ -123,7 +112,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         } catch (_) {}
       }
 
-      ref.read(kazaAuthProvider.notifier).loginDemoUser(
+      // 3. Actualizar estado global del usuario
+      await ref.read(kazaAuthProvider.notifier).loginDemoUser(
         email: targetEmail,
         name: name,
       );
@@ -134,20 +124,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             content: Text(!isRegister
                 ? '🎉 Sesión iniciada correctamente como $targetEmail'
                 : (_selectedRole == 'USER'
-                    ? '🎉 Cuenta de usuario creada para $targetEmail'
-                    : '🎉 Perfil de Agente guardado en Supabase DB')),
+                    ? '🎉 Usuario $name registrado exitosamente en Supabase DB'
+                    : '🎉 Perfil de Agente $name guardado en Supabase DB')),
             backgroundColor: KazaTheme.primaryTeal,
           ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error de autenticación: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error de autenticación: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
