@@ -63,9 +63,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       inputEmail = _loginEmailController.text.trim();
     }
 
-    final targetEmail = inputEmail.isNotEmpty
-        ? inputEmail
-        : 'usuario.google@kaza.bo';
+    if (inputEmail.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ Por favor ingresa tu correo de Google para continuar'),
+            backgroundColor: Colors.orangeAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    final targetEmail = inputEmail;
 
     final name = (isRegister && _selectedRole == 'AGENT')
         ? (_agentNameController.text.isNotEmpty ? _agentNameController.text : 'Agente Profesional')
@@ -141,6 +151,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         );
       }
     }
+  }
+
+  // 1. VISTA DE INICIO DE SESIÓN DIRECTO
+  Widget _buildDirectLoginView() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: KazaTheme.cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: KazaTheme.glassBorder),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: KazaTheme.grisClaro,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.g_mobiledata, size: 56, color: Color(0xFF4285F4)),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Bienvenido de nuevo a Kaza',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Ingresa tu correo de Google registrado para iniciar sesión.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 20),
+
+          // Campo para ingresar correo registrado del usuario
+          TextField(
+            controller: _loginEmailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Ingresa tu Correo / Email Google *',
+              hintText: 'ej. mi.correo@gmail.com',
+              prefixIcon: const Icon(Icons.email_outlined, color: KazaTheme.azulKaza),
+              filled: true,
+              fillColor: KazaTheme.grisClaro,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Botón Oficial de Google
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: KazaTheme.azulKaza,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () => _handleGoogleAuth(isRegister: false),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.g_mobiledata, size: 32, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text(
+                    'Iniciar Sesión con Google',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -235,73 +331,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                 // FORMULARIO DINÁMICO SEGÚN ROL SELECCIONADO
                 if (_selectedRole == 'USER') _buildUserForm() else _buildAgentForm(),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDirectLoginView() {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: KazaTheme.cardSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KazaTheme.glassBorder),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.g_mobiledata, size: 56, color: KazaTheme.primaryTealLight),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Bienvenido de nuevo a Kaza',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Ingresa directamente a tu cuenta registrada con Google en 1 solo clic.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
-          ),
-          const SizedBox(height: 28),
-
-          // Botón Oficial de Google 1-Clic
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black87,
-                elevation: 2,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: () => _handleGoogleAuth(isRegister: false),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.g_mobiledata, size: 32, color: Color(0xFF4285F4)),
-                  SizedBox(width: 10),
-                  Text(
-                    'Iniciar Sesión con Google',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
