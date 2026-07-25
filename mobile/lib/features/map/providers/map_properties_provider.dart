@@ -38,7 +38,7 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
   try {
     final response = await SupabaseConfig.client
         .from('properties')
-        .select('id, property_type, total_surface_m2, rooms, bathrooms, address_canonical, price_usd, latitude, longitude');
+        .select('*');
 
     final List<PropertyMapItem> items = [];
     for (final row in response) {
@@ -47,10 +47,10 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
       final num price = (row['price_usd'] as num?) ?? 0;
 
       items.add(PropertyMapItem(
-        id: row['id'] as String,
+        id: row['id'].toString(),
         title: row['address_canonical'] ?? 'Propiedad Kaza',
         price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
-        operation: 'VENTA',
+        operation: row['operation'] ?? 'VENTA',
         type: row['property_type'] ?? 'Departamento',
         location: LatLng(lat, lng),
         bedrooms: (row['rooms'] as num?)?.toInt() ?? 0,
@@ -64,7 +64,6 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
 
     return items;
   } catch (e) {
-    // Si la base de datos está vacía o ocurre un error de conexión, retornar lista vacía (0 mapa limpio)
     return [];
   }
 });

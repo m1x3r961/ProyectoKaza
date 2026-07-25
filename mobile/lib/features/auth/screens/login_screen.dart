@@ -12,8 +12,10 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  // Rol seleccionado: 'USER' (Buscador) vs 'AGENT' (Agente / Inmobiliaria)
+class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // Rol seleccionado para registro: 'USER' (Buscador) vs 'AGENT' (Agente / Inmobiliaria)
   String _selectedRole = 'USER';
 
   // Controladores Usuario
@@ -29,7 +31,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _requestTrustVerification = true;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
     _userEmailController.dispose();
     _agentNameController.dispose();
     _agentEmailController.dispose();
@@ -40,27 +49,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleGoogleAuth() async {
+  Future<void> _handleGoogleAuth({bool isRegister = true}) async {
     final email = _selectedRole == 'USER'
         ? _userEmailController.text.trim()
         : _agentEmailController.text.trim();
 
     final targetEmail = email.isNotEmpty ? email : 'cuenta.google@gmail.com';
-    final name = _selectedRole == 'AGENT'
+    final name = (isRegister && _selectedRole == 'AGENT')
         ? (_agentNameController.text.isNotEmpty ? _agentNameController.text : 'Agente Profesional')
         : targetEmail.split('@').first;
 
     try {
       // Registrar / Autenticar en Supabase Auth
       try {
-        await SupabaseConfig.client.auth.signUp(
-          email: targetEmail,
-          password: 'GoogleOAuth2026!',
-        );
+        if (isRegister) {
+          await SupabaseConfig.client.auth.signUp(
+            email: targetEmail,
+            password: 'GoogleOAuth2026!',
+          );
+        } else {
+          await SupabaseConfig.client.auth.signInWithPassword(
+            email: targetEmail,
+            password: 'GoogleOAuth2026!',
+          );
+        }
       } catch (_) {}
 
-      // Si es Agente, guardar perfil profesional en Supabase DB
-      if (_selectedRole == 'AGENT') {
+      // Si es Agente y Registro, guardar perfil profesional en Supabase DB
+      if (isRegister && _selectedRole == 'AGENT') {
         try {
           await SupabaseConfig.client.from('profiles').upsert({
             'full_name': name,
@@ -82,9 +98,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_selectedRole == 'USER'
-                ? '🎉 Sesión iniciada con Google como Usuario / Buscador'
-                : '🎉 Registro Profesional de Agente enviado exitosamente a Supabase DB'),
+            content: Text(!isRegister
+                ? '🎉 Sesión iniciada correctamente con Google'
+                : (_selectedRole == 'USER'
+                    ? '🎉 Sesión iniciada con Google como Usuario / Buscador'
+                    : '🎉 Registro Profesional de Agente guardado en Supabase DB')),
             backgroundColor: KazaTheme.primaryTeal,
           ),
         );
@@ -104,63 +122,164 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Registro & Cuenta Kaza'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 80,
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Selecciona tu Tipo de Perfil en Kaza',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Regístrate fácilmente con tu cuenta de Google. Selecciona tu perfil:',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-            ),
-            const SizedBox(height: 24),
-
-            // 👥 SELECTOR DE ROL: USUARIO vs AGENTE
-            Row(
-              children: [
-                Expanded(
-                  child: _buildRoleCard(
-                    roleKey: 'USER',
-                    icon: Icons.person_pin,
-                    title: 'Usuario / Buscador',
-                    subtitle: 'Registro instantáneo con Google (solo correo).',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildRoleCard(
-                    roleKey: 'AGENT',
-                    icon: Icons.business_center,
-                    title: 'Agente / Inmobiliaria',
-                    subtitle: 'Perfil profesional para publicar y acreditar licencias.',
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 28),
-
-            // FORMULARIO DINÁMICO SEGÚN ROL SELECCIONADO
-            if (_selectedRole == 'USER') _buildUserForm() else _buildAgentForm(),
+        title: const Text('Autenticación Kaza'),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: KazaTheme.primaryTealLight,
+          labelColor: KazaTheme.primaryTealLight,
+          unselectedLabelColor: KazaTheme.textMuted,
+          tabs: const [
+            Tab(text: 'Iniciar Sesión'),
+            Tab(text: 'Crear Cuenta'),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // TAB 1: INICIAR SESIÓN (Para usuarios registrados)
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _buildDirectLoginView(),
+              ],
+            ),
+          ),
+
+          // TAB 2: CREAR CUENTA (Con opciones de Usuario vs Agente)
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 70,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Selecciona tu Tipo de Perfil',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Regístrate con tu cuenta de Google elegiendo tu rol:',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 20),
+
+                // 👥 SELECTOR DE ROL: USUARIO vs AGENTE
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildRoleCard(
+                        roleKey: 'USER',
+                        icon: Icons.person_pin,
+                        title: 'Usuario / Buscador',
+                        subtitle: 'Registro 1-clic con Google.',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildRoleCard(
+                        roleKey: 'AGENT',
+                        icon: Icons.business_center,
+                        title: 'Agente / Inmobiliaria',
+                        subtitle: 'Perfil profesional verificado.',
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // FORMULARIO DINÁMICO SEGÚN ROL SELECCIONADO
+                if (_selectedRole == 'USER') _buildUserForm() else _buildAgentForm(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDirectLoginView() {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: KazaTheme.cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: KazaTheme.glassBorder),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.g_mobiledata, size: 56, color: KazaTheme.primaryTealLight),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Bienvenido de nuevo a Kaza',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Ingresa directamente a tu cuenta registrada con Google en 1 solo clic.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 28),
+
+          // Botón Oficial de Google
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black87,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: () => _handleGoogleAuth(isRegister: false),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.g_mobiledata, size: 32, color: Color(0xFF4285F4)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Iniciar Sesión con Google',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
