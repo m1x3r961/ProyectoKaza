@@ -135,12 +135,15 @@ void checkProgressiveAuth({
                 ),
                 icon: const Icon(Icons.login),
                 label: const Text('Iniciar Sesión / Registrarme', style: TextStyle(fontWeight: FontWeight.bold)),
-                onPressed: () {
+                onPressed: () async {
                   Navigator.pop(ctx);
-                  Navigator.push(
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   );
+                  if (ref.read(kazaAuthProvider).isAuthenticated) {
+                    onAuthenticatedAction();
+                  }
                 },
               ),
             ),
