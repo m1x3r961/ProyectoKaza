@@ -33,21 +33,40 @@ class PropertyMapItem {
   });
 }
 
-/// Provider de Riverpod para consultar propiedades desde Supabase PostgreSQL + PostGIS
+class LocalPublishedPropertiesNotifier extends StateNotifier<List<PropertyMapItem>> {
+  LocalPublishedPropertiesNotifier() : super([]);
+
+  void addProperty(PropertyMapItem item) {
+    state = [item, ...state];
+  }
+}
+
+final localPublishedPropertiesProvider =
+    StateNotifierProvider<LocalPublishedPropertiesNotifier, List<PropertyMapItem>>((ref) {
+  return LocalPublishedPropertiesNotifier();
+});
+
+/// Provider de Riverpod para consultar propiedades desde Supabase PostgreSQL + PostGIS + Local Session
 final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async {
+  final localItems = ref.watch(localPublishedPropertiesProvider);
+  final List<PropertyMapItem> items = [...localItems];
+
   try {
     final response = await SupabaseConfig.client
         .from('properties')
         .select('*');
 
-    final List<PropertyMapItem> items = [];
     for (final row in response) {
+      final idStr = row['id'].toString();
+      // Evitar duplicados si ya está en localItems
+      if (items.any((it) => it.id == idStr)) continue;
+
       final double lat = _extractLat(row);
       final double lng = _extractLng(row);
       final num price = (row['price_usd'] as num?) ?? (row['price_original'] as num?) ?? 0;
 
       items.add(PropertyMapItem(
-        id: row['id'].toString(),
+        id: idStr,
         title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
         price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
         operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
@@ -61,11 +80,9 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
         isOrg: true,
       ));
     }
+  } catch (_) {}
 
-    return items;
-  } catch (e) {
-    return [];
-  }
+  return items;
 });
 
 double _extractLat(Map<String, dynamic> row) {

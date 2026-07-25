@@ -303,6 +303,23 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                 } catch (_) {}
               }
 
+              // Add to local state provider for instant zero-latency UI display
+              final newLocalItem = PropertyMapItem(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                title: _titleController.text.isNotEmpty ? _titleController.text : 'Propiedad Kaza',
+                price: '\$ ${priceNum.toStringAsFixed(0)}',
+                operation: _operationType,
+                type: _propertyType,
+                location: LatLng(_selectedLat, _selectedLng),
+                bedrooms: 2,
+                bathrooms: 2,
+                surface: '85 m²',
+                isPlus: true,
+                trustLabel: agentName,
+                isOrg: true,
+              );
+
+              ref.read(localPublishedPropertiesProvider.notifier).addProperty(newLocalItem);
               ref.invalidate(mapPropertiesProvider);
 
               if (mounted) {

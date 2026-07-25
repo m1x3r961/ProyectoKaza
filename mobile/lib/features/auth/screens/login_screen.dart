@@ -19,7 +19,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   String _selectedRole = 'USER';
 
   // Controladores Usuario
-  final TextEditingController _userEmailController = TextEditingController(text: 'usuario@gmail.com');
+  final TextEditingController _loginEmailController = TextEditingController();
+  final TextEditingController _userEmailController = TextEditingController();
 
   // Controladores Agente Profesional
   final TextEditingController _agentNameController = TextEditingController();
@@ -39,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   @override
   void dispose() {
     _tabController.dispose();
+    _loginEmailController.dispose();
     _userEmailController.dispose();
     _agentNameController.dispose();
     _agentEmailController.dispose();
@@ -50,11 +52,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   }
 
   Future<void> _handleGoogleAuth({bool isRegister = true}) async {
-    final email = _selectedRole == 'USER'
-        ? _userEmailController.text.trim()
-        : _agentEmailController.text.trim();
+    final String inputEmail;
+    if (isRegister) {
+      inputEmail = _selectedRole == 'USER'
+          ? _userEmailController.text.trim()
+          : _agentEmailController.text.trim();
+    } else {
+      inputEmail = _loginEmailController.text.trim();
+    }
 
-    final targetEmail = email.isNotEmpty ? email : 'cuenta.google@gmail.com';
+    final targetEmail = inputEmail.isNotEmpty ? inputEmail : 'mi.cuenta.google@gmail.com';
     final name = (isRegister && _selectedRole == 'AGENT')
         ? (_agentNameController.text.isNotEmpty ? _agentNameController.text : 'Agente Profesional')
         : targetEmail.split('@').first;
@@ -246,7 +253,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             textAlign: TextAlign.center,
             style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
+
+          // Campo para ingresar correo real del usuario
+          TextField(
+            controller: _loginEmailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Ingresa tu Correo / Email Google *',
+              hintText: 'ej. mi.correo@gmail.com',
+              prefixIcon: const Icon(Icons.email_outlined, color: KazaTheme.primaryTealLight),
+              filled: true,
+              fillColor: Colors.black26,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 20),
 
           // Botón Oficial de Google
           SizedBox(
