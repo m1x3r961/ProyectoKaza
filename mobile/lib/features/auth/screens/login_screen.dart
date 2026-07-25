@@ -54,98 +54,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   }
 
   Future<void> _handleGoogleAuth({bool isRegister = true}) async {
-    final String inputEmail;
-    if (isRegister) {
-      inputEmail = _selectedRole == 'USER'
-          ? _userEmailController.text.trim()
-          : _agentEmailController.text.trim();
-    } else {
-      inputEmail = _loginEmailController.text.trim();
-    }
-
-    if (inputEmail.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚠️ Por favor ingresa tu correo de Google para continuar'),
-            backgroundColor: Colors.orangeAccent,
-          ),
-        );
-      }
-      return;
-    }
-
-    final targetEmail = inputEmail;
-
-    final name = (isRegister && _selectedRole == 'AGENT')
-        ? (_agentNameController.text.isNotEmpty ? _agentNameController.text : 'Agente Profesional')
-        : (targetEmail.contains('@') ? targetEmail.split('@').first : targetEmail);
-
     try {
-      // 1. Registrar / Autenticar en Supabase Auth
-      try {
-        if (isRegister) {
-          await SupabaseConfig.client.auth.signUp(
-            email: targetEmail,
-            password: 'GoogleOAuth2026!',
-          );
-        } else {
-          await SupabaseConfig.client.auth.signInWithPassword(
-            email: targetEmail,
-            password: 'GoogleOAuth2026!',
-          );
-        }
-      } catch (_) {}
-
-      // 2. Guardar / Actualizar perfil en Supabase DB mediante RPC SECURITY DEFINER
-      try {
-        await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
-          'p_email': targetEmail,
-          'p_full_name': name,
-          'p_role': _selectedRole,
-          'p_phone': _agentPhoneController.text,
-          'p_license_number': _agentLicenseController.text,
-          'p_organization': _agentOrgController.text,
-          'p_zone': _agentZoneController.text,
-        });
-      } catch (_) {
-        try {
-          await SupabaseConfig.client.from('profiles').upsert({
-            'email': targetEmail,
-            'full_name': name,
-            'role': _selectedRole,
-            'phone': _agentPhoneController.text,
-            'license_number': _agentLicenseController.text,
-            'organization': _agentOrgController.text,
-            'zone': _agentZoneController.text,
-          });
-        } catch (_) {}
-      }
-
-      // 3. Actualizar estado global del usuario
-      await ref.read(kazaAuthProvider.notifier).loginDemoUser(
-        email: targetEmail,
-        name: name,
+      // Autenticación real con Google OAuth
+      await SupabaseConfig.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? 'https://proyecto-kaza.vercel.app' : null,
       );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(!isRegister
-                ? '🎉 Sesión iniciada correctamente como $targetEmail'
-                : (_selectedRole == 'USER'
-                    ? '🎉 Usuario $name registrado exitosamente en Supabase DB'
-                    : '🎉 Perfil de Agente $name guardado en Supabase DB')),
-            backgroundColor: KazaTheme.primaryTeal,
-          ),
-        );
-        Navigator.pop(context);
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error de autenticación: $e'),
+            content: Text('Error al conectar con Google: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -179,29 +98,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           ),
           const SizedBox(height: 8),
           const Text(
-            'Ingresa tu correo de Google registrado para iniciar sesión.',
+            'Inicia sesión con tu cuenta de Google en 1 solo clic.',
             textAlign: TextAlign.center,
             style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 20),
-
-          // Campo para ingresar correo registrado del usuario
-          TextField(
-            controller: _loginEmailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: 'Ingresa tu Correo / Email Google *',
-              hintText: 'ej. mi.correo@gmail.com',
-              prefixIcon: const Icon(Icons.email_outlined, color: KazaTheme.azulKaza),
-              filled: true,
-              fillColor: KazaTheme.grisClaro,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
 
           // Botón Oficial de Google
           SizedBox(
