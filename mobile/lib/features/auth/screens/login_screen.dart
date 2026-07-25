@@ -478,19 +478,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           ),
           const SizedBox(height: 14),
 
-          // Correo Electrónico Profesional (Google)
-          TextField(
-            controller: _agentEmailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Correo Profesional (Google) *',
-              hintText: 'agente@inmobiliaria.bo',
-              prefixIcon: Icon(Icons.email_outlined),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-
           // WhatsApp / Teléfono Profesional
           TextField(
             controller: _agentPhoneController,
