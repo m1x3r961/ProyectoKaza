@@ -63,26 +63,63 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     } catch (_) {}
   }
 
-  void _setUser(User user) {
+  Future<void> _setUser(User user) async {
     final name = user.userMetadata?['full_name'] ??
         user.userMetadata?['name'] ??
         user.email?.split('@').first ??
         'Usuario Verificado';
+    final email = user.email ?? 'usuario@kaza.bo';
+
     state = state.copyWith(
       isAuthenticated: true,
       userId: user.id,
-      email: user.email,
+      email: email,
       fullName: name,
     );
+
+    // Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
+    try {
+      await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+        'p_email': email,
+        'p_full_name': name,
+        'p_role': 'USER',
+      });
+    } catch (_) {
+      try {
+        await SupabaseConfig.client.from('profiles').upsert({
+          'email': email,
+          'full_name': name,
+          'role': 'USER',
+        });
+      } catch (_) {}
+    }
   }
 
-  void loginDemoUser({required String email, String? name}) {
+  Future<void> loginDemoUser({required String email, String? name}) async {
+    final fullName = name ?? email.split('@').first;
     state = state.copyWith(
       isAuthenticated: true,
       userId: 'usr-${DateTime.now().millisecondsSinceEpoch}',
       email: email,
-      fullName: name ?? email.split('@').first,
+      fullName: fullName,
     );
+
+    // Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
+    try {
+      await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+        'p_email': email,
+        'p_full_name': fullName,
+        'p_role': 'USER',
+      });
+    } catch (_) {
+      try {
+        await SupabaseConfig.client.from('profiles').upsert({
+          'email': email,
+          'full_name': fullName,
+          'role': 'USER',
+        });
+      } catch (_) {}
+    }
   }
 
   void switchWorkspace(String workspaceName, bool isOrg) {
