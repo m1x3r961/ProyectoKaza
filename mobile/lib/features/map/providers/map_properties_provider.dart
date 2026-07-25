@@ -42,15 +42,15 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
 
     final List<PropertyMapItem> items = [];
     for (final row in response) {
-      final double lat = (row['latitude'] as num?)?.toDouble() ?? -17.7833;
-      final double lng = (row['longitude'] as num?)?.toDouble() ?? -63.1821;
-      final num price = (row['price_usd'] as num?) ?? 0;
+      final double lat = _extractLat(row);
+      final double lng = _extractLng(row);
+      final num price = (row['price_usd'] as num?) ?? (row['price_original'] as num?) ?? 0;
 
       items.add(PropertyMapItem(
         id: row['id'].toString(),
-        title: row['address_canonical'] ?? 'Propiedad Kaza',
+        title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
         price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
-        operation: row['operation'] ?? 'VENTA',
+        operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
         type: row['property_type'] ?? 'Departamento',
         location: LatLng(lat, lng),
         bedrooms: (row['rooms'] as num?)?.toInt() ?? 0,
@@ -67,3 +67,57 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
     return [];
   }
 });
+
+double _extractLat(Map<String, dynamic> row) {
+  if (row['latitude'] != null) return (row['latitude'] as num).toDouble();
+  if (row['canonical_location'] != null) {
+    final loc = row['canonical_location'];
+    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+      return ((loc['coordinates'] as List)[1] as num).toDouble();
+    }
+    if (loc is String && loc.contains('POINT')) {
+      final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
+      final parts = clean.split(' ');
+      if (parts.length >= 2) return double.tryParse(parts[1]) ?? -17.7833;
+    }
+  }
+  if (row['public_location_geometry'] != null) {
+    final loc = row['public_location_geometry'];
+    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+      return ((loc['coordinates'] as List)[1] as num).toDouble();
+    }
+    if (loc is String && loc.contains('POINT')) {
+      final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
+      final parts = clean.split(' ');
+      if (parts.length >= 2) return double.tryParse(parts[1]) ?? -17.7833;
+    }
+  }
+  return -17.7833;
+}
+
+double _extractLng(Map<String, dynamic> row) {
+  if (row['longitude'] != null) return (row['longitude'] as num).toDouble();
+  if (row['canonical_location'] != null) {
+    final loc = row['canonical_location'];
+    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+      return ((loc['coordinates'] as List)[0] as num).toDouble();
+    }
+    if (loc is String && loc.contains('POINT')) {
+      final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
+      final parts = clean.split(' ');
+      if (parts.length >= 2) return double.tryParse(parts[0]) ?? -63.1821;
+    }
+  }
+  if (row['public_location_geometry'] != null) {
+    final loc = row['public_location_geometry'];
+    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+      return ((loc['coordinates'] as List)[0] as num).toDouble();
+    }
+    if (loc is String && loc.contains('POINT')) {
+      final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
+      final parts = clean.split(' ');
+      if (parts.length >= 2) return double.tryParse(parts[0]) ?? -63.1821;
+    }
+  }
+  return -63.1821;
+}
