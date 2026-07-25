@@ -9,11 +9,10 @@ class SupabaseConfig {
 
   static const String supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: '',
+    defaultValue: 'sb_publishable_Hx6ofANMtz9ZIq8exX16xw_s0sVUHzc',
   );
 
   static Future<void> initialize() async {
-    if (supabaseAnonKey.isEmpty) return;
     await Supabase.initialize(
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
