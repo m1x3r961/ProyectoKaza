@@ -240,34 +240,25 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
               setState(() => _currentStep++);
             } else {
               final priceNum = double.tryParse(_priceController.text) ?? 120000;
-              final pointGeoJson = {
-                'type': 'Point',
-                'coordinates': [_selectedLng, _selectedLat],
-              };
-
               bool inserted = false;
 
-              // Strategy 1: PostGIS GeoJSON Point
+              // Strategy 1: PostGIS RPC Function Security Definer
               try {
-                await SupabaseConfig.client.from('properties').insert({
-                  'address_canonical': _titleController.text,
-                  'property_type': _propertyType,
-                  'price_usd': priceNum,
-                  'total_surface_m2': 85,
-                  'rooms': 2,
-                  'bathrooms': 2,
-                  'status': 'PUBLISHED',
-                  'canonical_location': pointGeoJson,
-                  'public_location_geometry': pointGeoJson,
-                  'country_code': 'BOL',
-                  'city_id': 'santa_cruz',
-                  'latitude': _selectedLat,
-                  'longitude': _selectedLng,
+                await SupabaseConfig.client.rpc('fn_create_property', params: {
+                  'p_title': _titleController.text.isNotEmpty ? _titleController.text : 'Propiedad Kaza',
+                  'p_property_type': _propertyType,
+                  'p_operation': _operationType,
+                  'p_price': priceNum,
+                  'p_surface': 85,
+                  'p_rooms': 2,
+                  'p_bathrooms': 2,
+                  'p_latitude': _selectedLat,
+                  'p_longitude': _selectedLng,
                 });
                 inserted = true;
               } catch (_) {}
 
-              // Strategy 2: PostGIS WKT Point string
+              // Strategy 2: Direct Table Insert
               if (!inserted) {
                 try {
                   await SupabaseConfig.client.from('properties').insert({
@@ -278,28 +269,10 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                     'rooms': 2,
                     'bathrooms': 2,
                     'status': 'PUBLISHED',
-                    'canonical_location': 'POINT($_selectedLng $_selectedLat)',
-                    'public_location_geometry': 'POINT($_selectedLng $_selectedLat)',
-                    'country_code': 'BOL',
-                    'city_id': 'santa_cruz',
-                  });
-                  inserted = true;
-                } catch (_) {}
-              }
-
-              // Strategy 3: Standard numeric columns
-              if (!inserted) {
-                try {
-                  await SupabaseConfig.client.from('properties').insert({
-                    'address_canonical': _titleController.text,
-                    'property_type': _propertyType,
-                    'price_usd': priceNum,
-                    'total_surface_m2': 85,
-                    'rooms': 2,
-                    'bathrooms': 2,
                     'latitude': _selectedLat,
                     'longitude': _selectedLng,
                   });
+                  inserted = true;
                 } catch (_) {}
               }
 

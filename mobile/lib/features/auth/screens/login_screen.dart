@@ -98,17 +98,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         }
       } catch (_) {}
 
-      // Si es Agente y Registro, guardar perfil profesional en Supabase DB
-      if (isRegister && _selectedRole == 'AGENT') {
+      // Guardar / Actualizar perfil en Supabase DB mediante RPC SECURITY DEFINER
+      try {
+        await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+          'p_email': targetEmail,
+          'p_full_name': name,
+          'p_role': _selectedRole,
+          'p_phone': _agentPhoneController.text,
+          'p_license_number': _agentLicenseController.text,
+          'p_organization': _agentOrgController.text,
+          'p_zone': _agentZoneController.text,
+        });
+      } catch (_) {
         try {
           await SupabaseConfig.client.from('profiles').upsert({
+            'email': targetEmail,
             'full_name': name,
-            'role': 'AGENT',
+            'role': _selectedRole,
             'phone': _agentPhoneController.text,
             'license_number': _agentLicenseController.text,
             'organization': _agentOrgController.text,
             'zone': _agentZoneController.text,
-            'trust_badge_requested': _requestTrustVerification,
           });
         } catch (_) {}
       }
