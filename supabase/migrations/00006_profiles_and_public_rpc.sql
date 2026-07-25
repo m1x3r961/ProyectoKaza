@@ -127,9 +127,21 @@ BEGIN
 END;
 $$;
 
--- 5. PERMISOS Y POLITICAS RLS ABIERTAS PARA PROPIEDADES Y PERFILES
+-- 5. GRANT PERMISSIONS TO ANON, AUTHENTICATED AND SERVICE_ROLE
+GRANT ALL ON TABLE public.profiles TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.properties TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.admin_cases TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.listings TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.workspaces TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.messages TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.conversations TO anon, authenticated, service_role;
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+
+-- 6. PERMISOS Y POLITICAS RLS ABIERTAS PARA PROPIEDADES Y PERFILES
 ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_cases ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public Read Properties" ON public.properties;
 CREATE POLICY "Public Read Properties" ON public.properties FOR SELECT USING (true);
@@ -148,3 +160,12 @@ CREATE POLICY "Public Insert Profiles" ON public.profiles FOR INSERT WITH CHECK 
 
 DROP POLICY IF EXISTS "Public Update Profiles" ON public.profiles;
 CREATE POLICY "Public Update Profiles" ON public.profiles FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Public Read Admin Cases" ON public.admin_cases;
+CREATE POLICY "Public Read Admin Cases" ON public.admin_cases FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Insert Admin Cases" ON public.admin_cases;
+CREATE POLICY "Public Insert Admin Cases" ON public.admin_cases FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Update Admin Cases" ON public.admin_cases;
+CREATE POLICY "Public Update Admin Cases" ON public.admin_cases FOR UPDATE USING (true);
