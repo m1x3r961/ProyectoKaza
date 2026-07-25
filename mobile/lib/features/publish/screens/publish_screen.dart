@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
+import '../../../core/widgets/kaza_pin_painter.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../map/providers/map_properties_provider.dart';
 import '../../media/models/kaza_media_item.dart';
@@ -119,21 +120,19 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                               markers: [
                                 Marker(
                                   point: LatLng(tempLat, tempLng),
-                                  width: 50,
-                                  height: 50,
-                                  child: Image.asset(
-                                    _propertyType == 'Casa'
-                                        ? 'assets/pins/pin_casa.png'
-                                        : _propertyType == 'Terreno'
-                                            ? 'assets/pins/pin_terreno.png'
-                                            : 'assets/pins/pin_departamento.png',
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(
-                                        Icons.location_pin,
-                                        color: Colors.redAccent,
-                                        size: 44,
-                                      );
-                                    },
+                                  width: 40,
+                                  height: 52,
+                                  child: CustomPaint(
+                                    painter: KazaPinPainter(
+                                      icon: _propertyType == 'Casa'
+                                          ? Icons.home_rounded
+                                          : _propertyType == 'Terreno'
+                                              ? Icons.landscape_rounded
+                                              : _propertyType == 'Oficina'
+                                                  ? Icons.business_rounded
+                                                  : Icons.apartment_rounded,
+                                      isSelected: true,
+                                    ),
                                   ),
                                 ),
                               ],
