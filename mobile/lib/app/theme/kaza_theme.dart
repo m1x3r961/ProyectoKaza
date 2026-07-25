@@ -1,37 +1,43 @@
 import 'package:flutter/material.dart';
 
-/// Kaza Product Architecture Master v0.2 - Design System & Tokens
-/// Premium Dark Mode with HSL Slate Navy background, Teal & Gold accents, 
-/// glassmorphism cards and modern typography.
+/// 🎨 KAZA BRAND IDENTITY SYSTEM v1.0 (Manual de Marca Oficial)
+/// Paleta de colores oficial:
+/// - Azul Kaza: #0F1F2E
+/// - Coral Kaza: #FF5A3C
+/// - Gris Claro: #F2F4F7
+/// - Gris Medio: #A3A9B2
+/// - Verde Entorno: #27AE60
 class KazaTheme {
-  // Brand Palette - Derived from assets/images/logo.png
-  static const Color darkBackground = Color(0xFF0B0F17); // Deep Slate
-  static const Color cardSurface = Color(0xFF161C26); // Dark Navy Surface
-  static const Color glassBorder = Color(0x22FFFFFF); // Glass Border
+  // 1. PALETA DE COLORES OFICIAL DE MARCA
+  static const Color azulKaza = Color(0xFF0F1F2E);       // #0F1F2E Azul Kaza (Fondo Primario / Dark Slate)
+  static const Color coralKaza = Color(0xFFFF5A3C);      // #FF5A3C Coral Kaza (Accent Primario / Botón Publicar / Pines)
+  static const Color grisClaro = Color(0xFFF2F4F7);       // #F2F4F7 Gris Claro (Superficie Cards / Chips)
+  static const Color grisMedio = Color(0xFFA3A9B2);       // #A3A9B2 Gris Medio (Texto Secundario / Bordes)
+  static const Color verdeEntorno = Color(0xFF27AE60);    // #27AE60 Verde Entorno (Kaza Score / Verificado)
 
-  // Primary Coral Red / Terracotta Palette (From Logo Location Pin)
-  static const Color primaryCoral = Color(0xFFE05A47); // Kaza Coral Red
-  static const Color primaryCoralLight = Color(0xFFEE7263); // Light Coral Highlight
-  static const Color primaryCoralDark = Color(0xFFC84332);
+  // 2. BACKWARD COMPATIBILITY TOKENS
+  static const Color darkBackground = azulKaza;
+  static const Color cardSurface = Color(0xFF162330);
+  static const Color glassBorder = Color(0x22FFFFFF);
 
-  // Backward compatibility alias for primary color tokens
-  static const Color primaryTeal = primaryCoral;
+  static const Color primaryCoral = coralKaza;
+  static const Color primaryCoralLight = Color(0xFFFF7A63);
+  static const Color primaryCoralDark = Color(0xFFE04326);
+
+  static const Color primaryTeal = coralKaza;
   static const Color primaryTealLight = primaryCoralLight;
 
-  // Sunset Peach Gold (From Logo Roof)
-  static const Color accentGold = Color(0xFFF6BD7B); // Kaza Peach Gold Accent
+  static const Color accentGold = Color(0xFFF6BD7B);
   static const Color accentGoldBright = Color(0xFFF8C88B);
-  
-  static const Color trustBlue = Color(0xFF2563EB); // Trust Badge Blue
-  static const Color verifiedGreen = Color(0xFF10B981); // Verification Green
 
-  // Text Colors
+  static const Color trustBlue = Color(0xFF2563EB);
+  static const Color verifiedGreen = verdeEntorno;
+
   static const Color textPrimary = Color(0xFFF9FAFB);
-  static const Color textSecondary = Color(0xFF9CA3AF);
-  static const Color textMuted = Color(0xFF6B7280);
+  static const Color textSecondary = grisMedio;
+  static const Color textMuted = grisMedio;
 
-  // Status Colors
-  static const Color statusAvailable = Color(0xFF10B981);
+  static const Color statusAvailable = verdeEntorno;
   static const Color statusReserved = Color(0xFFF59E0B);
   static const Color statusClosed = Color(0xFFEF4444);
   static const Color statusPaused = Color(0xFF6B7280);
@@ -40,15 +46,15 @@ class KazaTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: darkBackground,
+      scaffoldBackgroundColor: azulKaza,
       colorScheme: const ColorScheme.dark(
         surface: cardSurface,
-        primary: primaryCoral,
-        secondary: accentGold,
+        primary: coralKaza,
+        secondary: verdeEntorno,
         onSurface: textPrimary,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: darkBackground,
+        backgroundColor: azulKaza,
         elevation: 0,
         centerTitle: false,
         iconTheme: IconThemeData(color: textPrimary),
@@ -60,8 +66,8 @@ class KazaTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: cardSurface,
-        selectedItemColor: primaryCoralLight,
-        unselectedItemColor: textMuted,
+        selectedItemColor: coralKaza,
+        unselectedItemColor: grisMedio,
         type: BottomNavigationBarType.fixed,
         elevation: 10,
       ),
@@ -76,7 +82,7 @@ class KazaTheme {
       chipTheme: ChipThemeData(
         backgroundColor: cardSurface,
         labelStyle: const TextStyle(color: textPrimary, fontSize: 13),
-        secondarySelectedColor: primaryCoral,
+        secondarySelectedColor: coralKaza,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),

@@ -43,14 +43,14 @@ class KazaPinPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawPath(pinPath.shift(const Offset(0, 3)), shadowPaint);
 
-    // 2. Kaza Gradient Fill (Peach Gold to Coral Red)
+    // 2. Kaza Brand Gradient Fill (Coral Kaza #FF5A3C to Azul Kaza #0F1F2E)
     final Paint fillPaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xFFF6BD7B), // Peach Gold
-          Color(0xFFE05A47), // Coral Red
+          Color(0xFFFF5A3C), // Coral Kaza
+          Color(0xFF0F1F2E), // Azul Kaza
         ],
       ).createShader(Rect.fromLTWH(0, 0, width, height));
 
@@ -68,14 +68,14 @@ class KazaPinPainter extends CustomPainter {
     final Paint innerCirclePaint = Paint()..color = Colors.white;
     canvas.drawCircle(Offset(radius, radius * 0.92), innerRadius, innerCirclePaint);
 
-    // 5. Category Icon inside central circle
+    // 5. Category Icon inside central circle in Coral Kaza
     final TextSpan span = TextSpan(
       text: String.fromCharCode(icon.codePoint),
       style: TextStyle(
         fontSize: innerRadius * 1.3,
         fontFamily: icon.fontFamily,
         package: icon.fontPackage,
-        color: const Color(0xFFE05A47),
+        color: const Color(0xFFFF5A3C), // Coral Kaza
       ),
     );
 
