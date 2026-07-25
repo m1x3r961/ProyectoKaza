@@ -81,6 +81,31 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     });
   }
 
+  Widget _buildOperationPill(String title, {required bool isSelected}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? KazaTheme.azulKaza : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? Colors.white : KazaTheme.azulKaza,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
   void _openFilterBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -233,73 +258,89 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             },
           ),
 
-          // 2. Top Floating Bar (Search + POI Categories)
+          // 2. Top Floating Bar (Exact Design Mockup "MAPA COMO CORAZÓN")
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Search Bar
+                  // Row 1: Search Bar "Q ¿Dónde quieres buscar?" + Filter Button
                   Container(
+                    height: 50,
                     decoration: BoxDecoration(
-                      color: KazaTheme.cardSurface.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: KazaTheme.glassBorder),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
                       boxShadow: const [
                         BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10,
+                          color: Colors.black12,
+                          blurRadius: 12,
                           offset: Offset(0, 4),
                         ),
                       ],
                     ),
                     child: Row(
                       children: [
-                        const SizedBox(width: 12),
-                        Image.asset(
-                          'assets/images/logo.png',
-                          height: 32,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.search, color: KazaTheme.primaryCoralLight, size: 20),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 16),
+                        const Icon(Icons.search_rounded, color: KazaTheme.azulKaza, size: 22),
+                        const SizedBox(width: 10),
                         const Expanded(
                           child: TextField(
                             decoration: InputDecoration(
-                              hintText: 'Buscar ciudad, zona, barrio...',
-                              hintStyle: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+                              hintText: '¿Dónde quieres buscar?',
+                              hintStyle: TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
                               border: InputBorder.none,
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.tune, color: KazaTheme.primaryCoralLight),
+                          icon: const Icon(Icons.tune_rounded, color: KazaTheme.azulKaza, size: 22),
                           onPressed: _openFilterBottomSheet,
                         ),
+                        const SizedBox(width: 6),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
-                  // Category Chips (Entorno POIs)
+                  // Row 2: Operation Pills [ Comprar ] [ Alquilar ] [ Anticrético ]
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildOperationPill('Comprar', isSelected: true),
+                      const SizedBox(width: 8),
+                      _buildOperationPill('Alquilar', isSelected: false),
+                      const SizedBox(width: 8),
+                      _buildOperationPill('Anticrético', isSelected: false),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Row 3: Category Chips [ Casa ] [ Dpto. ] [ Terreno ] [ Local ] [ Oficina ] [ Más ]
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ['Todos', 'Educación', 'Salud', 'Supermercados', 'Parques'].map((cat) {
+                      children: ['Casa', 'Dpto.', 'Terreno', 'Local', 'Oficina', 'Más'].map((cat) {
                         final isSel = _selectedCategory == cat;
                         return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
+                          padding: const EdgeInsets.only(right: 6.0),
                           child: ChoiceChip(
                             label: Text(cat),
                             selected: isSel,
-                            selectedColor: KazaTheme.primaryTeal,
-                            backgroundColor: KazaTheme.cardSurface.withValues(alpha: 0.85),
+                            selectedColor: KazaTheme.azulKaza,
+                            backgroundColor: Colors.white,
+                            elevation: 2,
+                            shadowColor: Colors.black12,
+                            side: BorderSide.none,
                             labelStyle: TextStyle(
-                              color: isSel ? Colors.white : KazaTheme.textSecondary,
-                              fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                              color: isSel ? Colors.white : KazaTheme.azulKaza,
+                              fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
                               fontSize: 12,
                             ),
                             onSelected: (_) {
