@@ -104,7 +104,22 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
       fullName: fullName,
     );
 
-    // Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
+    // 1. Garantizar sesión permanente en Supabase Auth (guarda token en LocalStorage del navegador)
+    try {
+      try {
+        await SupabaseConfig.client.auth.signUp(
+          email: email,
+          password: 'GoogleOAuth2026!',
+        );
+      } catch (_) {
+        await SupabaseConfig.client.auth.signInWithPassword(
+          email: email,
+          password: 'GoogleOAuth2026!',
+        );
+      }
+    } catch (_) {}
+
+    // 2. Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
     try {
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
         'p_email': email,

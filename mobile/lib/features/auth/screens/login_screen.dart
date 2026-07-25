@@ -271,24 +271,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             textAlign: TextAlign.center,
             style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
 
-          // Campo para ingresar correo real del usuario
-          TextField(
-            controller: _loginEmailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              labelText: 'Ingresa tu Correo / Email Google *',
-              hintText: 'ej. mi.correo@gmail.com',
-              prefixIcon: const Icon(Icons.email_outlined, color: KazaTheme.primaryTealLight),
-              filled: true,
-              fillColor: Colors.black26,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Botón Oficial de Google
+          // Botón Oficial de Google 1-Clic
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
