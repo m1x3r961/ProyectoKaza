@@ -164,6 +164,20 @@ export default function AdminDashboardSuite() {
   }, []);
 
   // Live Supabase Mutation Handlers
+  const handleUserDelete = async (id: string) => {
+    if (!confirm('¿Seguro que deseas eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    setUsers(prev => prev.filter(u => u.id !== id));
+    setRealUsersCount(prev => Math.max(0, prev - 1));
+    try {
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+    } catch (err) {
+      console.log('Deleted from local state', err);
+    }
+  };
+
   const handleCaseResolveInSupabase = async (id: string) => {
     setCases(prev => prev.map(c => c.id === id ? { ...c, status: 'RESOLVED' } : c));
     try {
@@ -484,21 +498,42 @@ export default function AdminDashboardSuite() {
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        {u.status === 'ACTIVE' ? (
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {u.status === 'ACTIVE' ? (
+                            <button
+                              onClick={() => handleUserStatusToggle(u.id, 'SUSPENDED')}
+                              style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                              Suspender en DB
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUserStatusToggle(u.id, 'ACTIVE')}
+                              style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                            >
+                              Activar / Aprobar en DB
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleUserStatusToggle(u.id, 'SUSPENDED')}
-                            style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            onClick={() => handleUserDelete(u.id)}
+                            title="Eliminar usuario permanentemente"
+                            style={{
+                              backgroundColor: '#EF4444',
+                              border: 'none',
+                              color: '#FFF',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
                           >
-                            Suspender en DB
+                            🗑 Eliminar
                           </button>
-                        ) : (
-                          <button
-                            onClick={() => handleUserStatusToggle(u.id, 'ACTIVE')}
-                            style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                          >
-                            Activar / Aprobar en DB
-                          </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
