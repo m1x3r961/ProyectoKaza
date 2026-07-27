@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,7 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
   final LatLng _initialCenter = const LatLng(-17.7833, -63.1821); // Santa Cruz, Bolivia
+  double _currentZoom = 13.5;
 
   PropertyMapItem? _selectedProperty;
   String _selectedOperation = 'Comprar';
@@ -134,6 +136,53 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  List<PropertyMapItem> _clusterProperties(List<PropertyMapItem> items, double zoom) {
+    if (items.isEmpty) return [];
+    if (zoom > 16.0) return items; // Mostrar individuales en zoom alto
+    
+    // Tamaño de la celda de la cuadrícula adaptativo según el zoom
+    // En zoom 14, gridSize = 0.005 grados (~550 metros)
+    double gridSize = 0.005 * math.pow(2, 14 - zoom); 
+    
+    Map<String, List<PropertyMapItem>> grid = {};
+    for (var item in items) {
+      int gridX = (item.location.latitude / gridSize).round();
+      int gridY = (item.location.longitude / gridSize).round();
+      String key = '$gridX,$gridY';
+      grid.putIfAbsent(key, () => []).add(item);
+    }
+    
+    List<PropertyMapItem> clusters = [];
+    for (var cell in grid.values) {
+      if (cell.length == 1) {
+        clusters.add(cell.first);
+      } else {
+        double sumLat = 0;
+        double sumLng = 0;
+        for (var item in cell) {
+          sumLat += item.location.latitude;
+          sumLng += item.location.longitude;
+        }
+        clusters.add(PropertyMapItem(
+          id: 'cluster_${cell.first.id}',
+          title: 'Múltiples propiedades',
+          price: '',
+          operation: cell.first.operation,
+          type: cell.first.type,
+          location: LatLng(sumLat / cell.length, sumLng / cell.length),
+          bedrooms: 0,
+          bathrooms: 0,
+          surface: '',
+          isPlus: false,
+          trustLabel: '',
+          isOrg: false,
+          propertyCount: cell.length,
+        ));
+      }
+    }
+    return clusters;
+  }
+
   @override
   Widget build(BuildContext context) {
     final propertiesAsync = ref.watch(mapPropertiesProvider);
@@ -170,12 +219,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 return true;
               }).toList();
 
+              final clusteredProperties = _clusterProperties(filteredProperties, _currentZoom);
+
               return FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
                   initialCenter: _initialCenter,
                   initialZoom: 13.5,
                   onTap: _onMapTap,
+                  onPositionChanged: (camera, hasGesture) {
+                    if ((_currentZoom - camera.zoom).abs() > 0.5) {
+                      setState(() {
+                        _currentZoom = camera.zoom;
+                      });
+                    }
+                  },
                 ),
                 children: [
                   TileLayer(
@@ -200,7 +258,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   // Marker Layer con Pines Distintivos por Tipo (Casa, Departamento, Terreno, Oficina)
                   // Badge numérico muestra cuántas propiedades hay en cada pin (WM-01 v0.2)
                   MarkerLayer(
-                    markers: filteredProperties.map((prop) {
+                    markers: clusteredProperties.map((prop) {
                       final isSelected = _selectedProperty?.id == prop.id;
                       final typeIcon = _getIconForType(prop.type);
                       final hasCluster = prop.propertyCount > 1;
