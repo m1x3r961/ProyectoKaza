@@ -22,6 +22,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final LatLng _initialCenter = const LatLng(-17.7833, -63.1821); // Santa Cruz, Bolivia
 
   PropertyMapItem? _selectedProperty;
+  String _selectedOperation = 'Comprar';
   String _selectedCategory = 'Todos';
 
   // Polygon Drawing Mode State
@@ -79,26 +80,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     });
   }
 
-  Widget _buildOperationPill(String title, {required bool isSelected}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? KazaTheme.azulKaza : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 2),
+  Widget _buildOperationPill(String title, {required bool isSelected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? KazaTheme.azulKaza : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : KazaTheme.azulKaza,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 13,
           ),
-        ],
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? Colors.white : KazaTheme.azulKaza,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-          fontSize: 13,
         ),
       ),
     );
@@ -146,6 +150,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               child: Text('Error al cargar datos del mapa: $err'),
             ),
             data: (properties) {
+              final filteredProperties = properties.where((prop) {
+                // 1. Filtrar por Operación (Comprar/Alquilar/Anticrético)
+                final opLower = prop.operation.toLowerCase();
+                if (_selectedOperation == 'Comprar' && !opLower.contains('venta')) return false;
+                if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler')) return false;
+                if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético')) return false;
+
+                // 2. Filtrar por Categoría
+                if (_selectedCategory != 'Todos' && _selectedCategory != 'Más') {
+                  final tLower = prop.type.toLowerCase();
+                  if (_selectedCategory == 'Casa' && tLower != 'casa') return false;
+                  if (_selectedCategory == 'Dpto.' && tLower != 'departamento' && tLower != 'condominio') return false;
+                  if (_selectedCategory == 'Terreno' && tLower != 'terreno' && tLower != 'lote') return false;
+                  if (_selectedCategory == 'Local' && tLower != 'comercial' && tLower != 'local') return false;
+                  if (_selectedCategory == 'Oficina' && tLower != 'oficina') return false;
+                }
+                
+                return true;
+              }).toList();
+
               return FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
@@ -176,7 +200,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   // Marker Layer con Pines Distintivos por Tipo (Casa, Departamento, Terreno, Oficina)
                   // Badge numérico muestra cuántas propiedades hay en cada pin (WM-01 v0.2)
                   MarkerLayer(
-                    markers: properties.map((prop) {
+                    markers: filteredProperties.map((prop) {
                       final isSelected = _selectedProperty?.id == prop.id;
                       final typeIcon = _getIconForType(prop.type);
                       final hasCluster = prop.propertyCount > 1;
@@ -313,11 +337,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildOperationPill('Comprar', isSelected: true),
+                      _buildOperationPill(
+                        'Comprar', 
+                        isSelected: _selectedOperation == 'Comprar',
+                        onTap: () => setState(() => _selectedOperation = 'Comprar'),
+                      ),
                       const SizedBox(width: 8),
-                      _buildOperationPill('Alquilar', isSelected: false),
+                      _buildOperationPill(
+                        'Alquilar', 
+                        isSelected: _selectedOperation == 'Alquilar',
+                        onTap: () => setState(() => _selectedOperation = 'Alquilar'),
+                      ),
                       const SizedBox(width: 8),
-                      _buildOperationPill('Anticrético', isSelected: false),
+                      _buildOperationPill(
+                        'Anticrético', 
+                        isSelected: _selectedOperation == 'Anticrético',
+                        onTap: () => setState(() => _selectedOperation = 'Anticrético'),
+                      ),
                     ],
                   ),
 
@@ -327,7 +363,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ['Casa', 'Dpto.', 'Terreno', 'Local', 'Oficina', 'Más'].map((cat) {
+                      children: ['Todos', 'Casa', 'Dpto.', 'Terreno', 'Local', 'Oficina', 'Más'].map((cat) {
                         final isSel = _selectedCategory == cat;
                         return Padding(
                           padding: const EdgeInsets.only(right: 6.0),

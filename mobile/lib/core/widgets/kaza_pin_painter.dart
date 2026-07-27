@@ -47,17 +47,8 @@ class KazaPinPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawPath(pinPath.shift(const Offset(0, 3)), shadowPaint);
 
-    // 2. Kaza Brand Gradient Fill (Coral Kaza #FF5A3C to Azul Kaza #0F1F2E)
-    final Paint fillPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFFFF5A3C), // Coral Kaza
-          Color(0xFF0F1F2E), // Azul Kaza
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, width, height));
-
+    // 2. Kaza Navy Fill
+    final Paint fillPaint = Paint()..color = const Color(0xFF0F1F2E); // Azul Kaza
     canvas.drawPath(pinPath, fillPaint);
 
     // 3. Crisp White Border
@@ -67,19 +58,14 @@ class KazaPinPainter extends CustomPainter {
       ..strokeWidth = isSelected ? 2.5 : 1.5;
     canvas.drawPath(pinPath, borderPaint);
 
-    // 4. Central Inner Circle
-    final double innerRadius = radius * 0.52;
-    final Paint innerCirclePaint = Paint()..color = Colors.white;
-    canvas.drawCircle(Offset(radius, radius * 0.92), innerRadius, innerCirclePaint);
-
-    // 5. Category Icon inside central circle in Coral Kaza
+    // 4. Category Icon in White
     final TextSpan span = TextSpan(
       text: String.fromCharCode(icon.codePoint),
       style: TextStyle(
-        fontSize: innerRadius * 1.3,
+        fontSize: radius * 1.1,
         fontFamily: icon.fontFamily,
         package: icon.fontPackage,
-        color: const Color(0xFFFF5A3C), // Coral Kaza
+        color: Colors.white,
       ),
     );
 
@@ -88,7 +74,7 @@ class KazaPinPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
     tp.layout();
-    tp.paint(canvas, Offset(radius - tp.width / 2, (radius * 0.92) - tp.height / 2));
+    tp.paint(canvas, Offset(radius - tp.width / 2, (radius * 0.95) - tp.height / 2));
 
     // 6. Property Count Badge (top-right corner) — sólo si hay más de 1 propiedad
     if (propertyCount > 1) {
