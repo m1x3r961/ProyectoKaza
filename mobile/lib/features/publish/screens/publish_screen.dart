@@ -150,9 +150,38 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           backgroundColor: Color(0xFF27AE60),
         ),
       );
+      _resetForm();
       context.go('/map');
     }
   }
+
+  void _resetForm() {
+    _pageController.jumpToPage(0);
+    setState(() {
+      _currentPage = 0;
+      _operationType = 'Vender';
+      _propertyType = 'Departamento';
+      _selectedLat = -17.7833;
+      _selectedLng = -63.1821;
+      _addressLabel = 'Av. San Martín · Equipetrol';
+      _terrainCtrl.text = '300';
+      _builtCtrl.text = '180';
+      _bedroomsCtrl.text = '3';
+      _bathroomsCtrl.text = '3';
+      _garageCtrl.text = '2';
+      _floorCtrl.text = '3';
+      _mediaItems = [];
+      _currency = 'BOB';
+      _priceCtrl.text = '850000';
+      _consultarPrecio = false;
+      _descCtrl.clear();
+      _plusVideo = false;
+      _plusPlano = false;
+      _plus3D = false;
+      _plusImagen = false;
+    });
+  }
+
 
   void _openMapPickerModal() {
     double tempLat = _selectedLat;
