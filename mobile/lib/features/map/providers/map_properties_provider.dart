@@ -16,6 +16,8 @@ class PropertyMapItem {
   final bool isPlus;
   final String trustLabel;
   final bool isOrg;
+  /// Cantidad de propiedades que representa este pin (cluster/edificio). >= 1.
+  final int propertyCount;
 
   PropertyMapItem({
     required this.id,
@@ -30,6 +32,7 @@ class PropertyMapItem {
     required this.isPlus,
     required this.trustLabel,
     required this.isOrg,
+    this.propertyCount = 1,
   });
 }
 

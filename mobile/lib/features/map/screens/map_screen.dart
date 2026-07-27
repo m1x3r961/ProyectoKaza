@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,15 +174,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
 
                   // Marker Layer con Pines Distintivos por Tipo (Casa, Departamento, Terreno, Oficina)
+                  // Badge numérico muestra cuántas propiedades hay en cada pin (WM-01 v0.2)
                   MarkerLayer(
                     markers: properties.map((prop) {
                       final isSelected = _selectedProperty?.id == prop.id;
                       final typeIcon = _getIconForType(prop.type);
+                      final hasCluster = prop.propertyCount > 1;
 
                       return Marker(
                         point: prop.location,
-                        width: isSelected ? 135 : 44,
-                        height: isSelected ? 48 : 44,
+                        width: isSelected ? 135 : (hasCluster ? 56 : 44),
+                        height: isSelected ? 48 : (hasCluster ? 56 : 48),
                         child: GestureDetector(
                           onTap: () {
                             setState(() => _selectedProperty = prop);
@@ -239,12 +239,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                   )
                                 : SizedBox(
                                     key: ValueKey('unsel_${prop.id}'),
-                                    width: 38,
-                                    height: 48,
+                                    width: hasCluster ? 56 : 38,
+                                    height: hasCluster ? 56 : 48,
                                     child: CustomPaint(
                                       painter: KazaPinPainter(
                                         icon: typeIcon,
                                         isSelected: false,
+                                        propertyCount: prop.propertyCount,
                                       ),
                                     ),
                                   ),

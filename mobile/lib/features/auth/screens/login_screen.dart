@@ -56,9 +56,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   Future<void> _handleGoogleAuth({bool isRegister = true}) async {
     try {
       // Autenticación real con Google OAuth
+      final redirectUrl = kIsWeb ? Uri.base.origin : null;
       await SupabaseConfig.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? 'https://proyecto-kaza.vercel.app' : null,
+        redirectTo: redirectUrl,
       );
     } catch (e) {
       if (mounted) {
