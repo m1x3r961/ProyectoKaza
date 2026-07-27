@@ -44,21 +44,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   IconData _getIconForType(String type) {
-    switch (type.toLowerCase()) {
-      case 'casa':
-        return Icons.home_work_rounded;
-      case 'departamento':
-      case 'condominio':
-        return Icons.apartment_rounded;
-      case 'terreno':
-      case 'lote':
-        return Icons.landscape_rounded;
-      case 'oficina':
-      case 'comercial':
-        return Icons.business_rounded;
-      default:
-        return Icons.location_on_rounded;
-    }
+    final t = type.toLowerCase();
+    if (t.contains('casa')) return Icons.home_work_rounded;
+    if (t.contains('departamento') || t.contains('condominio')) return Icons.apartment_rounded;
+    if (t.contains('terreno') || t.contains('lote') || t.contains('rural')) return Icons.landscape_rounded;
+    if (t.contains('oficina') || t.contains('comercial') || t.contains('local')) return Icons.storefront_rounded;
+    if (t.contains('industrial')) return Icons.factory_rounded;
+    return Icons.location_on_rounded;
   }
 
   void _clearPolygon() {
@@ -209,11 +201,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 // 2. Filtrar por Categoría
                 if (_selectedCategory != 'Todos' && _selectedCategory != 'Más') {
                   final tLower = prop.type.toLowerCase();
-                  if (_selectedCategory == 'Casa' && tLower != 'casa') return false;
-                  if (_selectedCategory == 'Dpto.' && tLower != 'departamento' && tLower != 'condominio') return false;
-                  if (_selectedCategory == 'Terreno' && tLower != 'terreno' && tLower != 'lote') return false;
-                  if (_selectedCategory == 'Local' && tLower != 'comercial' && tLower != 'local') return false;
-                  if (_selectedCategory == 'Oficina' && tLower != 'oficina') return false;
+                  if (_selectedCategory == 'Casa' && !tLower.contains('casa')) return false;
+                  if (_selectedCategory == 'Dpto.' && !tLower.contains('departamento') && !tLower.contains('condominio')) return false;
+                  if (_selectedCategory == 'Terreno' && !tLower.contains('terreno') && !tLower.contains('lote')) return false;
+                  if (_selectedCategory == 'Local' && !tLower.contains('comercial') && !tLower.contains('local')) return false;
+                  if (_selectedCategory == 'Oficina' && !tLower.contains('oficina')) return false;
                 }
                 
                 return true;
@@ -552,7 +544,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             width: 90,
                             height: 90,
                             color: Colors.grey.shade800,
-                            child: const Icon(Icons.home, color: Colors.white54, size: 36),
+                            child: Icon(_getIconForType(_selectedProperty!.type), color: Colors.white54, size: 36),
                           ),
                         ),
                         const SizedBox(width: 12),
