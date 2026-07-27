@@ -214,6 +214,20 @@ export default function AdminDashboardSuite() {
     }
   };
 
+  const handleListingDelete = async (id: string) => {
+    if (!confirm('¿Seguro que deseas eliminar esta propiedad? Esta acción no se puede deshacer.')) return;
+    setListings(prev => prev.filter(l => l.id !== id));
+    setRealActiveListingsCount(prev => Math.max(0, prev - 1));
+    try {
+      await supabase
+        .from('properties')
+        .delete()
+        .eq('id', id);
+    } catch (err) {
+      console.log('Deleted listing from local state', err);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B0F17', color: '#F9FAFB', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
@@ -590,21 +604,42 @@ export default function AdminDashboardSuite() {
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        {l.status === 'PUBLISHED' ? (
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {l.status === 'PUBLISHED' ? (
+                            <button
+                              onClick={() => handleListingStatusToggle(l.id, 'BANNED')}
+                              style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                              Pausar en DB
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleListingStatusToggle(l.id, 'PUBLISHED')}
+                              style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                            >
+                              Aprobar Publicación
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleListingStatusToggle(l.id, 'BANNED')}
-                            style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
+                            onClick={() => handleListingDelete(l.id)}
+                            title="Eliminar publicación permanentemente"
+                            style={{
+                              backgroundColor: '#EF4444',
+                              border: 'none',
+                              color: '#FFF',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
                           >
-                            Pausar en DB
+                            🗑 Eliminar
                           </button>
-                        ) : (
-                          <button
-                            onClick={() => handleListingStatusToggle(l.id, 'PUBLISHED')}
-                            style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                          >
-                            Aprobar Publicación
-                          </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
