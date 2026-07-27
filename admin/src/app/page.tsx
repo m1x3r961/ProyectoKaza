@@ -104,24 +104,49 @@ export default function AdminDashboardSuite() {
         setRealPendingCasesCount(mappedCases.filter(c => c.status !== 'RESOLVED').length);
       }
 
-      // 2. Fetch Real Listings Count from Supabase DB
-      const { count: propCount, error: propError } = await supabase
+      // 2. Fetch Real Listings and Count from Supabase DB
+      const { data: dbProperties, count: propCount, error: propError } = await supabase
         .from('properties')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact' });
 
-      if (!propError && propCount !== null) {
+      if (!propError && dbProperties) {
         setIsConnectedToSupabase(true);
-        setRealActiveListingsCount(propCount);
+        if (propCount !== null) setRealActiveListingsCount(propCount);
+        
+        const mappedListings: AdminListing[] = dbProperties.map((item: any) => ({
+          id: item.id,
+          title: item.address_canonical || 'Propiedad sin título',
+          type: item.property_type || 'Departamento',
+          price: item.price_usd ? `$${item.price_usd.toLocaleString()}` : 'Por definir',
+          location: item.city_id ? item.city_id.replace('_', ' ').toUpperCase() : 'Desconocido',
+          mediaStatus: 'VERIFIED_REAL',
+          status: item.status || 'PUBLISHED',
+          publisher: 'Agente Registrado',
+          createdAt: new Date(item.created_at).toLocaleDateString()
+        }));
+        setListings(mappedListings);
       }
 
-      // 3. Fetch Real Users Count from Supabase DB
-      const { count: usersCount, error: usersError } = await supabase
+      // 3. Fetch Real Users and Count from Supabase DB
+      const { data: dbProfiles, count: usersCount, error: usersError } = await supabase
         .from('profiles')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact' });
 
-      if (!usersError && usersCount !== null) {
+      if (!usersError && dbProfiles) {
         setIsConnectedToSupabase(true);
-        setRealUsersCount(usersCount);
+        if (usersCount !== null) setRealUsersCount(usersCount);
+        
+        const mappedUsers: AdminUser[] = dbProfiles.map((item: any) => ({
+          id: item.id,
+          name: item.full_name || item.email?.split('@')[0] || 'Usuario',
+          email: item.email || '',
+          role: item.role || 'USER',
+          status: 'ACTIVE',
+          trustScore: 98,
+          listingsCount: 0,
+          registeredAt: new Date(item.created_at || new Date()).toLocaleDateString()
+        }));
+        setUsers(mappedUsers);
       }
 
       const endPing = performance.now();
