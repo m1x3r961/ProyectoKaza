@@ -6,6 +6,7 @@ import '../../features/saved/screens/saved_screen.dart';
 import '../../features/publish/screens/publish_screen.dart';
 import '../../features/messages/screens/messages_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/profile/screens/my_listings_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -69,6 +70,10 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ],
+    ),
+    GoRoute(
+      path: '/my-listings',
+      builder: (context, state) => const MyListingsScreen(),
     ),
   ],
 );
