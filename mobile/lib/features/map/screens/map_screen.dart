@@ -143,11 +143,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   List<PropertyMapItem> _clusterProperties(List<PropertyMapItem> items, double zoom) {
     if (items.isEmpty) return [];
-    if (zoom > 16.0) return items; // Mostrar individuales en zoom alto
     
-    // Tamaño de la celda de la cuadrícula adaptativo según el zoom
-    // En zoom 14, gridSize = 0.005 grados (~550 metros)
-    double gridSize = 0.005 * math.pow(2, 14 - zoom); 
+    // Si zoom > 16, usar un grid diminuto para agrupar solo los que tienen coordenadas IDÉNTICAS
+    double gridSize = zoom > 16.0 ? 0.00001 : (0.005 * math.pow(2, 14 - zoom));
     
     Map<String, List<PropertyMapItem>> grid = {};
     for (var item in items) {
@@ -208,9 +206,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               final filteredProperties = properties.where((prop) {
                 // 1. Filtrar por Operación (Comprar/Alquilar/Anticrético)
                 final opLower = prop.operation.toLowerCase();
-                if (_selectedOperation == 'Comprar' && !opLower.contains('venta')) return false;
-                if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler')) return false;
-                if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético')) return false;
+                if (_selectedOperation == 'Comprar' && !opLower.contains('venta') && !opLower.contains('vender')) return false;
+                if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar')) return false;
+                if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético') && !opLower.contains('anticret')) return false;
 
                 // 2. Filtrar por Categoría
                 if (_selectedCategory != 'Todos' && _selectedCategory != 'Más') {

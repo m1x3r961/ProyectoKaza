@@ -98468,8 +98468,7 @@ s.toString
 A.aLh(B.H,new A.aB7(this,a),s,!0,t.z)},
 aeG(a,b){var s,r,q,p,o,n,m,l,k,j,i,h,g
 if(a.length===0)return A.b([],t.vs)
-if(b>16)return a
-s=0.005*Math.pow(2,14-b)
+s=b>16?0.00001:0.005*Math.pow(2,14-b)
 r=A.n(t.N,t.re)
 for(q=a.length,p=0;p<a.length;a.length===q||(0,A.N)(a),++p){o=a[p]
 n=o.f
@@ -98561,9 +98560,9 @@ return new A.ld(s,p,q.w,null)},
 $S:664}
 A.aBi.prototype={
 $1(a){var s,r=a.d.toLowerCase(),q=this.a,p=q.Q
-if(p==="Comprar"&&!B.c.p(r,"venta"))return!1
-if(p==="Alquilar"&&!B.c.p(r,"alquiler"))return!1
-if(p==="Anticr\xe9tico"&&!B.c.p(r,"anticretico")&&!B.c.p(r,"anticr\xe9tico"))return!1
+if(p==="Comprar"&&!B.c.p(r,"venta")&&!B.c.p(r,"vender"))return!1
+if(p==="Alquilar"&&!B.c.p(r,"alquiler")&&!B.c.p(r,"alquilar"))return!1
+if(p==="Anticr\xe9tico"&&!B.c.p(r,"anticretico")&&!B.c.p(r,"anticr\xe9tico")&&!B.c.p(r,"anticret"))return!1
 q=q.as
 if(q!=="Todos"&&q!=="M\xe1s"){s=a.e.toLowerCase()
 if(q==="Casa"&&!B.c.p(s,"casa"))return!1
