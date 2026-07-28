@@ -139,7 +139,21 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'owner_id': userId,
         });
         inserted = true;
-      } catch (_) {}
+      } catch (e) {
+        print('Error en fallback insert: $e');
+      }
+    }
+
+    if (!inserted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al crear la publicación en la base de datos.'),
+            backgroundColor: KazaTheme.primaryCoral,
+          ),
+        );
+      }
+      return;
     }
 
     final newItem = PropertyMapItem(
