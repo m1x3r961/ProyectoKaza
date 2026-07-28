@@ -855,7 +855,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_addressLabel,
+                Text(_addressCtrl.text,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KazaTheme.azulKaza)),
                 const Text('Mueve el pin para ajustar la ubicación. La dirección pública puede ser menor.',
                     style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
@@ -1370,7 +1370,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$_propertyType · $_operationType · ${_addressLabel.split(',').first}',
+                      Text('$_propertyType · $_operationType · ${_addressCtrl.text.split(',').first}',
                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: KazaTheme.azulKaza)),
                       const SizedBox(height: 8),
                       Text(priceText,
