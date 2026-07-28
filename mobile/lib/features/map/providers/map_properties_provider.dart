@@ -55,6 +55,13 @@ final localPublishedPropertiesProvider =
   return LocalPublishedPropertiesNotifier();
 });
 
+num _parseNum(dynamic val, [num defaultValue = 0]) {
+  if (val == null) return defaultValue;
+  if (val is num) return val;
+  if (val is String) return num.tryParse(val) ?? defaultValue;
+  return defaultValue;
+}
+
 /// Provider de Riverpod para consultar propiedades desde Supabase PostgreSQL + PostGIS + Local Session
 final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async {
   final localItems = ref.watch(localPublishedPropertiesProvider);
@@ -66,29 +73,33 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
         .select('*');
 
     for (final row in response) {
-      final idStr = row['id'].toString();
-      // Evitar duplicados si ya está en localItems
-      if (items.any((it) => it.id == idStr)) continue;
+      try {
+        final idStr = row['id'].toString();
+        // Evitar duplicados si ya está en localItems
+        if (items.any((it) => it.id == idStr)) continue;
 
-      final double lat = _extractLat(row);
-      final double lng = _extractLng(row);
-      final num price = (row['price_usd'] as num?) ?? (row['price_original'] as num?) ?? 0;
+        final double lat = _extractLat(row);
+        final double lng = _extractLng(row);
+        final num price = _parseNum(row['price_usd'], _parseNum(row['price_original'], 0));
 
-      items.add(PropertyMapItem(
-        id: idStr,
-        title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
-        price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
-        operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
-        type: row['property_type'] ?? 'Departamento',
-        location: LatLng(lat, lng),
-        bedrooms: (row['rooms'] as num?)?.toInt() ?? 0,
-        bathrooms: (row['bathrooms'] as num?)?.toInt() ?? 0,
-        surface: '${row['total_surface_m2'] ?? 0} m²',
-        isPlus: true,
-        trustLabel: 'Actor Verificado',
-        isOrg: true,
-        imageUrl: (row['photos'] != null && (row['photos'] as List).isNotEmpty) ? row['photos'][0] : null,
-      ));
+        items.add(PropertyMapItem(
+          id: idStr,
+          title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
+          price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
+          operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
+          type: row['property_type'] ?? 'Departamento',
+          location: LatLng(lat, lng),
+          bedrooms: _parseNum(row['rooms'], 0).toInt(),
+          bathrooms: _parseNum(row['bathrooms'], 0).toInt(),
+          surface: '${row['total_surface_m2'] ?? 0} m²',
+          isPlus: true,
+          trustLabel: 'Actor Verificado',
+          isOrg: true,
+          imageUrl: (row['photos'] != null && row['photos'] is List && (row['photos'] as List).isNotEmpty) ? row['photos'][0] : null,
+        ));
+      } catch (e) {
+        print('Error parsing single property: $e');
+      }
     }
 
     return items;
@@ -99,11 +110,11 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
 });
 
 double _extractLat(Map<String, dynamic> row) {
-  if (row['latitude'] != null) return (row['latitude'] as num).toDouble();
+  if (row['latitude'] != null) return _parseNum(row['latitude'], -17.7833).toDouble();
   if (row['canonical_location'] != null) {
     final loc = row['canonical_location'];
     if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
-      return ((loc['coordinates'] as List)[1] as num).toDouble();
+      return _parseNum((loc['coordinates'] as List)[1], -17.7833).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
       final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
@@ -114,7 +125,7 @@ double _extractLat(Map<String, dynamic> row) {
   if (row['public_location_geometry'] != null) {
     final loc = row['public_location_geometry'];
     if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
-      return ((loc['coordinates'] as List)[1] as num).toDouble();
+      return _parseNum((loc['coordinates'] as List)[1], -17.7833).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
       final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
@@ -126,11 +137,11 @@ double _extractLat(Map<String, dynamic> row) {
 }
 
 double _extractLng(Map<String, dynamic> row) {
-  if (row['longitude'] != null) return (row['longitude'] as num).toDouble();
+  if (row['longitude'] != null) return _parseNum(row['longitude'], -63.1821).toDouble();
   if (row['canonical_location'] != null) {
     final loc = row['canonical_location'];
     if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
-      return ((loc['coordinates'] as List)[0] as num).toDouble();
+      return _parseNum((loc['coordinates'] as List)[0], -63.1821).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
       final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
@@ -141,7 +152,7 @@ double _extractLng(Map<String, dynamic> row) {
   if (row['public_location_geometry'] != null) {
     final loc = row['public_location_geometry'];
     if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
-      return ((loc['coordinates'] as List)[0] as num).toDouble();
+      return _parseNum((loc['coordinates'] as List)[0], -63.1821).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
       final clean = loc.replaceAll('POINT(', '').replaceAll(')', '').trim();
