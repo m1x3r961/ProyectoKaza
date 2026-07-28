@@ -31,7 +31,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   // Step 2
   double _selectedLat = -17.7833;
   double _selectedLng = -63.1821;
-  String _addressLabel = 'Av. San Martín · Equipetrol';
+  final _addressCtrl = TextEditingController(text: 'Av. San Martín · Equipetrol');
 
   // Step 3
   final _terrainCtrl = TextEditingController(text: '300');
@@ -64,6 +64,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _addressCtrl.dispose();
     _terrainCtrl.dispose();
     _builtCtrl.dispose();
     _bedroomsCtrl.dispose();
@@ -102,7 +103,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     
     final finalTitle = _titleCtrl.text.trim().isNotEmpty 
         ? _titleCtrl.text.trim() 
-        : '$_propertyType en $_addressLabel';
+        : '$_propertyType en ${_addressCtrl.text}';
 
     bool inserted = false;
     try {
@@ -143,7 +144,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
     final newItem = PropertyMapItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: '$_propertyType · $_addressLabel',
+      title: '$_propertyType · ${_addressCtrl.text}',
       price: '$_currency ${_priceCtrl.text}',
       operation: _operationType.toUpperCase(),
       type: _propertyType,
@@ -179,7 +180,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       _propertyType = 'Departamento';
       _selectedLat = -17.7833;
       _selectedLng = -63.1821;
-      _addressLabel = 'Av. San Martín · Equipetrol';
+      _addressCtrl.text = 'Av. San Martín · Equipetrol';
       _terrainCtrl.text = '300';
       _builtCtrl.text = '180';
       _bedroomsCtrl.text = '3';
@@ -288,8 +289,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                          subdomains: const ['a', 'b', 'c', 'd'],
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.kaza.app',
                         ),
                         MarkerLayer(
                           markers: [
@@ -327,7 +328,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_addressLabel,
+                    Text(_addressCtrl.text,
                         style: const TextStyle(fontWeight: FontWeight.w600, color: KazaTheme.azulKaza, fontSize: 13)),
                     const Text('Mueve el pin para ajustar la ubicación. La dirección pública puede ser menor.',
                         style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
@@ -349,7 +350,6 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                       setState(() {
                         _selectedLat = tempLat;
                         _selectedLng = tempLng;
-                        _addressLabel = '${tempLat.toStringAsFixed(4)}, ${tempLng.toStringAsFixed(4)}';
                       });
                       Navigator.pop(ctx);
                     },
@@ -642,19 +642,24 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           const SizedBox(height: 24),
           const Text('Ubicación',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+           Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: KazaTheme.glassBorder),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Text(_addressLabel.isNotEmpty ? _addressLabel : 'Buscar zona, barrio o calle',
-                    style: TextStyle(color: _addressLabel.isNotEmpty ? KazaTheme.textPrimary : KazaTheme.textSecondary, fontSize: 14)),
-              ],
+            child: TextField(
+              controller: _addressCtrl,
+              style: const TextStyle(fontSize: 14, color: KazaTheme.textPrimary),
+              decoration: const InputDecoration(
+                hintText: 'Ingresa la avenida o calle (Ej: Av. San Martín)',
+                hintStyle: TextStyle(color: KazaTheme.textSecondary),
+                border: InputBorder.none,
+              ),
+              onChanged: (val) {
+                // Address updated manually
+              },
             ),
           ),
           const SizedBox(height: 12),
@@ -665,28 +670,58 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
               color: KazaTheme.grisClaro,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Stack(
-              children: [
-                // Simulate map lines
-                Positioned(top: 40, left: 0, right: 0, child: Container(height: 6, color: Colors.white)),
-                Positioned(top: 90, left: 0, right: 0, child: Container(height: 6, color: Colors.white)),
-                Positioned(top: 0, bottom: 0, left: 150, child: Container(width: 6, color: Colors.white)),
-                Positioned(top: 0, bottom: 0, left: 240, child: Container(width: 6, color: Colors.white)),
-                // Pin
-                const Center(
-                  child: Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 32),
-                ),
-                Positioned(
-                  bottom: 12, left: 12,
-                  child: Row(
-                    children: const [
-                      Text('Pin interno preciso', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                      SizedBox(width: 8),
-                      Text('no se publica automáticamente', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    options: MapOptions(
+                      initialCenter: LatLng(_selectedLat, _selectedLng),
+                      initialZoom: 15,
+                      onTap: (_, point) {
+                        setState(() {
+                          _selectedLat = point.latitude;
+                          _selectedLng = point.longitude;
+                        });
+                      },
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.kaza.app',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: LatLng(_selectedLat, _selectedLng),
+                            width: 40, height: 40,
+                            child: const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 32),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: 12, left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Text('Pin interno preciso', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          SizedBox(width: 8),
+                          Text('Toca el mapa para moverlo', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),       ],
             ),
           ),
           const SizedBox(height: 24),
@@ -769,14 +804,13 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                           setState(() {
                             _selectedLat = point.latitude;
                             _selectedLng = point.longitude;
-                            _addressLabel = '${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)}';
                           });
                         },
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                          subdomains: const ['a', 'b', 'c', 'd'],
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.kaza.app',
                         ),
                         MarkerLayer(
                           markers: [
