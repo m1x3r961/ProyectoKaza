@@ -20,12 +20,12 @@ class ListingModel {
   factory ListingModel.fromJson(Map<String, dynamic> json) {
     return ListingModel(
       id: json['id'] as String,
-      title: json['title'] as String,
+      title: (json['title'] as String?) ?? (json['address_canonical'] as String?) ?? 'Sin título',
       description: json['description'] as String?,
-      priceOriginal: json['price_original'] != null ? (json['price_original'] as num).toDouble() : null,
-      currencyOriginal: json['currency_original'] as String?,
+      priceOriginal: json['price_usd'] != null ? (json['price_usd'] as num).toDouble() : null,
+      currencyOriginal: 'USD',
       status: json['status'] as String? ?? 'DRAFT',
-      freshnessConfirmedAt: json['freshness_confirmed_at'] != null ? DateTime.tryParse(json['freshness_confirmed_at']) : null,
+      freshnessConfirmedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
     );
   }
 

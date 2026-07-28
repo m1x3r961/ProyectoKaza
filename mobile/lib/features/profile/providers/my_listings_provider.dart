@@ -27,11 +27,11 @@ class MyListingsNotifier extends StateNotifier<AsyncValue<List<ListingModel>>> {
     try {
       state = const AsyncValue.loading();
       
-      // Select listings where operator_user_id == current user
+      // Select listings where owner_id == current user
       final response = await supabase
-          .from('listings')
+          .from('properties')
           .select('*')
-          .eq('operator_user_id', userId as Object)
+          .eq('owner_id', userId as Object)
           .order('created_at', ascending: false);
           
       final List<ListingModel> listings = (response as List<dynamic>)
@@ -67,7 +67,7 @@ class MyListingsNotifier extends StateNotifier<AsyncValue<List<ListingModel>>> {
       }
 
       await supabase
-          .from('listings')
+          .from('properties')
           .update({'status': newStatus})
           .eq('id', listingId);
           
@@ -82,8 +82,8 @@ class MyListingsNotifier extends StateNotifier<AsyncValue<List<ListingModel>>> {
     try {
       // Update freshness to NOW()
       await supabase
-          .from('listings')
-          .update({'freshness_confirmed_at': DateTime.now().toUtc().toIso8601String()})
+          .from('properties')
+          .update({'updated_at': DateTime.now().toUtc().toIso8601String()})
           .eq('id', listingId);
           
       // Refetch to get the latest dates

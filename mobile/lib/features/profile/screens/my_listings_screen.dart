@@ -58,7 +58,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                 // Filtrar según el tab seleccionado
                 final filteredListings = listings.where((listing) {
                   if (_selectedTab == 'Todas') return true;
-                  if (_selectedTab == 'Activas') return listing.status == 'AVAILABLE';
+                  if (_selectedTab == 'Activas') return listing.status == 'AVAILABLE' || listing.status == 'PUBLISHED';
                   if (_selectedTab == 'Pausadas') return listing.status == 'PAUSED';
                   if (_selectedTab == 'Borradores') return listing.status == 'DRAFT';
                   return true;
@@ -119,6 +119,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
 
     switch (listing.status) {
       case 'AVAILABLE':
+      case 'PUBLISHED':
         displayStatus = 'ACTIVO';
         statusColor = KazaTheme.statusAvailable;
         actions = ['Actualizar disponibilidad', 'Pausar', 'Editar', 'Retirar'];
@@ -248,7 +249,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
       case 'Reactivar':
       case 'Marcar disponible':
       case 'Republicar':
-        notifier.updateStatus(listing.id, 'AVAILABLE');
+        notifier.updateStatus(listing.id, 'PUBLISHED');
         break;
       case 'Retirar':
         notifier.updateStatus(listing.id, 'WITHDRAWN');

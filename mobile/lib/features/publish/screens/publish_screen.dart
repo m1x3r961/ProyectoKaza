@@ -96,13 +96,18 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
   Future<void> _publish() async {
     final authState = ref.read(kazaAuthProvider);
+    final userId = authState.userId;
     final agentName = authState.fullName ?? 'Agente Kaza';
     final priceNum = double.tryParse(_priceCtrl.text) ?? 0;
+    
+    final finalTitle = _titleCtrl.text.trim().isNotEmpty 
+        ? _titleCtrl.text.trim() 
+        : '$_propertyType en $_addressLabel';
 
     bool inserted = false;
     try {
       await SupabaseConfig.client.rpc('fn_create_property', params: {
-        'p_title': '$_propertyType en $_addressLabel',
+        'p_title': finalTitle,
         'p_property_type': _propertyType,
         'p_operation': _operationType.toUpperCase(),
         'p_price': priceNum,
@@ -111,6 +116,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         'p_bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
         'p_latitude': _selectedLat,
         'p_longitude': _selectedLng,
+        'p_owner_id': userId,
       });
       inserted = true;
     } catch (_) {}
@@ -118,7 +124,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     if (!inserted) {
       try {
         await SupabaseConfig.client.from('properties').insert({
-          'address_canonical': '$_propertyType · $_addressLabel',
+          'title': finalTitle,
+          'address_canonical': finalTitle,
           'property_type': _propertyType,
           'price_usd': priceNum,
           'total_surface_m2': int.tryParse(_builtCtrl.text) ?? 0,
@@ -128,6 +135,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'latitude': _selectedLat,
           'longitude': _selectedLng,
           'operation': _operationType.toUpperCase(),
+          'owner_id': userId,
         });
         inserted = true;
       } catch (_) {}
