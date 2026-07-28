@@ -4,7 +4,7 @@ import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../../auth/providers/auth_provider.dart';
 
-/// 👤 PERFIL Y WORKSPACES - User Account, Active Workspace Switcher & Settings
+/// 👤 PERFIL - User Account (v0.2 HiFi Light Theme)
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -13,201 +13,162 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(kazaAuthProvider);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/images/logo.png',
-              height: 28,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 10),
-            const Text('Perfil & Cuenta'),
-          ],
-        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings_outlined, color: KazaTheme.textPrimary),
             onPressed: () {},
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         children: [
-          // User Card / Auth Status Banner
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: authState.isAuthenticated ? KazaTheme.primaryTeal : Colors.grey.shade800,
-                    child: Icon(
-                      authState.isAuthenticated ? Icons.person : Icons.person_outline,
-                      size: 32,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          authState.isAuthenticated
-                              ? (authState.fullName ?? 'Usuario Kaza')
-                              : 'Modo Exploración (Sin Cuenta)',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        Text(
-                          authState.isAuthenticated
-                              ? (authState.email ?? 'user@kaza.app')
-                              : 'Regístrate solo cuando desees conservar o avanzar',
-                          style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                        ),
-                        const SizedBox(height: 6),
-                        if (authState.isAuthenticated)
-                          const KazaTrustBadge(label: 'Identidad Verificada')
-                        else
-                          OutlinedButton(
-                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
-                            child: const Text('Iniciar Sesión / Registrarme', style: TextStyle(fontSize: 12)),
-                            onPressed: () {
-                              checkProgressiveAuth(
-                                context: context,
-                                ref: ref,
-                                actionName: 'acceder a tu Perfil completo',
-                                onAuthenticatedAction: () {},
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Workspace Switcher
-          const Text('Workspace Activo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          const SizedBox(height: 8),
-          Card(
-            color: KazaTheme.cardSurface,
-            child: Column(
-              children: [
-                RadioListTile<String>(
-                  title: const Text('Personal Workspace'),
-                  subtitle: const Text('Publicaciones personales y guardados privados'),
-                  value: 'Personal Workspace',
-                  groupValue: authState.activeWorkspaceName,
-                  activeColor: KazaTheme.primaryTealLight,
-                  onChanged: (val) {
-                    if (val != null) {
-                      ref.read(kazaAuthProvider.notifier).switchWorkspace(val, false);
-                    }
-                  },
+          // 1. User Header (Avatar, Name, Status)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: authState.isAuthenticated ? KazaTheme.primaryCoralLight.withValues(alpha: 0.1) : KazaTheme.grisClaro,
+                child: Icon(
+                  authState.isAuthenticated ? Icons.person : Icons.person_outline,
+                  size: 36,
+                  color: authState.isAuthenticated ? KazaTheme.primaryCoralLight : KazaTheme.grisMedio,
                 ),
-                const Divider(height: 1, color: KazaTheme.glassBorder),
-                RadioListTile<String>(
-                  title: const Row(
-                    children: [
-                      Text('Inmobiliaria Kaza Pro'),
-                      SizedBox(width: 8),
-                      KazaPlusBadge(),
-                    ],
-                  ),
-                  subtitle: const Text('Organization Workspace · 12 Listings activos'),
-                  value: 'Inmobiliaria Kaza Pro',
-                  groupValue: authState.activeWorkspaceName,
-                  activeColor: KazaTheme.primaryTealLight,
-                  onChanged: (val) {
-                    if (val != null) {
-                      checkProgressiveAuth(
-                        context: context,
-                        ref: ref,
-                        actionName: 'gestionar un Organization Workspace',
-                        onAuthenticatedAction: () {
-                          ref.read(kazaAuthProvider.notifier).switchWorkspace(val, true);
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      authState.isAuthenticated ? (authState.fullName ?? 'Usuario Kaza') : 'Modo Exploración',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: KazaTheme.textPrimary, letterSpacing: -0.5),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      authState.isAuthenticated ? 'Cuenta personal' : 'Sin cuenta',
+                      style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 14),
+                    ),
+                    const SizedBox(height: 6),
+                    if (authState.isAuthenticated)
+                      const Row(
+                        children: [
+                          Icon(Icons.verified, color: KazaTheme.verifiedGreen, size: 16),
+                          SizedBox(width: 4),
+                          Text('Identidad verificada', style: TextStyle(color: KazaTheme.verifiedGreen, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ],
+                      )
+                    else
+                      GestureDetector(
+                        onTap: () {
+                          checkProgressiveAuth(context: context, ref: ref, actionName: 'iniciar sesión', onAuthenticatedAction: () {});
                         },
-                      );
-                    }
-                  },
+                        child: const Row(
+                          children: [
+                            Icon(Icons.login, color: KazaTheme.primaryCoralLight, size: 16),
+                            SizedBox(width: 4),
+                            Text('Iniciar sesión o registrarme', style: TextStyle(color: KazaTheme.primaryCoralLight, fontSize: 12, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 40),
 
-          // Activity Center & Options
-          const Text('Centro de Actividad & Ajustes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          // 2. Sección: Tu actividad
+          const Text('Tu actividad', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.textMuted, letterSpacing: 0.5)),
+          const SizedBox(height: 8),
+          
+          _buildCleanListTile(
+            title: 'Mis publicaciones',
+            onTap: () {
+              checkProgressiveAuth(context: context, ref: ref, actionName: 'ver tus publicaciones', onAuthenticatedAction: () {});
+            },
+          ),
+          _buildCleanListTile(
+            title: 'Mis visitas',
+            onTap: () {
+              checkProgressiveAuth(context: context, ref: ref, actionName: 'ver tus visitas', onAuthenticatedAction: () {});
+            },
+          ),
+          _buildCleanListTile(
+            title: 'Guardados',
+            onTap: () {},
+          ),
+          _buildCleanListTile(
+            title: 'Actividad',
+            onTap: () {},
+          ),
+
+          const SizedBox(height: 32),
+
+          // 3. Sección: Más herramientas
+          const Text('Más herramientas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.textMuted, letterSpacing: 0.5)),
           const SizedBox(height: 8),
 
-          _buildMenuOption(Icons.history, 'Histórico de Transacciones', 'Transaction Claims & DOM'),
-          _buildMenuOption(Icons.analytics, 'Kaza Insights & Métricas', 'Precios/m² y comparables'),
-          _buildMenuOption(Icons.verified_user, 'Verificación de Identidad (Trust)', 'Badges y evidencia legal'),
-          _buildMenuOption(Icons.privacy_tip, 'Privacidad & Términos de Uso', 'Global Privacy Rights Center'),
+          _buildCleanListTile(
+            title: 'Herramientas para publicar y trabajar',
+            onTap: () {
+              checkProgressiveAuth(context: context, ref: ref, actionName: 'acceder a herramientas profesionales', onAuthenticatedAction: () {});
+            },
+          ),
+          _buildCleanListTile(
+            title: 'Cuenta y privacidad',
+            onTap: () {},
+          ),
 
+          const SizedBox(height: 48),
+
+          // Logout / Delete Account (Modern minimal style)
+          if (authState.isAuthenticated)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 15)),
+              onTap: () {
+                ref.read(kazaAuthProvider.notifier).logout();
+              },
+            )
+          else
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Eliminar cuenta', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600, fontSize: 15)),
+              onTap: () {
+                checkProgressiveAuth(context: context, ref: ref, actionName: 'solicitar la eliminación de cuenta', onAuthenticatedAction: () {});
+              },
+            ),
+            
           const SizedBox(height: 24),
-
-          // Logout or Account Deletion
-          if (authState.isAuthenticated) ...[
-            Card(
-              color: Colors.red.withValues(alpha: 0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.logout, color: Colors.redAccent),
-                title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Volver al modo de exploración pública sin cuenta', style: TextStyle(fontSize: 11)),
-                onTap: () {
-                  ref.read(kazaAuthProvider.notifier).logout();
-                },
-              ),
-            ),
-          ] else ...[
-            Card(
-              color: Colors.red.withValues(alpha: 0.05),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.red.withValues(alpha: 0.2)),
-              ),
-              child: ListTile(
-                leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                title: const Text('Eliminar Mi Cuenta', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Ruta de eliminación de cuenta accesible exigida por políticas de tienda', style: TextStyle(fontSize: 11)),
-                onTap: () {
-                  checkProgressiveAuth(
-                    context: context,
-                    ref: ref,
-                    actionName: 'solicitar la eliminación de cuenta',
-                    onAuthenticatedAction: () {},
-                  );
-                },
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildMenuOption(IconData icon, String title, String subtitle) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: KazaTheme.primaryTealLight),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Text(subtitle, style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right, color: KazaTheme.textMuted),
-        onTap: () {},
+  Widget _buildCleanListTile({required String title, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: KazaTheme.textPrimary),
+            ),
+            const Icon(Icons.chevron_right, color: KazaTheme.grisMedio, size: 20),
+          ],
+        ),
       ),
     );
   }
