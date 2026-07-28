@@ -721,8 +721,6 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                 ],
               ),
             ),
-          ),       ],
-            ),
           ),
           const SizedBox(height: 24),
           const Text('Precisión pública',
