@@ -18,6 +18,10 @@ class PropertyMapItem {
   final bool isOrg;
   /// Cantidad de propiedades que representa este pin (cluster/edificio). >= 1.
   final int propertyCount;
+  /// Lista de propiedades agrupadas si es un clúster
+  final List<PropertyMapItem>? subItems;
+  /// Imagen principal de la propiedad
+  final String? imageUrl;
 
   PropertyMapItem({
     required this.id,
@@ -33,6 +37,8 @@ class PropertyMapItem {
     required this.trustLabel,
     required this.isOrg,
     this.propertyCount = 1,
+    this.subItems,
+    this.imageUrl,
   });
 }
 
@@ -81,11 +87,15 @@ final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async 
         isPlus: true,
         trustLabel: 'Actor Verificado',
         isOrg: true,
+        imageUrl: (row['photos'] != null && (row['photos'] as List).isNotEmpty) ? row['photos'][0] : null,
       ));
     }
-  } catch (_) {}
 
-  return items;
+    return items;
+  } catch (e) {
+    print('Error fetching properties: $e');
+    return items;
+  }
 });
 
 double _extractLat(Map<String, dynamic> row) {

@@ -9,6 +9,7 @@ import '../../../core/widgets/kaza_pin_painter.dart';
 import '../providers/map_properties_provider.dart';
 import '../widgets/map_filter_bottom_sheet.dart';
 import 'property_detail_screen.dart';
+import 'cluster_bottom_sheet.dart';
 
 /// 🗺️ MAPA (Home) - Kaza Map-First Experience & Polygon Drawing Engine
 class MapScreen extends ConsumerStatefulWidget {
@@ -128,6 +129,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  void _showClusterBottomSheet(PropertyMapItem clusterItem) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + kToolbarHeight),
+        child: ClusterBottomSheet(clusterItem: clusterItem),
+      ),
+    );
+  }
+
   List<PropertyMapItem> _clusterProperties(List<PropertyMapItem> items, double zoom) {
     if (items.isEmpty) return [];
     if (zoom > 16.0) return items; // Mostrar individuales en zoom alto
@@ -169,6 +182,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           trustLabel: '',
           isOrg: false,
           propertyCount: cell.length,
+          subItems: cell,
         ));
       }
     }
@@ -261,7 +275,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         height: isSelected ? 48 : (hasCluster ? 56 : 48),
                         child: GestureDetector(
                           onTap: () {
-                            setState(() => _selectedProperty = prop);
+                            if (hasCluster) {
+                              _showClusterBottomSheet(prop);
+                            } else {
+                              setState(() => _selectedProperty = prop);
+                            }
                           },
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 250),
