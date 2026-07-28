@@ -287,7 +287,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                     key: ValueKey('sel_${prop.id}'),
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: KazaTheme.accentGold,
+                                      color: KazaTheme.coralKaza,
                                       borderRadius: BorderRadius.circular(22),
                                       border: Border.all(
                                         color: Colors.white,
@@ -307,20 +307,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(4),
                                           decoration: const BoxDecoration(
-                                            color: Colors.black12,
+                                            color: Colors.white24,
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(
                                             typeIcon,
                                             size: 14,
-                                            color: Colors.black,
+                                            color: Colors.white,
                                           ),
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           prop.price,
                                           style: const TextStyle(
-                                            color: Colors.black,
+                                            color: Colors.white,
                                             fontSize: 11,
                                             fontWeight: FontWeight.w900,
                                           ),
