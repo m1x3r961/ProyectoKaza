@@ -11,3 +11,5 @@ ALTER TABLE public.saved_properties ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable insert for all users" ON public.saved_properties FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable select for all users" ON public.saved_properties FOR SELECT USING (true);
 CREATE POLICY "Enable delete for all users" ON public.saved_properties FOR DELETE USING (true);
+
+GRANT ALL ON TABLE public.saved_properties TO anon, authenticated, service_role;
