@@ -1,49 +1,28 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import 'comparator_screen.dart';
 
+final savedPropertiesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final response = await SupabaseConfig.client
+      .from('saved_properties')
+      .select('*, properties(*)');
+  return List<Map<String, dynamic>>.from(response);
+});
+
 /// 🔖 GUARDADOS - WM-02 v0.3
-class SavedScreen extends StatefulWidget {
+class SavedScreen extends ConsumerStatefulWidget {
   const SavedScreen({super.key});
 
   @override
-  State<SavedScreen> createState() => _SavedScreenState();
+  ConsumerState<SavedScreen> createState() => _SavedScreenState();
 }
 
-class _SavedScreenState extends State<SavedScreen> {
-  List<Map<String, dynamic>> _savedItems = [];
-  bool _isLoading = true;
+class _SavedScreenState extends ConsumerState<SavedScreen> {
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchSavedProperties();
-  }
 
-  Future<void> _fetchSavedProperties() async {
-    try {
-      final response = await SupabaseConfig.client
-          .from('saved_properties')
-          .select('*, properties(*)');
-      if (mounted) {
-        setState(() {
-          _savedItems = List<Map<String, dynamic>>.from(response);
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _savedItems = [];
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _onComparePressed() {
-    if (_savedItems.length < 2) {
+  void _onComparePressed(List<Map<String, dynamic>> savedItems) {
+    if (savedItems.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Necesitas al menos 2 propiedades para comparar.'),
@@ -58,15 +37,15 @@ class _SavedScreenState extends State<SavedScreen> {
     Map<String, dynamic>? p1;
     Map<String, dynamic>? p2;
 
-    for (int i = 0; i < _savedItems.length; i++) {
-      final prop1 = _savedItems[i]['properties'] as Map<String, dynamic>?;
+    for (int i = 0; i < savedItems.length; i++) {
+      final prop1 = savedItems[i]['properties'] as Map<String, dynamic>?;
       if (prop1 == null) continue;
       
       final op1 = prop1['operation']?.toString().toUpperCase();
       final type1 = prop1['property_type']?.toString().toUpperCase();
 
-      for (int j = i + 1; j < _savedItems.length; j++) {
-        final prop2 = _savedItems[j]['properties'] as Map<String, dynamic>?;
+      for (int j = i + 1; j < savedItems.length; j++) {
+        final prop2 = savedItems[j]['properties'] as Map<String, dynamic>?;
         if (prop2 == null) continue;
 
         final op2 = prop2['operation']?.toString().toUpperCase();
@@ -127,6 +106,8 @@ class _SavedScreenState extends State<SavedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final savedAsyncValue = ref.watch(savedPropertiesProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -141,30 +122,39 @@ class _SavedScreenState extends State<SavedScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: _onComparePressed,
-            child: const Text(
-              'Comparar',
-              style: TextStyle(
-                color: KazaTheme.textMuted,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+          savedAsyncValue.when(
+            data: (items) => TextButton(
+              onPressed: () => _onComparePressed(items),
+              child: const Text(
+                'Comparar',
+                style: TextStyle(
+                  color: KazaTheme.textMuted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: KazaTheme.azulKaza))
-          : _savedItems.isEmpty
-              ? _buildEmptySavedState()
-              : ListView.separated(
+      body: savedAsyncValue.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: KazaTheme.azulKaza)),
+        error: (err, stack) => _buildEmptySavedState(),
+        data: (savedItems) {
+          if (savedItems.isEmpty) return _buildEmptySavedState();
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(savedPropertiesProvider);
+            },
+            child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: _savedItems.length,
+                  itemCount: savedItems.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
-                    final item = _savedItems[index];
+                    final item = savedItems[index];
                     final prop = item['properties'] as Map<String, dynamic>? ?? {};
 
                     final title = prop['address_canonical'] ?? 'Inmueble Guardado';
@@ -228,6 +218,9 @@ class _SavedScreenState extends State<SavedScreen> {
                     );
                   },
                 ),
+          );
+        }
+      ),
     );
   }
 

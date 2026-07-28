@@ -5,17 +5,20 @@ import '../../../core/network/supabase_config.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../saved/screens/saved_screen.dart';
+
 /// 🏠 PROPERTY DETAIL SCREEN - Detalle completo de la propiedad, Plano 2D y Visor 3D 360°
-class PropertyDetailScreen extends StatefulWidget {
+class PropertyDetailScreen extends ConsumerStatefulWidget {
   final PropertyMapItem property;
 
   const PropertyDetailScreen({super.key, required this.property});
 
   @override
-  State<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
 }
 
-class _PropertyDetailScreenState extends State<PropertyDetailScreen> with SingleTickerProviderStateMixin {
+class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _selectedRoomIndex = 0;
 
@@ -111,6 +114,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> with Single
 
                 await SupabaseConfig.client.from('saved_properties').insert(payload);
                 
+                ref.invalidate(savedPropertiesProvider);
+
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
