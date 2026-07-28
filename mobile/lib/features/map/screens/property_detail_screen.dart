@@ -100,12 +100,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: KazaTheme.darkBackground,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.property.title, overflow: TextOverflow.ellipsis),
+        backgroundColor: Colors.white,
+        foregroundColor: KazaTheme.azulKaza,
+        elevation: 0,
+        title: Text(widget.property.title, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KazaTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_border, color: KazaTheme.accentGold),
+            icon: const Icon(Icons.bookmark_border, color: KazaTheme.textSecondary),
             onPressed: () async {
               try {
                 final userId = SupabaseConfig.client.auth.currentUser?.id;
@@ -135,7 +138,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
             },
           ),
           IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
+            icon: const Icon(Icons.share, color: KazaTheme.textSecondary),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('🔗 Enlace copiado al portapapeles')),
@@ -147,7 +150,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
           controller: _tabController,
           indicatorColor: KazaTheme.primaryCoralLight,
           labelColor: KazaTheme.primaryCoralLight,
-          unselectedLabelColor: KazaTheme.textMuted,
+          unselectedLabelColor: KazaTheme.textSecondary,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: const [
             Tab(icon: Icon(Icons.info_outline), text: 'OFERTA & DETALLE'),
             Tab(icon: Icon(Icons.architecture), text: 'PLANO 2D'),
@@ -171,7 +175,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
-          color: KazaTheme.cardSurface,
+          color: Colors.white,
           border: Border(top: BorderSide(color: KazaTheme.glassBorder)),
         ),
         child: Row(
@@ -180,11 +184,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Precio Final', style: TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
+                const Text('Precio Final', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
                 Text(
                   widget.property.price,
                   style: const TextStyle(
-                    color: KazaTheme.primaryCoralLight,
+                    color: KazaTheme.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
@@ -233,16 +237,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
               Container(
                 height: 220,
                 width: double.infinity,
-                color: Colors.grey.shade900,
+                color: KazaTheme.grisClaro,
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset('assets/images/logo.png', height: 60),
+                      Icon(Icons.image_outlined, size: 48, color: KazaTheme.grisMedio),
                       const SizedBox(height: 8),
                       const Text(
                         'Galería Fotográfica Verificada (HD)',
-                        style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+                        style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13),
                       ),
                     ],
                   ),
@@ -268,7 +272,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black54,
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text('1 / 12 Fotos', style: TextStyle(color: Colors.white, fontSize: 12)),
@@ -280,7 +284,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
 
         const SizedBox(height: 20),
 
-        // Title & Price Info
+        // Title Info
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,16 +295,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                 children: [
                   Text(
                     widget.property.title,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 16, color: KazaTheme.primaryCoralLight),
+                      const Icon(Icons.location_on_outlined, size: 16, color: KazaTheme.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         'Equipetrol / Sirari, Santa Cruz, Bolivia',
-                        style: const TextStyle(color: KazaTheme.textMuted, fontSize: 13),
+                        style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13),
                       ),
                     ],
                   ),
@@ -310,9 +314,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: KazaTheme.primaryCoral.withValues(alpha: 0.15),
+                color: KazaTheme.primaryCoralLight.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: KazaTheme.primaryCoralLight),
               ),
               child: Text(
                 widget.property.operation,
@@ -348,7 +351,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
             const SizedBox(width: 8),
             const Text(
               'Lo que ofrece esta propiedad',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
             ),
           ],
         ),
@@ -368,18 +371,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: KazaTheme.cardSurface,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: KazaTheme.glassBorder),
               ),
               child: Row(
                 children: [
-                  Icon(item['icon'] as IconData, size: 18, color: KazaTheme.primaryCoralLight),
+                  Icon(item['icon'] as IconData, size: 18, color: KazaTheme.textSecondary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       item['name'] as String,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: KazaTheme.textPrimary),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -394,7 +397,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         const SizedBox(height: 16),
 
         // SECTION: Descripción
-        const Text('Descripción del Inmueble', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('Descripción del Inmueble', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
         const SizedBox(height: 8),
         const Text(
           'Exclusivo inmueble ubicado en la zona de mayor plusvalía de Santa Cruz. Cuenta con acabados de primera calidad, pisos de porcelanato italiano importado, mesones de granito en cocina y baños, suite principal con vestidor amplio y balcón privado con orientación privilegiada.\n\n'
@@ -407,31 +410,35 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         const SizedBox(height: 16),
 
         // SECTION: Vendedor / Agente Certificado
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: KazaTheme.primaryCoral,
-                  child: const Icon(Icons.business, color: Colors.white),
+        Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: KazaTheme.glassBorder),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4))],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: KazaTheme.primaryCoralLight,
+                child: const Icon(Icons.business, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Inmobiliaria Kaza Pro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: KazaTheme.textPrimary)),
+                    const SizedBox(height: 2),
+                    const Text('Empresa Verificada por Kaza Guard', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    KazaTrustBadge(label: widget.property.trustLabel, isOrganization: widget.property.isOrg),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Inmobiliaria Kaza Pro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      const SizedBox(height: 2),
-                      const Text('Empresa Verificada por Kaza Guard', style: TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
-                      const SizedBox(height: 6),
-                      KazaTrustBadge(label: widget.property.trustLabel, isOrganization: widget.property.isOrg),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
@@ -443,18 +450,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         decoration: BoxDecoration(
-          color: KazaTheme.cardSurface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: KazaTheme.glassBorder),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 18, color: KazaTheme.primaryCoralLight),
+            Icon(icon, size: 18, color: KazaTheme.textSecondary),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
             ),
           ],
         ),
@@ -473,7 +480,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         // Room Selector Header Chips
         Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          color: KazaTheme.cardSurface,
+          color: Colors.white,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -484,16 +491,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: ChoiceChip(
-                    avatar: Icon(r['icon'] as IconData, size: 16, color: isSel ? Colors.white : KazaTheme.primaryCoralLight),
+                    avatar: Icon(r['icon'] as IconData, size: 16, color: isSel ? Colors.white : KazaTheme.textSecondary),
                     label: Text(r['name'] as String),
                     selected: isSel,
-                    selectedColor: KazaTheme.primaryCoral,
-                    backgroundColor: KazaTheme.darkBackground,
+                    selectedColor: KazaTheme.primaryCoralLight,
+                    backgroundColor: KazaTheme.grisClaro,
                     labelStyle: TextStyle(
                       color: isSel ? Colors.white : KazaTheme.textPrimary,
                       fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                       fontSize: 12,
                     ),
+                    side: BorderSide(color: isSel ? Colors.transparent : KazaTheme.glassBorder),
                     onSelected: (_) {
                       setState(() => _selectedRoomIndex = idx);
                     },
@@ -509,7 +517,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
           child: Container(
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F141F),
+              color: const Color(0xFFF0F4F8), // Light blueprint background
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: KazaTheme.glassBorder),
             ),
@@ -534,9 +542,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: KazaTheme.cardSurface.withValues(alpha: 0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: KazaTheme.primaryCoralLight),
+                        border: Border.all(color: KazaTheme.glassBorder),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                       ),
                       child: Row(
                         children: [
@@ -548,11 +557,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                               children: [
                                 Text(
                                   selectedRoom['name'] as String,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary),
                                 ),
                                 Text(
                                   'Dimensiones: ${selectedRoom['dimensions']} · Área: ${selectedRoom['surface']}',
-                                  style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
+                                  style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -560,7 +569,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: (selectedRoom['color'] as Color).withValues(alpha: 0.2),
+                              color: (selectedRoom['color'] as Color).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -594,22 +603,22 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         // 3D Controls Bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: KazaTheme.cardSurface,
+          color: Colors.white,
           child: Row(
             children: [
-              const Icon(Icons.threed_rotation, color: KazaTheme.accentGold, size: 20),
+              const Icon(Icons.threed_rotation, color: KazaTheme.primaryCoralLight, size: 20),
               const SizedBox(width: 8),
-              const Text('Visor Espacial 3D', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Visor Espacial 3D', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.textPrimary)),
               const Spacer(),
 
               // Floor Level Switcher
               DropdownButton<int>(
                 value: _activeFloor,
-                dropdownColor: KazaTheme.cardSurface,
+                dropdownColor: Colors.white,
                 underline: const SizedBox(),
                 items: const [
-                  DropdownMenuItem(value: 1, child: Text('Nivel 1', style: TextStyle(fontSize: 12))),
-                  DropdownMenuItem(value: 2, child: Text('Nivel 2 (Terraza)', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(value: 1, child: Text('Nivel 1', style: TextStyle(fontSize: 12, color: KazaTheme.textPrimary))),
+                  DropdownMenuItem(value: 2, child: Text('Nivel 2 (Terraza)', style: TextStyle(fontSize: 12, color: KazaTheme.textPrimary))),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _activeFloor = val);
@@ -621,7 +630,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
               IconButton(
                 icon: Icon(
                   _showWireframe3D ? Icons.grid_4x4 : Icons.view_in_ar,
-                  color: _showWireframe3D ? KazaTheme.accentGold : Colors.white,
+                  color: _showWireframe3D ? KazaTheme.primaryCoralLight : KazaTheme.textSecondary,
                 ),
                 tooltip: 'Modo Estructura 3D',
                 onPressed: () {
@@ -637,7 +646,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
           child: Container(
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0A0D14),
+              color: const Color(0xFFE8ECEF),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: KazaTheme.glassBorder),
             ),
@@ -673,14 +682,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
+                          color: Colors.white.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: KazaTheme.glassBorder),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.touch_app, size: 14, color: KazaTheme.accentGold),
+                            Icon(Icons.touch_app, size: 14, color: KazaTheme.primaryCoralLight),
                             SizedBox(width: 6),
-                            Text('Arrastra para orbitar en 360°', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            Text('Arrastra para orbitar en 360°', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -694,8 +704,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                         children: [
                           FloatingActionButton.small(
                             heroTag: 'zoom_in_3d',
-                            backgroundColor: KazaTheme.cardSurface,
-                            child: const Icon(Icons.add, color: Colors.white),
+                            backgroundColor: Colors.white,
+                            child: const Icon(Icons.add, color: KazaTheme.textPrimary),
                             onPressed: () {
                               setState(() => _zoomScale = (_zoomScale * 1.2).clamp(0.5, 3.0));
                             },
@@ -703,8 +713,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                           const SizedBox(height: 8),
                           FloatingActionButton.small(
                             heroTag: 'zoom_out_3d',
-                            backgroundColor: KazaTheme.cardSurface,
-                            child: const Icon(Icons.remove, color: Colors.white),
+                            backgroundColor: Colors.white,
+                            child: const Icon(Icons.remove, color: KazaTheme.textPrimary),
                             onPressed: () {
                               setState(() => _zoomScale = (_zoomScale / 1.2).clamp(0.5, 3.0));
                             },
@@ -712,8 +722,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                           const SizedBox(height: 8),
                           FloatingActionButton.small(
                             heroTag: 'reset_3d',
-                            backgroundColor: KazaTheme.cardSurface,
-                            child: const Icon(Icons.restart_alt, color: KazaTheme.accentGold),
+                            backgroundColor: Colors.white,
+                            child: const Icon(Icons.restart_alt, color: KazaTheme.primaryCoralLight),
                             onPressed: () {
                               setState(() {
                                 _rotationY = 0.6;
@@ -762,12 +772,12 @@ class FloorPlan2DPainter extends CustomPainter {
 
     // 2. Draw Rooms
     final borderPaint = Paint()
-      ..color = Colors.white70
+      ..color = Colors.black12
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
 
     final selectedBorderPaint = Paint()
-      ..color = KazaTheme.accentGold
+      ..color = KazaTheme.primaryCoralLight
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
@@ -797,7 +807,7 @@ class FloorPlan2DPainter extends CustomPainter {
       final textSpan = TextSpan(
         text: '${r['name']}\n${r['surface']}',
         style: TextStyle(
-          color: isSel ? KazaTheme.accentGold : Colors.white,
+          color: isSel ? KazaTheme.primaryCoralLight : KazaTheme.textPrimary,
           fontSize: isSel ? 12 : 10,
           fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
         ),
