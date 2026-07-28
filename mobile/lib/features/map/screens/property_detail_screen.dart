@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/network/supabase_config.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
 
@@ -102,13 +103,30 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> with Single
         actions: [
           IconButton(
             icon: const Icon(Icons.bookmark_border, color: KazaTheme.accentGold),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('⭐ Propiedad guardada en tu lista de favoritos'),
-                  backgroundColor: KazaTheme.primaryCoral,
-                ),
-              );
+            onPressed: () async {
+              try {
+                final userId = SupabaseConfig.client.auth.currentUser?.id;
+                final payload = {'property_id': widget.property.id};
+                if (userId != null) payload['user_id'] = userId;
+
+                await SupabaseConfig.client.from('saved_properties').insert(payload);
+                
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('⭐ Propiedad guardada en tu lista de favoritos'),
+                    backgroundColor: KazaTheme.primaryCoral,
+                  ),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error al guardar (¿ya está guardada?): $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
           ),
           IconButton(
