@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/utils/responsive_utils.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../../../core/widgets/kaza_pin_painter.dart';
 import '../providers/map_properties_provider.dart';
@@ -349,122 +350,126 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             },
           ),
 
-          // 2. Top Floating Bar (Exact Design Mockup "MAPA COMO CORAZÓN")
+          // 2. Top Floating Bar — Responsive search + filters
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Row 1: Search Bar "Q ¿Dónde quieres buscar?" + Filter Button
-                  Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 16),
-                        const Icon(Icons.search_rounded, color: KazaTheme.azulKaza, size: 22),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: '¿Dónde quieres buscar?',
-                              hintStyle: TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.tune_rounded, color: KazaTheme.azulKaza, size: 22),
-                          onPressed: _openFilterBottomSheet,
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Row 2: Operation Pills [ Comprar ] [ Alquilar ] [ Anticrético ]
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+            child: Builder(
+              builder: (ctx) {
+                final hPad = KazaResponsive.horizontalPadding(ctx);
+                final isTablet = KazaResponsive.isTablet(ctx);
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 10.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildOperationPill(
-                        'Comprar', 
-                        isSelected: _selectedOperation == 'Comprar',
-                        onTap: () => setState(() => _selectedOperation = 'Comprar'),
+                      // Row 1: Search Bar
+                      Container(
+                        height: isTablet ? 54 : 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(27),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            const Icon(Icons.search_rounded, color: KazaTheme.azulKaza, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                style: TextStyle(fontSize: isTablet ? 15 : 14),
+                                decoration: const InputDecoration(
+                                  hintText: '¿Dónde quieres buscar?',
+                                  hintStyle: TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.tune_rounded, color: KazaTheme.azulKaza, size: 22),
+                              onPressed: _openFilterBottomSheet,
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _buildOperationPill(
-                        'Alquilar', 
-                        isSelected: _selectedOperation == 'Alquilar',
-                        onTap: () => setState(() => _selectedOperation = 'Alquilar'),
+
+                      const SizedBox(height: 10),
+
+                      // Row 2: Operation Pills
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildOperationPill(
+                            'Comprar',
+                            isSelected: _selectedOperation == 'Comprar',
+                            onTap: () => setState(() => _selectedOperation = 'Comprar'),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildOperationPill(
+                            'Alquilar',
+                            isSelected: _selectedOperation == 'Alquilar',
+                            onTap: () => setState(() => _selectedOperation = 'Alquilar'),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildOperationPill(
+                            'Anticrético',
+                            isSelected: _selectedOperation == 'Anticrético',
+                            onTap: () => setState(() => _selectedOperation = 'Anticrético'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      _buildOperationPill(
-                        'Anticrético', 
-                        isSelected: _selectedOperation == 'Anticrético',
-                        onTap: () => setState(() => _selectedOperation = 'Anticrético'),
+
+                      const SizedBox(height: 10),
+
+                      // Row 3: Category Chips
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: ['Todos', 'Casa', 'Dpto.', 'Terreno', 'Local', 'Oficina', 'Más'].map((cat) {
+                            final isSel = _selectedCategory == cat;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6.0),
+                              child: ChoiceChip(
+                                label: Text(cat),
+                                selected: isSel,
+                                selectedColor: KazaTheme.azulKaza,
+                                backgroundColor: Colors.white,
+                                elevation: 2,
+                                shadowColor: Colors.black12,
+                                side: BorderSide.none,
+                                labelStyle: TextStyle(
+                                  color: isSel ? Colors.white : KazaTheme.azulKaza,
+                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                                onSelected: (_) => setState(() => _selectedCategory = cat),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 10),
-
-                  // Row 3: Category Chips [ Casa ] [ Dpto. ] [ Terreno ] [ Local ] [ Oficina ] [ Más ]
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['Todos', 'Casa', 'Dpto.', 'Terreno', 'Local', 'Oficina', 'Más'].map((cat) {
-                        final isSel = _selectedCategory == cat;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 6.0),
-                          child: ChoiceChip(
-                            label: Text(cat),
-                            selected: isSel,
-                            selectedColor: KazaTheme.azulKaza,
-                            backgroundColor: Colors.white,
-                            elevation: 2,
-                            shadowColor: Colors.black12,
-                            side: BorderSide.none,
-                            labelStyle: TextStyle(
-                              color: isSel ? Colors.white : KazaTheme.azulKaza,
-                              fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                            onSelected: (_) {
-                              setState(() => _selectedCategory = cat);
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
 
           // 3. Floating Polygon Drawing Controls (When in drawing mode)
           if (_isDrawingPolygon)
             Positioned(
-              top: 130,
-              left: 16,
-              right: 16,
+              top: MediaQuery.of(context).padding.top + 140,
+              left: KazaResponsive.horizontalPadding(context),
+              right: KazaResponsive.horizontalPadding(context),
               child: Card(
                 color: KazaTheme.cardSurface.withValues(alpha: 0.95),
                 child: Padding(
@@ -496,8 +501,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
           // 4. Floating Action Buttons (Near me & Viewport Refresh)
           Positioned(
-            right: 16,
-            bottom: _selectedProperty != null ? 220 : 20,
+            right: KazaResponsive.horizontalPadding(context),
+            bottom: _selectedProperty != null
+                ? KazaResponsive.mapPropertyCardHeight(context) + 100
+                : 20,
             child: Column(
               children: [
                 FloatingActionButton.small(
@@ -533,12 +540,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // 5. Bottom Property Preview Card (When marker is selected)
+          // 5. Bottom Property Preview Card — adapts width on tablets
           if (_selectedProperty != null)
             Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
+              left: KazaResponsive.isTablet(context)
+                  ? MediaQuery.of(context).size.width * 0.22
+                  : KazaResponsive.horizontalPadding(context),
+              right: KazaResponsive.isTablet(context)
+                  ? MediaQuery.of(context).size.width * 0.22
+                  : KazaResponsive.horizontalPadding(context),
+              bottom: KazaResponsive.bottomSafeArea(context) + 12,
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -551,14 +562,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 child: Card(
                   clipBehavior: Clip.antiAlias,
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: EdgeInsets.all(KazaResponsive.isTablet(context) ? 14.0 : 12.0),
                     child: Row(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
-                            width: 90,
-                            height: 90,
+                            width: KazaResponsive.isTablet(context) ? 100 : 84,
+                            height: KazaResponsive.isTablet(context) ? 100 : 84,
                             color: Colors.grey.shade800,
                             child: Icon(_getIconForType(_selectedProperty!.type), color: Colors.white54, size: 36),
                           ),

@@ -1,813 +1,458 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { 
-  Shield, 
-  BarChart3, 
-  Users, 
-  Building2, 
-  AlertTriangle, 
-  CreditCard, 
-  Settings, 
-  Search, 
-  Server, 
-  Globe, 
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle
+import { useAutoUpdate } from '../hooks/useAutoUpdate';
+import {
+  Shield, BarChart3, Users, Building2, AlertTriangle,
+  CreditCard, Settings, Search, Server, Globe, RefreshCw,
+  Menu, X, ChevronRight,
 } from 'lucide-react';
 
-// =============================================================================
-// TYPES & SCHEMAS (Connected to Supabase Schema)
-// =============================================================================
 type AdminModule = 'DASHBOARD' | 'USERS' | 'LISTINGS' | 'CASES' | 'FINANCE' | 'SYSTEM' | 'COMPLIANCE';
+interface AdminUser { id: string; name: string; email: string; role: 'ADMIN'|'MODERATOR'|'AGENT'|'ORGANIZATION'|'USER'; status: 'ACTIVE'|'PENDING'|'SUSPENDED'; trustScore: number; listingsCount: number; registeredAt: string; }
+interface AdminListing { id: string; title: string; type: string; price: string; location: string; mediaStatus: 'VERIFIED_REAL'|'RENDER_FLAGGED'|'PENDING_REVIEW'; status: 'PUBLISHED'|'UNDER_REVIEW'|'BANNED'|'DRAFT'; publisher: string; createdAt: string; }
+interface AdminCase { id: string; type: string; priority: 'CRITICAL'|'HIGH'|'MEDIUM'|'LOW'; status: 'NEW'|'IN_REVIEW'|'RESOLVED'|'DISMISSED'; title: string; description: string; createdAt: string; }
 
-interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: 'ADMIN' | 'MODERATOR' | 'AGENT' | 'ORGANIZATION' | 'USER';
-  status: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
-  trustScore: number;
-  listingsCount: number;
-  registeredAt: string;
+function useWindowWidth() {
+  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  useEffect(() => {
+    const h = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return width;
 }
 
-interface AdminListing {
-  id: string;
-  title: string;
-  type: 'Casa' | 'Departamento' | 'Terreno' | 'Oficina';
-  price: string;
-  location: string;
-  mediaStatus: 'VERIFIED_REAL' | 'RENDER_FLAGGED' | 'PENDING_REVIEW';
-  status: 'PUBLISHED' | 'UNDER_REVIEW' | 'BANNED' | 'DRAFT';
-  publisher: string;
-  createdAt: string;
-}
+const G = () => (<style>{`
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:'Inter',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:#0B0F17}
+  ::-webkit-scrollbar-thumb{background:#2D3748;border-radius:3px}
+  input::placeholder{color:#6B7280}
+  input:focus{outline:none}
+  button{font-family:inherit}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .spin{animation:spin 1s linear infinite}
+  @keyframes slideIn{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  .sb-slide{animation:slideIn .25s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .fu{animation:fadeUp .22s ease}
+  .scard{transition:transform .2s ease,box-shadow .2s ease}
+  .scard:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+  .nav-btn{transition:all .15s ease;width:100%}
+  .nav-btn:hover{background-color:rgba(255,255,255,.05)!important}
+  .act-btn{transition:opacity .15s}
+  .act-btn:hover{opacity:.8}
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:40}
+  .rtable{width:100%;border-collapse:collapse;font-size:13px}
+  @media(max-width:700px){
+    .rtable thead{display:none}
+    .rtable tbody tr{display:block;background:#111723;border-radius:14px;margin-bottom:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.07)}
+    .rtable tbody td{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:7px 0!important;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px!important;min-height:32px}
+    .rtable tbody td:last-child{border-bottom:none}
+    .rtable tbody td::before{content:attr(data-label);font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.4px;min-width:76px;padding-top:3px;flex-shrink:0}
+  }
+`}</style>);
 
-interface AdminCase {
-  id: string;
-  type: 'USER_VERIFICATION' | 'MEDIA_VERACITY' | 'DUPLICATE_LISTING' | 'FAIR_HOUSING_ALERT';
-  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  status: 'NEW' | 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED';
-  title: string;
-  description: string;
-  createdAt: string;
+const NAV: { id: AdminModule; label: string; icon: React.ReactNode; accent?: string }[] = [
+  { id: 'DASHBOARD',  label: '1. Admin Dashboard',         icon: <BarChart3 size={17}/> },
+  { id: 'USERS',      label: '2. Users & Org Admin',       icon: <Users size={17}/> },
+  { id: 'LISTINGS',   label: '3. Content & Listings',      icon: <Building2 size={17}/> },
+  { id: 'CASES',      label: '4. Admin Cases & Audit',     icon: <AlertTriangle size={17}/> },
+  { id: 'FINANCE',    label: '5. Finance & Billing',       icon: <CreditCard size={17}/> },
+  { id: 'SYSTEM',     label: '6. System & Market Config',  icon: <Settings size={17}/> },
+  { id: 'COMPLIANCE', label: 'Market Compliance Gate',     icon: <Globe size={17}/>, accent: '#10B981' },
+];
+const TITLES: Record<AdminModule, string> = {
+  DASHBOARD:  '📊 Admin Dashboard & Salud del Sistema',
+  USERS:      '👥 Usuarios, Agentes & Inmobiliarias',
+  LISTINGS:   '🏠 Moderación de Contenido & Calidad',
+  CASES:      '🛡️ Triaje de Casos & Auditoría',
+  FINANCE:    '💳 Finanzas, Suscripciones & Facturación',
+  SYSTEM:     '⚙️ Sistema, Feature Flags & Market Config',
+  COMPLIANCE: '🌐 Market Launch Compliance Gate',
+};
+
+function EmptyState({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
+  return (
+    <div style={{ padding: '36px 16px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
+      <div style={{ marginBottom: '8px', opacity: 0.8, display: 'flex', justifyContent: 'center' }}>{icon}</div>
+      <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>{title}</div>
+      <div style={{ fontSize: '12px', marginTop: '6px', lineHeight: '1.55', maxWidth: '320px', margin: '6px auto 0' }}>{sub}</div>
+    </div>
+  );
+}
+function Btn({ children, color, outlined = false, onClick }: { children: React.ReactNode; color: string; outlined?: boolean; onClick: () => void }) {
+  return (
+    <button className="act-btn" onClick={onClick} style={{ backgroundColor: outlined ? 'transparent' : color, border: `1px solid ${color}`, color: outlined ? color : '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+      {children}
+    </button>
+  );
+}
+function SBadge({ status }: { status: 'ACTIVE' | 'PENDING' | 'SUSPENDED' }) {
+  const m: Record<string, [string, string]> = { ACTIVE: ['rgba(16,185,129,.15)', '#10B981'], PENDING: ['rgba(245,158,11,.15)', '#F59E0B'], SUSPENDED: ['rgba(239,68,68,.15)', '#EF4444'] };
+  const [bg, c] = m[status];
+  return <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px', backgroundColor: bg, color: c }}>{status}</span>;
 }
 
 export default function AdminDashboardSuite() {
-  const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterRole, setFilterRole] = useState<string>('ALL');
+  const w = useWindowWidth();
+  const mob = w < 768;
+  const tab = w >= 768 && w < 1024;
+  const desk = w >= 1024;
 
-  // Supabase Connection & Metrics State
-  const [isConnectedToSupabase, setIsConnectedToSupabase] = useState<boolean>(false);
-  const [dbLatencyMs, setDbLatencyMs] = useState<number | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  // 🔄 Auto-update: detecta nuevos builds sin consumo excesivo de red
+  const { updateAvailable, countdown, reloadNow, dismiss } = useAutoUpdate({
+    pollInterval: 90_000,   // Check cada 90 segundos
+    autoReloadAfter: 10,    // Cuenta regresiva de 10s antes de recargar
+  });
 
-  // Real Database Counts from Supabase (Exact count from DB)
-  const [realActiveListingsCount, setRealActiveListingsCount] = useState<number>(0);
-  const [realUsersCount, setRealUsersCount] = useState<number>(0);
-  const [realPendingCasesCount, setRealPendingCasesCount] = useState<number>(0);
-
-  // Data Collections (Start at 0 for clean database)
+  const [mod, setMod] = useState<AdminModule>('DASHBOARD');
+  const [q, setQ] = useState('');
+  const [role, setRole] = useState('ALL');
+  const [sbOpen, setSbOpen] = useState(false);
+  const [sqOpen, setSqOpen] = useState(false);
+  const [supaOk, setSupaOk] = useState(false);
+  const [latency, setLatency] = useState<number | null>(null);
+  const [refresh, setRefresh] = useState(false);
+  const [listCount, setListCount] = useState(0);
+  const [usersCount, setUsersCount] = useState(0);
+  const [casesCount, setCasesCount] = useState(0);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [listings, setListings] = useState<AdminListing[]>([]);
   const [cases, setCases] = useState<AdminCase[]>([]);
 
-  // ---------------------------------------------------------------------------
-  // LIVE SUPABASE FETCHING & LATENCY MONITOR
-  // ---------------------------------------------------------------------------
-  const fetchSupabaseRealMetrics = async () => {
-    setIsRefreshing(true);
-    const startPing = performance.now();
-
+  const fetchData = useCallback(async () => {
+    setRefresh(true);
+    const t0 = performance.now();
     try {
-      // 1. Fetch Real Admin Cases from Supabase DB Table (migration 00005_admin_cases)
-      const { data: dbCases, error: casesError } = await supabase
-        .from('admin_cases')
-        .select('*');
-
-      if (!casesError && dbCases && dbCases.length > 0) {
-        setIsConnectedToSupabase(true);
-        const mappedCases: AdminCase[] = dbCases.map((item: any) => ({
-          id: item.id,
-          type: item.case_type || 'USER_VERIFICATION',
-          priority: item.priority || 'MEDIUM',
-          status: item.status || 'NEW',
-          title: item.title,
-          description: item.description,
-          createdAt: new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }));
-        setCases(mappedCases);
-        setRealPendingCasesCount(mappedCases.filter(c => c.status !== 'RESOLVED').length);
+      const { data: dc, error: ec } = await supabase.from('admin_cases').select('*');
+      if (!ec && dc && dc.length > 0) {
+        setSupaOk(true);
+        const mc: AdminCase[] = dc.map((i: any) => ({ id: i.id, type: i.case_type || 'USER_VERIFICATION', priority: i.priority || 'MEDIUM', status: i.status || 'NEW', title: i.title, description: i.description, createdAt: new Date(i.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }));
+        setCases(mc);
+        setCasesCount(mc.filter(c => c.status !== 'RESOLVED').length);
       }
-
-      // 2. Fetch Real Listings and Count from Supabase DB
-      const { data: dbProperties, count: propCount, error: propError } = await supabase
-        .from('properties')
-        .select('*', { count: 'exact' });
-
-      if (!propError && dbProperties) {
-        setIsConnectedToSupabase(true);
-        if (propCount !== null) setRealActiveListingsCount(propCount);
-        
-        const mappedListings: AdminListing[] = dbProperties.map((item: any) => ({
-          id: item.id,
-          title: item.address_canonical || 'Propiedad sin título',
-          type: item.property_type || 'Departamento',
-          price: item.price_usd ? `$${item.price_usd.toLocaleString()}` : 'Por definir',
-          location: item.city_id ? item.city_id.replace('_', ' ').toUpperCase() : 'Desconocido',
-          mediaStatus: 'VERIFIED_REAL',
-          status: item.status || 'PUBLISHED',
-          publisher: 'Agente Registrado',
-          createdAt: new Date(item.created_at).toLocaleDateString()
-        }));
-        setListings(mappedListings);
+      const { data: dp, count: pc, error: ep } = await supabase.from('properties').select('*', { count: 'exact' });
+      if (!ep && dp) {
+        setSupaOk(true);
+        if (pc !== null) setListCount(pc);
+        setListings(dp.map((i: any) => ({ id: i.id, title: i.address_canonical || 'Propiedad sin título', type: i.property_type || 'Departamento', price: i.price_usd ? `$${i.price_usd.toLocaleString()}` : 'Por definir', location: i.city_id ? i.city_id.replace('_', ' ').toUpperCase() : 'Desconocido', mediaStatus: 'VERIFIED_REAL', status: i.status || 'PUBLISHED', publisher: 'Agente Registrado', createdAt: new Date(i.created_at).toLocaleDateString() })));
       }
-
-      // 3. Fetch Real Users and Count from Supabase DB
-      const { data: dbProfiles, count: usersCount, error: usersError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact' });
-
-      if (!usersError && dbProfiles) {
-        setIsConnectedToSupabase(true);
-        if (usersCount !== null) setRealUsersCount(usersCount);
-        
-        const mappedUsers: AdminUser[] = dbProfiles.map((item: any) => ({
-          id: item.id,
-          name: item.full_name || item.email?.split('@')[0] || 'Usuario',
-          email: item.email || '',
-          role: item.role || 'USER',
-          status: 'ACTIVE',
-          trustScore: 98,
-          listingsCount: 0,
-          registeredAt: new Date(item.created_at || new Date()).toLocaleDateString()
-        }));
-        setUsers(mappedUsers);
+      const { data: du, count: uc, error: eu } = await supabase.from('profiles').select('*', { count: 'exact' });
+      if (!eu && du) {
+        setSupaOk(true);
+        if (uc !== null) setUsersCount(uc);
+        setUsers(du.map((i: any) => ({ id: i.id, name: i.full_name || i.email?.split('@')[0] || 'Usuario', email: i.email || '', role: i.role || 'USER', status: 'ACTIVE', trustScore: 98, listingsCount: 0, registeredAt: new Date(i.created_at || new Date()).toLocaleDateString() })));
       }
-
-      const endPing = performance.now();
-      setDbLatencyMs(Math.round(endPing - startPing));
-    } catch (err) {
-      console.log('Supabase Live Query Note: Using Live State', err);
-      setDbLatencyMs(14);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSupabaseRealMetrics();
+      setLatency(Math.round(performance.now() - t0));
+    } catch { setLatency(14); }
+    finally { setRefresh(false); }
   }, []);
 
-  // Live Supabase Mutation Handlers
-  const handleUserDelete = async (id: string) => {
-    if (!confirm('¿Seguro que deseas eliminar este usuario? Esta acción no se puede deshacer.')) return;
-    setUsers(prev => prev.filter(u => u.id !== id));
-    setRealUsersCount(prev => Math.max(0, prev - 1));
-    try {
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-    } catch (err) {
-      console.log('Deleted from local state', err);
-    }
-  };
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCaseResolveInSupabase = async (id: string) => {
-    setCases(prev => prev.map(c => c.id === id ? { ...c, status: 'RESOLVED' } : c));
-    try {
-      await supabase
-        .from('admin_cases')
-        .update({ status: 'RESOLVED', updated_at: new Date().toISOString() })
-        .eq('id', id);
-    } catch (err) {
-      console.log('Updated in local state', err);
-    }
-  };
+  const delUser = async (id: string) => { if (!confirm('¿Eliminar usuario?')) return; setUsers(p => p.filter(u => u.id !== id)); setUsersCount(p => Math.max(0, p - 1)); try { await supabase.from('profiles').delete().eq('id', id); } catch { } };
+  const resolveCase = async (id: string) => { setCases(p => p.map(c => c.id === id ? { ...c, status: 'RESOLVED' } : c)); try { await supabase.from('admin_cases').update({ status: 'RESOLVED', updated_at: new Date().toISOString() }).eq('id', id); } catch { } };
+  const toggleUser = async (id: string, s: 'ACTIVE' | 'SUSPENDED') => { setUsers(p => p.map(u => u.id === id ? { ...u, status: s } : u)); try { await supabase.from('profiles').update({ status: s }).eq('id', id); } catch { } };
+  const toggleList = async (id: string, s: 'PUBLISHED' | 'BANNED') => { setListings(p => p.map(l => l.id === id ? { ...l, status: s } : l)); try { await supabase.from('properties').update({ status: s }).eq('id', id); } catch { } };
+  const delList = async (id: string) => { if (!confirm('¿Eliminar propiedad?')) return; setListings(p => p.filter(l => l.id !== id)); setListCount(p => Math.max(0, p - 1)); try { await supabase.from('properties').delete().eq('id', id); } catch { } };
+  const go = (m: AdminModule) => { setMod(m); setSbOpen(false); };
+  const fs2 = (base: number) => mob ? base - 2 : base;
 
-  const handleUserStatusToggle = async (id: string, newStatus: 'ACTIVE' | 'SUSPENDED') => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: newStatus } : u));
-    try {
-      await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', id);
-    } catch (err) {
-      console.log('Updated user in state', err);
-    }
-  };
+  const SB = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#E05A47', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Shield size={20} color="#FFF" /></div>
+          <div>
+            <div style={{ fontWeight: '900', fontSize: '17px', letterSpacing: '-.4px', color: '#FFF' }}>kaza <span style={{ color: '#E05A47', fontSize: '11px', fontWeight: 'bold' }}>ADMIN</span></div>
+            <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '1px' }}>Gobierno & Backoffice Suite</div>
+          </div>
+        </div>
+        {!desk && <button onClick={() => setSbOpen(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '4px', display: 'flex' }}><X size={20} /></button>}
+      </div>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        {NAV.map((item, idx) => {
+          const active = mod === item.id;
+          const accent = item.accent || '#E05A47';
+          return (
+            <button key={item.id} className="nav-btn" onClick={() => go(item.id)} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '10px 13px', borderRadius: '10px', border: 'none', backgroundColor: active ? `${accent}20` : 'transparent', color: active ? accent : '#9CA3AF', fontWeight: active ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left', marginTop: idx === NAV.length - 1 ? '10px' : '0' }}>
+              <span style={{ flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ flex: 1, lineHeight: '1.2' }}>{item.label}</span>
+              {active && <ChevronRight size={13} style={{ flexShrink: 0 }} />}
+            </button>
+          );
+        })}
+      </nav>
+      <div style={{ marginTop: 'auto', backgroundColor: '#161C26', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255,255,255,.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11px', color: supaOk ? '#10B981' : '#F59E0B', fontWeight: 'bold' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: supaOk ? '#10B981' : '#F59E0B', display: 'inline-block', flexShrink: 0 }} />
+            {supaOk ? 'SUPABASE CONECTADO' : 'SUPABASE EN VIVO'}
+          </div>
+          <button onClick={fetchData} title="Refrescar" style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '2px', display: 'flex' }}>
+            <RefreshCw size={12} className={refresh ? 'spin' : ''} />
+          </button>
+        </div>
+        <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '4px' }}>Latencia PostgreSQL: {latency !== null ? `${latency} ms` : '14 ms'}</div>
+      </div>
+    </div>
+  );
 
-  const handleListingStatusToggle = async (id: string, newStatus: 'PUBLISHED' | 'BANNED') => {
-    setListings(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    try {
-      await supabase
-        .from('properties')
-        .update({ status: newStatus })
-        .eq('id', id);
-    } catch (err) {
-      console.log('Updated listing in state', err);
-    }
-  };
-
-  const handleListingDelete = async (id: string) => {
-    if (!confirm('¿Seguro que deseas eliminar esta propiedad? Esta acción no se puede deshacer.')) return;
-    setListings(prev => prev.filter(l => l.id !== id));
-    setRealActiveListingsCount(prev => Math.max(0, prev - 1));
-    try {
-      await supabase
-        .from('properties')
-        .delete()
-        .eq('id', id);
-    } catch (err) {
-      console.log('Deleted listing from local state', err);
-    }
-  };
+  const pad = mob ? '14px' : tab ? '22px' : '30px';
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B0F17', color: '#F9FAFB', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      
-      {/* SIDEBAR NAVIGATION */}
-      <aside style={{ width: '260px', backgroundColor: '#111723', borderRight: '1px solid rgba(255,255,255,0.08)', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#E05A47', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Shield size={20} color="#FFF" />
+    <>
+      {/* ── BANNER DE ACTUALIZACIÓN ───────────────────────────────────────────
+          Aparece en la esquina inferior derecha solo cuando hay un nuevo build.
+          Se auto-recarga con countdown; el usuario puede recargar o ignorar. */}
+      {updateAvailable && (
+        <div style={{
+          position: 'fixed',
+          bottom: mob ? '12px' : '20px',
+          right: mob ? '12px' : '24px',
+          zIndex: 9999,
+          backgroundColor: '#161C26',
+          border: '1px solid rgba(16,185,129,.35)',
+          borderRadius: '14px',
+          padding: mob ? '12px 14px' : '14px 18px',
+          boxShadow: '0 8px 32px rgba(0,0,0,.5)',
+          maxWidth: mob ? 'calc(100vw - 24px)' : '320px',
+          animation: 'slideUp .3s ease',
+        }}>
+          <style>{`@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '10px', backgroundColor: 'rgba(16,185,129,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <RefreshCw size={16} color="#10B981" />
             </div>
-            <div>
-              <div style={{ fontWeight: '900', fontSize: '18px', letterSpacing: '-0.5px', color: '#FFF' }}>kaza <span style={{ color: '#E05A47', fontSize: '12px', fontWeight: 'bold' }}>ADMIN</span></div>
-              <div style={{ fontSize: '10px', color: '#9CA3AF' }}>Gobierno & Backoffice Suite</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: '700', fontSize: '13px', color: '#FFF' }}>Nueva versión disponible</div>
+              <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px', lineHeight: '1.4' }}>
+                Actualizando en <span style={{ color: '#10B981', fontWeight: 'bold' }}>{countdown}s</span>...
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button
+                  onClick={reloadNow}
+                  style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '5px 12px', borderRadius: '7px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Actualizar ahora
+                </button>
+                <button
+                  onClick={dismiss}
+                  style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,.12)', color: '#9CA3AF', padding: '5px 10px', borderRadius: '7px', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  Ignorar
+                </button>
+              </div>
             </div>
           </div>
         </div>
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <button
-            onClick={() => setActiveModule('DASHBOARD')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'DASHBOARD' ? 'rgba(224,90,71,0.15)' : 'transparent',
-              color: activeModule === 'DASHBOARD' ? '#E05A47' : '#9CA3AF',
-              fontWeight: activeModule === 'DASHBOARD' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <BarChart3 size={18} /> 1. Admin Dashboard
-          </button>
-
-          <button
-            onClick={() => setActiveModule('USERS')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'USERS' ? 'rgba(224,90,71,0.15)' : 'transparent',
-              color: activeModule === 'USERS' ? '#E05A47' : '#9CA3AF',
-              fontWeight: activeModule === 'USERS' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <Users size={18} /> 2. Users & Org Admin
-          </button>
-
-          <button
-            onClick={() => setActiveModule('LISTINGS')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'LISTINGS' ? 'rgba(224,90,71,0.15)' : 'transparent',
-              color: activeModule === 'LISTINGS' ? '#E05A47' : '#9CA3AF',
-              fontWeight: activeModule === 'LISTINGS' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <Building2 size={18} /> 3. Content & Listings
-          </button>
-
-          <button
-            onClick={() => setActiveModule('CASES')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'CASES' ? 'rgba(224,90,71,0.15)' : 'transparent',
-              color: activeModule === 'CASES' ? '#E05A47' : '#9CA3AF',
-              fontWeight: activeModule === 'CASES' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <AlertTriangle size={18} /> 4. Admin Cases & Audit
-          </button>
-
-          <button
-            onClick={() => setActiveModule('FINANCE')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'FINANCE' ? 'rgba(224,90,71,0.15)' : 'transparent',
-              color: activeModule === 'FINANCE' ? '#E05A47' : '#9CA3AF',
-              fontWeight: activeModule === 'FINANCE' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <CreditCard size={18} /> 5. Finance & Billing
-          </button>
-
-          <button
-            onClick={() => setActiveModule('SYSTEM')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'SYSTEM' ? 'rgba(224,90,71,0.15)' : 'transparent',
-              color: activeModule === 'SYSTEM' ? '#E05A47' : '#9CA3AF',
-              fontWeight: activeModule === 'SYSTEM' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left'
-            }}
-          >
-            <Settings size={18} /> 6. System & Market Config
-          </button>
-
-          <button
-            onClick={() => setActiveModule('COMPLIANCE')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', border: 'none',
-              backgroundColor: activeModule === 'COMPLIANCE' ? 'rgba(16,185,129,0.15)' : 'transparent',
-              color: activeModule === 'COMPLIANCE' ? '#10B981' : '#9CA3AF',
-              fontWeight: activeModule === 'COMPLIANCE' ? '700' : '500', fontSize: '13px', cursor: 'pointer', textAlign: 'left', marginTop: '12px'
-            }}
-          >
-            <Globe size={18} /> Market Compliance Gate
-          </button>
-        </nav>
-
-        {/* Live Supabase Connection Badge */}
-        <div style={{ marginTop: 'auto', backgroundColor: '#161C26', borderRadius: '12px', padding: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: isConnectedToSupabase ? '#10B981' : '#F59E0B', fontWeight: 'bold' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isConnectedToSupabase ? '#10B981' : '#F59E0B', display: 'inline-block' }}></span>
-              {isConnectedToSupabase ? 'SUPABASE DB CONECTADO' : 'SUPABASE EN VIVO'}
+      )}
+      <G />
+      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B0F17', color: '#F9FAFB', fontFamily: "'Inter',system-ui,sans-serif" }}>
+        {desk && <aside style={{ width: '258px', flexShrink: 0, backgroundColor: '#111723', borderRight: '1px solid rgba(255,255,255,.08)', padding: '22px 15px', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}><SB /></aside>}
+        {!desk && sbOpen && (
+          <><div className="ov" onClick={() => setSbOpen(false)} />
+          <aside className="sb-slide" style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: tab ? '290px' : '272px', backgroundColor: '#111723', borderRight: '1px solid rgba(255,255,255,.08)', padding: '22px 15px', zIndex: 50, overflowY: 'auto' }}><SB /></aside></>
+        )}
+        <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <header style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: mob ? '12px 14px' : '16px 26px', borderBottom: '1px solid rgba(255,255,255,.07)', backgroundColor: '#0B0F17', position: 'sticky', top: 0, zIndex: 30 }}>
+            {!desk && <button onClick={() => setSbOpen(true)} style={{ background: 'none', border: 'none', color: '#F9FAFB', cursor: 'pointer', padding: '4px', display: 'flex', flexShrink: 0 }}><Menu size={22} /></button>}
+            {mob && <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '7px', backgroundColor: '#E05A47', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Shield size={14} color="#FFF" /></div>
+              <span style={{ fontWeight: '900', fontSize: '15px', color: '#FFF', letterSpacing: '-.3px' }}>kaza <span style={{ color: '#E05A47', fontSize: '10px' }}>ADMIN</span></span>
+            </div>}
+            {!mob && <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontSize: tab ? '16px' : '19px', fontWeight: '800', color: '#FFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{TITLES[mod]}</h1>
+              <p style={{ margin: '1px 0 0 0', fontSize: '11px', color: '#6B7280' }}>Conectado a PostgreSQL (PostGIS)</p>
+            </div>}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              {mob ? <button onClick={() => setSqOpen(s => !s)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', padding: '6px', display: 'flex' }}><Search size={19} /></button>
+                : <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#9CA3AF" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input type="text" placeholder="Buscar en Supabase DB..." value={q} onChange={e => setQ(e.target.value)} style={{ backgroundColor: '#161C26', border: '1px solid rgba(255,255,255,.10)', borderRadius: '20px', padding: '7px 14px 7px 32px', color: '#FFF', fontSize: '13px', width: tab ? '190px' : '230px' }} />
+                </div>}
             </div>
-            <button
-              onClick={fetchSupabaseRealMetrics}
-              title="Refrescar métricas en tiempo real"
-              style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              <RefreshCw size={12} className={isRefreshing ? 'spin' : ''} />
-            </button>
-          </div>
-          <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '4px' }}>
-            Latencia PostgreSQL: {dbLatencyMs !== null ? `${dbLatencyMs} ms` : '14 ms'}
-          </div>
-        </div>
-      </aside>
+          </header>
 
-      {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
-        
-        {/* TOP HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#FFF' }}>
-              {activeModule === 'DASHBOARD' && '📊 Admin Dashboard & Salud del Sistema'}
-              {activeModule === 'USERS' && '👥 Gestión de Usuarios, Agentes & Inmobiliarias'}
-              {activeModule === 'LISTINGS' && '🏠 Moderación de Contenido & Calidad de Publicaciones'}
-              {activeModule === 'CASES' && '🛡️ Triaje de Casos (AdminCase System) & Auditoría'}
-              {activeModule === 'FINANCE' && '💳 Finanzas, Suscripciones Plus/Pro & Facturación'}
-              {activeModule === 'SYSTEM' && '⚙️ Configuración del Sistema, Feature Flags & Market Config'}
-              {activeModule === 'COMPLIANCE' && '🌐 Market Launch Compliance Gate (Bolivia DS 4732 / Ley 453)'}
-            </h1>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#9CA3AF' }}>
-              Módulo de Administración según el Modelo Conceptual de Dominio de Kaza · Conectado a PostgreSQL (PostGIS)
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {mob && sqOpen && <div style={{ padding: '10px 14px', backgroundColor: '#111723', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={16} color="#9CA3AF" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder="Buscar en Supabase DB..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  backgroundColor: '#161C26', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '20px',
-                  padding: '8px 16px 8px 36px', color: '#FFF', fontSize: '13px', width: '260px', outline: 'none'
-                }}
-              />
+              <Search size={13} color="#9CA3AF" style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input autoFocus type="text" placeholder="Buscar..." value={q} onChange={e => setQ(e.target.value)} style={{ width: '100%', backgroundColor: '#161C26', border: '1px solid rgba(255,255,255,.12)', borderRadius: '20px', padding: '9px 14px 9px 30px', color: '#FFF', fontSize: '13px' }} />
             </div>
-          </div>
-        </div>
+          </div>}
 
-        {/* MODULE 1: ADMIN DASHBOARD */}
-        {activeModule === 'DASHBOARD' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-              <div style={{ backgroundColor: '#161C26', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'bold' }}>PUBLICACIONES EN SUPABASE</div>
-                <div style={{ fontSize: '32px', fontWeight: '900', color: '#E05A47', marginTop: '6px' }}>
-                  {realActiveListingsCount.toLocaleString()}
+          {mob && <div style={{ padding: '14px 14px 4px 14px' }}>
+            <h1 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#FFF', lineHeight: '1.35' }}>{TITLES[mod]}</h1>
+            <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6B7280' }}>Módulo Admin · PostgreSQL PostGIS</p>
+          </div>}
+
+          <div key={mod} className="fu" style={{ padding: pad, flex: 1 }}>
+
+            {mod === 'DASHBOARD' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr 1fr' : 'repeat(auto-fit,minmax(200px,1fr))', gap: mob ? '10px' : '14px' }}>
+                  {[
+                    { label: 'PUBLICACIONES\nEN SUPABASE', value: listCount.toLocaleString(), color: '#E05A47', sub: '✓ ST_Contains Index' },
+                    { label: 'USUARIOS &\nAGENTES', value: usersCount.toLocaleString(), color: '#F6BD7B', sub: '98.2% Trust Score' },
+                    { label: 'INGRESOS\nMRR', value: '$ 0', color: '#10B981', sub: 'Pro + Destacados' },
+                    { label: 'CASOS\nPENDIENTES', value: `0${casesCount}`, color: '#EF4444', sub: 'admin_cases activa' },
+                  ].map(s => (
+                    <div key={s.label} className="scard" style={{ backgroundColor: '#161C26', padding: mob ? '14px' : '20px', borderRadius: '14px', border: '1px solid rgba(255,255,255,.08)' }}>
+                      <div style={{ fontSize: mob ? '9px' : '11px', color: '#9CA3AF', fontWeight: '700', lineHeight: '1.4', whiteSpace: 'pre-line' }}>{s.label}</div>
+                      <div style={{ fontSize: mob ? '24px' : '30px', fontWeight: '900', color: s.color, marginTop: '6px' }}>{s.value}</div>
+                      <div style={{ fontSize: '10px', color: '#10B981', marginTop: '4px', lineHeight: '1.3' }}>{s.sub}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>✓ PostgreSQL ST_Contains Spatial Index</div>
-              </div>
-
-              <div style={{ backgroundColor: '#161C26', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'bold' }}>USUARIOS & AGENTES EN REGISTRO</div>
-                <div style={{ fontSize: '32px', fontWeight: '900', color: '#F6BD7B', marginTop: '6px' }}>
-                  {realUsersCount.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>98.2% Trust Score Promedio</div>
-              </div>
-
-              <div style={{ backgroundColor: '#161C26', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'bold' }}>INGRESOS MENSUALES (MRR)</div>
-                <div style={{ fontSize: '32px', fontWeight: '900', color: '#10B981', marginTop: '6px' }}>$ 0</div>
-                <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>Suscripciones Pro + Destacados</div>
-              </div>
-
-              <div style={{ backgroundColor: '#161C26', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'bold' }}>CASOS PENDIENTES (ADMIN_CASES)</div>
-                <div style={{ fontSize: '32px', fontWeight: '900', color: '#EF4444', marginTop: '6px' }}>
-                  0{realPendingCasesCount}
-                </div>
-                <div style={{ fontSize: '11px', color: '#EF4444', marginTop: '4px' }}>Tabla public.admin_cases activa</div>
-              </div>
-            </div>
-
-            <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#FFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Server size={18} color="#10B981" /> Monitor de Salud de la Infraestructura Supabase
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                <div style={{ backgroundColor: '#0B0F17', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Base de Datos PostgreSQL (PostGIS)</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10B981', marginTop: '4px' }}>
-                    ONLINE ({dbLatencyMs !== null ? `${dbLatencyMs}ms` : '14ms'})
+                <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '16px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                  <h3 style={{ margin: '0 0 14px 0', fontSize: fs2(15), color: '#FFF', display: 'flex', alignItems: 'center', gap: '8px' }}><Server size={15} color="#10B981" /> Monitor de Salud — Supabase</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : 'repeat(auto-fit,minmax(170px,1fr))', gap: '10px' }}>
+                    {[{ label: 'PostgreSQL (PostGIS)', value: `ONLINE (${latency ?? 14}ms)` }, { label: 'Supabase Storage CDN', value: '1.2 TB / 5.0 TB' }, { label: 'Geo-Search ST_Contains', value: '22ms Avg Query' }].map(item => (
+                      <div key={item.label} style={{ backgroundColor: '#0B0F17', padding: '13px', borderRadius: '11px', border: '1px solid rgba(255,255,255,.06)' }}>
+                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{item.label}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#10B981', marginTop: '4px' }}>{item.value}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div style={{ backgroundColor: '#0B0F17', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Supabase Storage CDN</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10B981', marginTop: '4px' }}>1.2 TB / 5.0 TB</div>
-                </div>
-                <div style={{ backgroundColor: '#0B0F17', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Geo-Search Index ST_Contains</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10B981', marginTop: '4px' }}>22ms Avg Query</div>
-                </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* MODULE 2: USER & ORGANIZATION ADMIN */}
-        {activeModule === 'USERS' && (
-          <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Gestión de Usuarios, Agentes & Inmobiliarias en Supabase DB</h3>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {['ALL', 'ORGANIZATION', 'AGENT', 'USER'].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setFilterRole(r)}
-                    style={{
-                      backgroundColor: filterRole === r ? '#E05A47' : 'transparent',
-                      color: filterRole === r ? '#FFF' : '#9CA3AF',
-                      border: '1px solid rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer'
-                    }}
-                  >
-                    {r}
+            {mod === 'USERS' && (
+              <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '14px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                <div style={{ marginBottom: '18px' }}>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: fs2(15) }}>Gestión de Usuarios, Agentes & Inmobiliarias</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {['ALL', 'ORGANIZATION', 'AGENT', 'USER'].map(r => (
+                      <button key={r} onClick={() => setRole(r)} style={{ backgroundColor: role === r ? '#E05A47' : 'transparent', color: role === r ? '#FFF' : '#9CA3AF', border: '1px solid rgba(255,255,255,.12)', padding: '5px 12px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer', fontWeight: role === r ? '700' : '400' }}>{r}</button>
+                    ))}
+                  </div>
+                </div>
+                {users.length === 0 ? <EmptyState icon={<Users size={30} color="#E05A47" />} title="Base de datos limpia (0 Usuarios)" sub="Los registros de la tabla profiles apareceran aqui." />
+                  : <div style={{ overflowX: 'auto' }}>
+                    <table className="rtable">
+                      <thead><tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,.08)', textAlign: 'left' }}>{['Usuario', 'Rol', 'Trust', 'Estado', 'Acciones'].map(h => <th key={h} style={{ padding: '10px 12px', fontWeight: '600', fontSize: '12px' }}>{h}</th>)}</tr></thead>
+                      <tbody>{users.filter(u => role === 'ALL' || u.role === role).map(u => (
+                        <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                          <td style={{ padding: '11px 12px' }} data-label="Usuario"><div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '13px' }}>{u.name}</div><div style={{ fontSize: '11px', color: '#9CA3AF' }}>{u.email}</div></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Rol"><span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,.07)', color: '#F6BD7B' }}>{u.role}</span></td>
+                          <td style={{ padding: '11px 12px', fontWeight: 'bold', color: '#10B981' }} data-label="Trust">{u.trustScore} pts</td>
+                          <td style={{ padding: '11px 12px' }} data-label="Estado"><SBadge status={u.status} /></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Acciones"><div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {u.status === 'ACTIVE' ? <Btn color="#EF4444" outlined onClick={() => toggleUser(u.id, 'SUSPENDED')}>Suspender</Btn> : <Btn color="#10B981" onClick={() => toggleUser(u.id, 'ACTIVE')}>Activar</Btn>}
+                            <Btn color="#EF4444" onClick={() => delUser(u.id)}>🗑 Eliminar</Btn>
+                          </div></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>}
+              </div>
+            )}
+
+            {mod === 'LISTINGS' && (
+              <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '14px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                <h3 style={{ margin: '0 0 18px 0', fontSize: fs2(15) }}>Revisión de Contenido & Veracidad de Inmuebles</h3>
+                {listings.length === 0 ? <EmptyState icon={<Building2 size={30} color="#E05A47" />} title="Base de datos limpia (0 Inmuebles)" sub="Al publicar un inmueble desde la App, aparecera aqui." />
+                  : <div style={{ overflowX: 'auto' }}>
+                    <table className="rtable">
+                      <thead><tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,.08)', textAlign: 'left' }}>{['Propiedad', 'Precio', 'Veracidad', 'Estado', 'Acciones'].map(h => <th key={h} style={{ padding: '10px 12px', fontWeight: '600', fontSize: '12px' }}>{h}</th>)}</tr></thead>
+                      <tbody>{listings.map(l => (
+                        <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                          <td style={{ padding: '11px 12px' }} data-label="Propiedad"><div style={{ fontWeight: 'bold', color: '#FFF' }}>{l.title}</div><div style={{ fontSize: '11px', color: '#9CA3AF' }}>Por: {l.publisher}</div></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Precio"><div style={{ fontWeight: 'bold', color: '#F6BD7B' }}>{l.price}</div><div style={{ fontSize: '11px', color: '#9CA3AF' }}>{l.location}</div></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Veracidad"><span style={{ fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px', backgroundColor: l.mediaStatus === 'VERIFIED_REAL' ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.15)', color: l.mediaStatus === 'VERIFIED_REAL' ? '#10B981' : '#EF4444' }}>{l.mediaStatus === 'VERIFIED_REAL' ? '✓ REAL' : '⚠️ RENDER'}</span></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Estado"><span style={{ fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,.07)', color: '#FFF' }}>{l.status}</span></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Acciones"><div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {l.status === 'PUBLISHED' ? <Btn color="#EF4444" outlined onClick={() => toggleList(l.id, 'BANNED')}>Pausar</Btn> : <Btn color="#10B981" onClick={() => toggleList(l.id, 'PUBLISHED')}>Aprobar</Btn>}
+                            <Btn color="#EF4444" onClick={() => delList(l.id)}>🗑 Eliminar</Btn>
+                          </div></td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>}
+              </div>
+            )}
+
+            {mod === 'CASES' && (
+              <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '14px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                  <h3 style={{ margin: 0, fontSize: fs2(15) }}>🛡️ Triaje de Casos (public.admin_cases)</h3>
+                  <button onClick={fetchData} style={{ backgroundColor: '#111723', border: '1px solid rgba(255,255,255,.1)', color: '#10B981', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <RefreshCw size={13} className={refresh ? 'spin' : ''} />{!mob && ' Sincronizar'}
                   </button>
-                ))}
+                </div>
+                {cases.length === 0 ? <EmptyState icon={<AlertTriangle size={30} color="#10B981" />} title="0 Casos Pendientes" sub="No hay casos sin resolver en la tabla admin_cases." />
+                  : <div style={{ overflowX: 'auto' }}>
+                    <table className="rtable">
+                      <thead><tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,.08)', textAlign: 'left' }}>{['ID & Prioridad', 'Tipo', 'Detalles', 'Estado', 'Acción'].map(h => <th key={h} style={{ padding: '10px 12px', fontWeight: '600', fontSize: '12px' }}>{h}</th>)}</tr></thead>
+                      <tbody>{cases.map(c => (
+                        <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                          <td style={{ padding: '11px 12px' }} data-label="ID"><div style={{ fontWeight: 'bold', fontSize: '11px', color: '#F6BD7B' }}>{c.id.substring(0, 10)}...</div><span style={{ fontSize: '10px', fontWeight: 'bold', color: c.priority === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>{c.priority}</span></td>
+                          <td style={{ padding: '11px 12px', fontWeight: 'bold', color: '#E05A47', fontSize: '12px' }} data-label="Tipo">{c.type}</td>
+                          <td style={{ padding: '11px 12px' }} data-label="Detalles"><div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '13px' }}>{c.title}</div><div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>{c.description}</div></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Estado"><span style={{ fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px', backgroundColor: c.status === 'RESOLVED' ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)', color: c.status === 'RESOLVED' ? '#10B981' : '#F59E0B' }}>{c.status}</span></td>
+                          <td style={{ padding: '11px 12px' }} data-label="Accion">{c.status !== 'RESOLVED' && <Btn color="#10B981" onClick={() => resolveCase(c.id)}>Resolver</Btn>}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>}
               </div>
-            </div>
-
-            {users.length === 0 ? (
-              <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
-                <Users size={32} color="#E05A47" style={{ marginBottom: '8px', opacity: 0.8 }} />
-                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>Base de datos limpia (0 Usuarios & Agentes)</div>
-                <div style={{ fontSize: '12px', marginTop: '4px' }}>Aún no existen registros en la tabla `profiles` de Supabase. Los nuevos registros aparecerán aquí automáticamente.</div>
-              </div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px' }}>Usuario / Entidad</th>
-                    <th style={{ padding: '12px' }}>Rol</th>
-                    <th style={{ padding: '12px' }}>Trust Score</th>
-                    <th style={{ padding: '12px' }}>Listings</th>
-                    <th style={{ padding: '12px' }}>Estado DB</th>
-                    <th style={{ padding: '12px' }}>Acciones Mutación Supabase</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.filter(u => filterRole === 'ALL' || u.role === filterRole).map(u => (
-                    <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#FFF' }}>{u.name}</div>
-                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{u.email}</div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.06)', color: '#F6BD7B' }}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#10B981' }}>{u.trustScore} pts</td>
-                      <td style={{ padding: '12px' }}>{u.listingsCount} anuncios</td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{
-                          fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
-                          backgroundColor: u.status === 'ACTIVE' ? 'rgba(16,185,129,0.15)' : u.status === 'PENDING' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
-                          color: u.status === 'ACTIVE' ? '#10B981' : u.status === 'PENDING' ? '#F59E0B' : '#EF4444'
-                        }}>
-                          {u.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                          {u.status === 'ACTIVE' ? (
-                            <button
-                              onClick={() => handleUserStatusToggle(u.id, 'SUSPENDED')}
-                              style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
-                            >
-                              Suspender en DB
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleUserStatusToggle(u.id, 'ACTIVE')}
-                              style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                            >
-                              Activar / Aprobar en DB
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleUserDelete(u.id)}
-                            title="Eliminar usuario permanentemente"
-                            style={{
-                              backgroundColor: '#EF4444',
-                              border: 'none',
-                              color: '#FFF',
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🗑 Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             )}
-          </div>
-        )}
 
-        {/* MODULE 3: CONTENT & LISTINGS ADMIN */}
-        {activeModule === 'LISTINGS' && (
-          <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '16px' }}>Revisión de Contenido & Veracidad de Inmuebles</h3>
-            {listings.length === 0 ? (
-              <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
-                <Building2 size={32} color="#E05A47" style={{ marginBottom: '8px', opacity: 0.8 }} />
-                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>Base de datos limpia (0 Inmuebles Publicados)</div>
-                <div style={{ fontSize: '12px', marginTop: '4px' }}>Aún no hay propiedades creadas en la tabla `properties` de Supabase. Al publicar un inmueble desde la App, aparecerá aquí.</div>
+            {mod === 'FINANCE' && (
+              <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '14px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: fs2(15) }}>💳 Planes de Suscripción & Transacciones</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr' : 'repeat(auto-fit,minmax(210px,1fr))', gap: '14px' }}>
+                  <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px' }}><div style={{ fontSize: '12px', color: '#9CA3AF' }}>Suscripción Inmobiliarias PRO</div><div style={{ fontSize: '22px', fontWeight: 'bold', color: '#FFF', marginTop: '4px' }}>$ 299 / mes</div><div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>{users.filter(u => u.role === 'ORGANIZATION').length} Inmobiliarias</div></div>
+                  <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px' }}><div style={{ fontSize: '12px', color: '#9CA3AF' }}>Destacados Plus (por Listing)</div><div style={{ fontSize: '22px', fontWeight: 'bold', color: '#F6BD7B', marginTop: '4px' }}>$ 19 / anuncio</div><div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>{listings.filter(l => l.status === 'PUBLISHED').length} anuncios</div></div>
+                </div>
               </div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px' }}>Propiedad</th>
-                    <th style={{ padding: '12px' }}>Precio & Zona</th>
-                    <th style={{ padding: '12px' }}>Veracidad Media</th>
-                    <th style={{ padding: '12px' }}>Estado</th>
-                    <th style={{ padding: '12px' }}>Acciones Mutación Supabase</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map(l => (
-                    <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#FFF' }}>{l.title}</div>
-                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Publicado por: {l.publisher}</div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#F6BD7B' }}>{l.price}</div>
-                        <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{l.location}</div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{
-                          fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
-                          backgroundColor: l.mediaStatus === 'VERIFIED_REAL' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                          color: l.mediaStatus === 'VERIFIED_REAL' ? '#10B981' : '#EF4444'
-                        }}>
-                          {l.mediaStatus === 'VERIFIED_REAL' ? '✓ FOTO REAL VERIFICADA' : '⚠️ RENDER DETECTADO'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.06)', color: '#FFF' }}>
-                          {l.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                          {l.status === 'PUBLISHED' ? (
-                            <button
-                              onClick={() => handleListingStatusToggle(l.id, 'BANNED')}
-                              style={{ backgroundColor: 'transparent', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}
-                            >
-                              Pausar en DB
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleListingStatusToggle(l.id, 'PUBLISHED')}
-                              style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                            >
-                              Aprobar Publicación
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleListingDelete(l.id)}
-                            title="Eliminar publicación permanentemente"
-                            style={{
-                              backgroundColor: '#EF4444',
-                              border: 'none',
-                              color: '#FFF',
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🗑 Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             )}
-          </div>
-        )}
 
-        {/* MODULE 4: ADMIN CASES & MODERATION (CONNECTED TO SUPABASE TABLA admin_cases) */}
-        {activeModule === 'CASES' && (
-          <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>🛡️ Triaje de Casos en Supabase DB (`public.admin_cases`)</h3>
-              <button
-                onClick={fetchSupabaseRealMetrics}
-                style={{ backgroundColor: '#111723', border: '1px solid rgba(255,255,255,0.1)', color: '#10B981', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <RefreshCw size={14} /> Sincronizar Supabase
-              </button>
-            </div>
-
-            {cases.length === 0 ? (
-              <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#0B0F17', borderRadius: '12px', color: '#9CA3AF' }}>
-                <AlertTriangle size={32} color="#10B981" style={{ marginBottom: '8px', opacity: 0.8 }} />
-                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#FFF' }}>0 Casos Pendientes en Supabase DB</div>
-                <div style={{ fontSize: '12px', marginTop: '4px' }}>No hay casos de moderación o reportes sin resolver en la tabla `admin_cases`.</div>
-              </div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px' }}>ID & Prioridad</th>
-                    <th style={{ padding: '12px' }}>Tipo de Caso</th>
-                    <th style={{ padding: '12px' }}>Detalles de la Incidencia</th>
-                    <th style={{ padding: '12px' }}>Estado DB</th>
-                    <th style={{ padding: '12px' }}>Acción Mutación Supabase</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cases.map(c => (
-                    <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '11px', color: '#F6BD7B' }}>{c.id.substring(0, 13)}...</div>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', color: c.priority === 'CRITICAL' ? '#EF4444' : '#F59E0B' }}>
-                          {c.priority}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#E05A47' }}>{c.type}</td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#FFF' }}>{c.title}</div>
-                        <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>{c.description}</div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{
-                          fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '6px',
-                          backgroundColor: c.status === 'RESOLVED' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
-                          color: c.status === 'RESOLVED' ? '#10B981' : '#F59E0B'
-                        }}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {c.status !== 'RESOLVED' && (
-                          <button
-                            onClick={() => handleCaseResolveInSupabase(c.id)}
-                            style={{ backgroundColor: '#10B981', border: 'none', color: '#FFF', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
-                          >
-                            Resolver en Supabase DB
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+            {mod === 'SYSTEM' && (
+              <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '14px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: fs2(15) }}>⚙️ Configuración del Sistema & Feature Flags</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[{ title: 'Visor 3D Interactivo 360°', desc: 'Habilitar renderizado orbital espacial', status: 'ACTIVADO' }, { title: 'Búsqueda Poligonal PostGIS', desc: 'Delimitación manual de zona en el mapa', status: 'ACTIVADO' }].map(f => (
+                    <div key={f.title} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 14px', backgroundColor: '#0B0F17', borderRadius: '10px', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ minWidth: 0 }}><div style={{ fontWeight: 'bold', fontSize: mob ? '13px' : '14px' }}>{f.title}</div><div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '2px' }}>{f.desc}</div></div>
+                      <span style={{ padding: '4px 10px', borderRadius: '12px', backgroundColor: 'rgba(16,185,129,.15)', color: '#10B981', fontWeight: 'bold', fontSize: '12px', flexShrink: 0 }}>{f.status}</span>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             )}
-          </div>
-        )}
 
-        {/* MODULE 5: FINANCE & BILLING ADMIN */}
-        {activeModule === 'FINANCE' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>💳 Planes de Suscripción & Transacciones</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Suscripción Inmobiliarias PRO</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FFF', marginTop: '4px' }}>$ 299 / mes</div>
-                  <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>{users.filter(u => u.role === 'ORGANIZATION').length} Inmobiliarias registradas</div>
+            {mod === 'COMPLIANCE' && (
+              <div style={{ backgroundColor: '#161C26', borderRadius: '14px', padding: mob ? '14px' : '22px', border: '1px solid rgba(255,255,255,.08)' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: mob ? '16px' : '18px', color: '#10B981' }}>🌐 Market Launch Compliance Gate — Bolivia (BOL)</h3>
+                <p style={{ color: '#9CA3AF', fontSize: '13px', marginBottom: '18px', lineHeight: '1.55' }}>Verificación de cumplimiento normativo según la Ley 453 y el Decreto Supremo 4732:</p>
+                <div style={{ display: 'grid', gridTemplateColumns: mob ? '1fr 1fr' : 'repeat(auto-fit,minmax(150px,1fr))', gap: '10px' }}>
+                  {[
+                    { step: '1. RESEARCH', title: 'Ley 453 & DS 4732', status: '✓ APROBADO', color: '#10B981' },
+                    { step: '2. LEGAL_REVIEW', title: 'VDDUC Preventas', status: '✓ CERTIFICADO', color: '#10B981' },
+                    { step: '3. TECH_READY', title: 'PostGIS & Next.js', status: '✓ DESPLEGADO', color: '#10B981' },
+                    { step: '4. STORE_READY', title: 'Apple/Google IAP', status: 'EN PROCESO', color: '#F59E0B' },
+                    { step: '5. ENABLED', title: 'Lanzamiento Comercial', status: 'PENDIENTE GATE 4', color: '#6B7280' },
+                  ].map(g => (
+                    <div key={g.step} style={{ backgroundColor: '#0B0F17', padding: '14px', borderRadius: '12px', borderLeft: `4px solid ${g.color}` }}>
+                      <div style={{ fontSize: '10px', color: g.color, fontWeight: 'bold' }}>{g.step}</div>
+                      <div style={{ fontSize: mob ? '13px' : '14px', fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>{g.title}</div>
+                      <div style={{ fontSize: '11px', color: g.color, marginTop: '6px' }}>{g.status}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Destacados Plus (Pago por Listing)</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#F6BD7B', marginTop: '4px' }}>$ 19 / anuncio</div>
-                  <div style={{ fontSize: '11px', color: '#10B981', marginTop: '4px' }}>{listings.filter(l => l.status === 'PUBLISHED').length} anuncios promocionados</div>
-                </div>
               </div>
-            </div>
+            )}
+
           </div>
-        )}
-
-        {/* MODULE 6: SYSTEM & MARKET CONFIG */}
-        {activeModule === 'SYSTEM' && (
-          <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>⚙️ Configuración del Sistema & Feature Flags</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#0B0F17', borderRadius: '10px' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold' }}>Visor 3D Interactivo 360°</div>
-                  <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Habilitar renderizado orbital espacial en detalle de propiedad</div>
-                </div>
-                <span style={{ padding: '4px 10px', borderRadius: '12px', backgroundColor: 'rgba(16,185,129,0.15)', color: '#10B981', fontWeight: 'bold', fontSize: '12px' }}>ACTIVADO</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#0B0F17', borderRadius: '10px' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold' }}>Búsqueda Poligonal PostGIS (Dibujo Libre)</div>
-                  <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Permitir delimitación manual de zona en el mapa</div>
-                </div>
-                <span style={{ padding: '4px 10px', borderRadius: '12px', backgroundColor: 'rgba(16,185,129,0.15)', color: '#10B981', fontWeight: 'bold', fontSize: '12px' }}>ACTIVADO</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODULE 7: MARKET LAUNCH COMPLIANCE GATE */}
-        {activeModule === 'COMPLIANCE' && (
-          <div style={{ backgroundColor: '#161C26', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#10B981' }}>🌐 Market Launch Compliance Gate — Bolivia (BOL)</h3>
-            <p style={{ color: '#9CA3AF', fontSize: '13px', marginBottom: '20px' }}>
-              Verificación estricta de cumplimiento normativo de acuerdo a la Ley 453 y el Decreto Supremo 4732 de Contratos de Preventa:
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-              <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #10B981' }}>
-                <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 'bold' }}>1. RESEARCH</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>Ley 453 & DS 4732</div>
-                <div style={{ fontSize: '11px', color: '#10B981', marginTop: '6px' }}>✓ APROBADO</div>
-              </div>
-
-              <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #10B981' }}>
-                <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 'bold' }}>2. LEGAL_REVIEW</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>VDDUC Preventas</div>
-                <div style={{ fontSize: '11px', color: '#10B981', marginTop: '6px' }}>✓ CERTIFICADO</div>
-              </div>
-
-              <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #10B981' }}>
-                <div style={{ fontSize: '11px', color: '#10B981', fontWeight: 'bold' }}>3. TECH_READY</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>PostGIS & Next.js</div>
-                <div style={{ fontSize: '11px', color: '#10B981', marginTop: '6px' }}>✓ DESPLEGADO</div>
-              </div>
-
-              <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #F59E0B' }}>
-                <div style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 'bold' }}>4. STORE_READY</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>Apple/Google IAP</div>
-                <div style={{ fontSize: '11px', color: '#F59E0B', marginTop: '6px' }}>EN PROCESO</div>
-              </div>
-
-              <div style={{ backgroundColor: '#0B0F17', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #6B7280' }}>
-                <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: 'bold' }}>5. ENABLED</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px', color: '#FFF' }}>Lanzamiento Comercial</div>
-                <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '6px' }}>PENDIENTE GATE 4</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }

@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "generate:version": "node -e \"const fs=require('fs'),c=require('crypto'),p=JSON.parse(fs.readFileSync('package.json','utf8'));const v={v:c.createHash('sha256').update(p.version+Date.now()).digest('hex').substring(0,12),t:Date.now()};fs.writeFileSync('public/version.json',JSON.stringify(v));console.log('Build version:',v.v);\"",
+    "prebuild": "npm run generate:version",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

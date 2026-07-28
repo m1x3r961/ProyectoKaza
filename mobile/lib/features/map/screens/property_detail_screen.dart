@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
+import '../../../core/utils/responsive_utils.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
 
@@ -151,11 +152,21 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
           indicatorColor: KazaTheme.primaryCoralLight,
           labelColor: KazaTheme.primaryCoralLight,
           unselectedLabelColor: KazaTheme.textSecondary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(icon: Icon(Icons.info_outline), text: 'OFERTA & DETALLE'),
-            Tab(icon: Icon(Icons.architecture), text: 'PLANO 2D'),
-            Tab(icon: Icon(Icons.view_in_ar), text: 'VISOR 3D 360°'),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.info_outline, size: 18),
+              // Ocultar texto en pantallas muy pequeñas (<360px)
+              text: MediaQuery.of(context).size.width < 360 ? null : 'OFERTA',
+            ),
+            Tab(
+              icon: const Icon(Icons.architecture, size: 18),
+              text: MediaQuery.of(context).size.width < 360 ? null : 'PLANO 2D',
+            ),
+            Tab(
+              icon: const Icon(Icons.view_in_ar, size: 18),
+              text: MediaQuery.of(context).size.width < 360 ? null : 'VISOR 3D',
+            ),
           ],
         ),
       ),
@@ -173,7 +184,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         ],
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 12,
+          // Respetar safe area (notch inferior) en iPhones y Android con gesture bar
+          bottom: 12 + MediaQuery.of(context).padding.bottom,
+        ),
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(top: BorderSide(color: KazaTheme.glassBorder)),
@@ -187,15 +204,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                 const Text('Precio Final', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
                 Text(
                   widget.property.price,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: KazaTheme.textPrimary,
-                    fontSize: 20,
+                    fontSize: MediaQuery.of(context).size.width < 360 ? 17 : 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -204,8 +221,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: const Icon(Icons.chat),
-                label: const Text('Contactar / Agendar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                icon: const Icon(Icons.chat, size: 18),
+                label: Text(
+                  MediaQuery.of(context).size.width < 360
+                      ? 'Contactar'
+                      : 'Contactar / Agendar',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -229,11 +251,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
     return ListView(
       padding: EdgeInsets.zero, // Remove global padding to allow edge-to-edge gallery
       children: [
-        // Gallery Header Simulation (Edge to Edge)
+        // Gallery Header — altura dinámica según tamaño de pantalla
         Stack(
           children: [
             Container(
-              height: 260,
+              height: KazaResponsive.galleryHeight(context),
               width: double.infinity,
               color: const Color(0xFFE2E8F0), // A more visible gray for the placeholder
               child: Center(
@@ -362,9 +384,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 3.5,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: KazaResponsive.gridCrossAxisCount(context, phone: 2, tablet: 3),
+            childAspectRatio: KazaResponsive.isTablet(context) ? 3.8 : 3.5,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
@@ -462,11 +484,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
         ),
         child: Column(
           children: [
-            Icon(icon, size: 18, color: KazaTheme.textSecondary),
+            Icon(icon, size: 16, color: KazaTheme.textSecondary),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
             ),
           ],

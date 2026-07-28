@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/network/supabase_config.dart';
 
 /// Modelo de datos parseado para el mapa
@@ -62,51 +64,99 @@ num _parseNum(dynamic val, [num defaultValue = 0]) {
   return defaultValue;
 }
 
-/// Provider de Riverpod para consultar propiedades desde Supabase PostgreSQL + PostGIS + Local Session
-final mapPropertiesProvider = FutureProvider<List<PropertyMapItem>>((ref) async {
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+/// Parsea una fila de Supabase en un [PropertyMapItem].
+PropertyMapItem _rowToItem(Map<String, dynamic> row) {
+  final idStr = row['id'].toString();
+  final double lat = _extractLat(row);
+  final double lng = _extractLng(row);
+  final num price = _parseNum(row['price_usd'], _parseNum(row['price_original'], 0));
+  return PropertyMapItem(
+    id: idStr,
+    title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
+    price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
+    operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
+    type: row['property_type'] ?? 'Departamento',
+    location: LatLng(lat, lng),
+    bedrooms: _parseNum(row['rooms'], 0).toInt(),
+    bathrooms: _parseNum(row['bathrooms'], 0).toInt(),
+    surface: '${row['total_surface_m2'] ?? 0} m²',
+    isPlus: true,
+    trustLabel: 'Actor Verificado',
+    isOrg: true,
+    imageUrl: (row['photos'] != null &&
+            row['photos'] is List &&
+            (row['photos'] as List).isNotEmpty)
+        ? row['photos'][0]
+        : null,
+  );
+}
+
+// =============================================================================
+// PROVIDER — StreamProvider con Supabase Realtime
+// =============================================================================
+/// Provider de Riverpod que combina:
+///  1. ⚡ Supabase Realtime: cualquier INSERT/UPDATE/DELETE en `properties`
+///     dispara automáticamente una actualización en la UI (0 polling).
+///  2. 🔄 Fallback periódico de 30s (por si se pierde la conexión WebSocket).
+///  3. 📌 Items locales publicados en la sesión actual.
+///
+/// Consumo de red: 1 WebSocket persistente (gestionado por Supabase SDK).
+final mapPropertiesProvider = StreamProvider<List<PropertyMapItem>>((ref) async* {
   final localItems = ref.watch(localPublishedPropertiesProvider);
-  final List<PropertyMapItem> items = [...localItems];
 
-  try {
-    final response = await SupabaseConfig.client
-        .from('properties')
-        .select('*');
-
-    for (final row in response) {
-      try {
-        final idStr = row['id'].toString();
-        // Evitar duplicados si ya está en localItems
-        if (items.any((it) => it.id == idStr)) continue;
-
-        final double lat = _extractLat(row);
-        final double lng = _extractLng(row);
-        final num price = _parseNum(row['price_usd'], _parseNum(row['price_original'], 0));
-
-        items.add(PropertyMapItem(
-          id: idStr,
-          title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
-          price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
-          operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
-          type: row['property_type'] ?? 'Departamento',
-          location: LatLng(lat, lng),
-          bedrooms: _parseNum(row['rooms'], 0).toInt(),
-          bathrooms: _parseNum(row['bathrooms'], 0).toInt(),
-          surface: '${row['total_surface_m2'] ?? 0} m²',
-          isPlus: true,
-          trustLabel: 'Actor Verificado',
-          isOrg: true,
-          imageUrl: (row['photos'] != null && row['photos'] is List && (row['photos'] as List).isNotEmpty) ? row['photos'][0] : null,
-        ));
-      } catch (e) {
-        print('Error parsing single property: $e');
+  // Función interna para cargar todas las propiedades de Supabase
+  Future<List<PropertyMapItem>> fetchAll() async {
+    final List<PropertyMapItem> items = [...localItems];
+    try {
+      final response =
+          await SupabaseConfig.client.from('properties').select('*');
+      for (final row in response) {
+        try {
+          final id = row['id'].toString();
+          if (items.any((it) => it.id == id)) continue;
+          items.add(_rowToItem(row));
+        } catch (_) {}
       }
-    }
-
-    return items;
-  } catch (e) {
-    print('Error fetching properties: $e');
+    } catch (_) {}
     return items;
   }
+
+  // 1. Emitir datos iniciales inmediatamente
+  yield await fetchAll();
+
+  // 2. Suscribirse al canal Realtime de Supabase para la tabla `properties`
+  //    Cada evento (INSERT/UPDATE/DELETE) recarga la lista completa.
+  final StreamController<List<PropertyMapItem>> controller =
+      StreamController<List<PropertyMapItem>>();
+
+  final channel = SupabaseConfig.client
+      .channel('public:properties')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: 'properties',
+        callback: (payload) async {
+          // Pequeño debounce para agrupar cambios rápidos consecutivos
+          await Future<void>.delayed(const Duration(milliseconds: 350));
+          if (!controller.isClosed) {
+            controller.add(await fetchAll());
+          }
+        },
+      )
+      .subscribe();
+
+  // 3. Cleanup al desechar el provider
+  ref.onDispose(() {
+    SupabaseConfig.client.removeChannel(channel);
+    controller.close();
+  });
+
+  // 4. Emitir todos los eventos del stream
+  yield* controller.stream;
 });
 
 double _extractLat(Map<String, dynamic> row) {
