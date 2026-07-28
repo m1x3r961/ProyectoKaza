@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
-import '../../../core/widgets/kaza_badges.dart';
+import 'comparator_screen.dart';
 
-/// 🔖 GUARDADOS Y LISTAS - Kaza Saved & Comparator
+/// 🔖 GUARDADOS - WM-02 v0.3
 class SavedScreen extends StatefulWidget {
   const SavedScreen({super.key});
 
@@ -11,15 +11,13 @@ class SavedScreen extends StatefulWidget {
   State<SavedScreen> createState() => _SavedScreenState();
 }
 
-class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SavedScreenState extends State<SavedScreen> {
   List<Map<String, dynamic>> _savedItems = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _fetchSavedProperties();
   }
 
@@ -44,231 +42,216 @@ class _SavedScreenState extends State<SavedScreen> with SingleTickerProviderStat
     }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  void _onComparePressed() {
+    if (_savedItems.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Necesitas al menos 2 propiedades para comparar.'),
+          backgroundColor: KazaTheme.primaryCoral,
+        ),
+      );
+      return;
+    }
+
+    // Regla V1: comparación cuantitativa principal = misma operación + misma tipología.
+    // Buscamos 2 propiedades que coincidan en operacion y tipologia
+    Map<String, dynamic>? p1;
+    Map<String, dynamic>? p2;
+
+    for (int i = 0; i < _savedItems.length; i++) {
+      final prop1 = _savedItems[i]['properties'] as Map<String, dynamic>?;
+      if (prop1 == null) continue;
+      
+      final op1 = prop1['operation']?.toString().toUpperCase();
+      final type1 = prop1['property_type']?.toString().toUpperCase();
+
+      for (int j = i + 1; j < _savedItems.length; j++) {
+        final prop2 = _savedItems[j]['properties'] as Map<String, dynamic>?;
+        if (prop2 == null) continue;
+
+        final op2 = prop2['operation']?.toString().toUpperCase();
+        final type2 = prop2['property_type']?.toString().toUpperCase();
+
+        if (op1 == op2 && type1 == type2) {
+          p1 = prop1;
+          p2 = prop2;
+          break;
+        }
+      }
+      if (p1 != null) break;
+    }
+
+    if (p1 != null && p2 != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ComparatorScreen(prop1: p1!, prop2: p2!),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay 2 propiedades guardadas de la misma operación y tipología para comparar (V1).'),
+          backgroundColor: KazaTheme.accentGold,
+        ),
+      );
+    }
+  }
+
+  String _formatPrice(Map<String, dynamic> prop) {
+    final priceUsd = prop['price_usd'];
+    final priceBob = prop['price_bob'];
+    
+    if (priceUsd != null && priceUsd > 0) return 'USD ${priceUsd.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+    if (priceBob != null && priceBob > 0) return 'Bs ${priceBob.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+    return 'Consultar precio';
+  }
+
+  String _getPricePerM2(Map<String, dynamic> prop) {
+    final priceUsd = prop['price_usd'];
+    final priceBob = prop['price_bob'];
+    final surface = prop['total_surface_m2'] ?? 0;
+
+    if (surface == 0) return '—';
+
+    if (priceUsd != null && priceUsd > 0) {
+      final pm2 = (priceUsd / surface).round();
+      return 'USD $pm2/m²';
+    }
+    if (priceBob != null && priceBob > 0) {
+      final pm2 = (priceBob / surface).round();
+      return 'Bs $pm2/m²';
+    }
+    return '—';
   }
 
   @override
   Widget build(BuildContext context) {
-    final ventaItems = _savedItems.where((i) => i['operation'] != 'ALQUILER').toList();
-    final alquilerItems = _savedItems.where((i) => i['operation'] == 'ALQUILER').toList();
-
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/images/logo.png',
-              height: 28,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 10),
-            const Text('Mis Listas & Guardados'),
-          ],
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Guardados',
+          style: TextStyle(
+            color: KazaTheme.azulKaza,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: KazaTheme.primaryTealLight,
-          labelColor: KazaTheme.primaryTealLight,
-          unselectedLabelColor: KazaTheme.textMuted,
-          tabs: [
-            Tab(text: 'Venta (${ventaItems.length})'),
-            Tab(text: 'Alquiler (${alquilerItems.length})'),
-            const Tab(text: 'Comparador'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // 1. Guardados Venta
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ventaItems.isEmpty
-                  ? _buildEmptySavedState('Venta')
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: ventaItems.length,
-                      itemBuilder: (context, index) {
-                        final item = ventaItems[index];
-                        return _buildSavedCard(
-                          title: item['title'] ?? 'Inmueble Guardado',
-                          price: item['price'] ?? '\$ 0',
-                          surface: item['surface'] ?? '0 m²',
-                          rooms: item['rooms'] ?? '0 dorms',
-                          location: item['location'] ?? 'Santa Cruz',
-                          isPlus: true,
-                        );
-                      },
-                    ),
-
-          // 2. Guardados Alquiler
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : alquilerItems.isEmpty
-                  ? _buildEmptySavedState('Alquiler')
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: alquilerItems.length,
-                      itemBuilder: (context, index) {
-                        final item = alquilerItems[index];
-                        return _buildSavedCard(
-                          title: item['title'] ?? 'Alquiler Guardado',
-                          price: item['price'] ?? '\$ 0',
-                          surface: item['surface'] ?? '0 m²',
-                          rooms: item['rooms'] ?? '0 dorms',
-                          location: item['location'] ?? 'Santa Cruz',
-                          isPlus: false,
-                        );
-                      },
-                    ),
-
-          // 3. Comparador de Inmuebles
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.compare_arrows, size: 64, color: KazaTheme.primaryTealLight),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Sin propiedades para comparar',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Guarda 2 o más propiedades de la misma modalidad para analizar su precio por m², días en mercado y características lado a lado.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
-                  ),
-                ],
+        actions: [
+          TextButton(
+            onPressed: _onComparePressed,
+            child: const Text(
+              'Comparar',
+              style: TextStyle(
+                color: KazaTheme.textMuted,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: KazaTheme.azulKaza))
+          : _savedItems.isEmpty
+              ? _buildEmptySavedState()
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: _savedItems.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final item = _savedItems[index];
+                    final prop = item['properties'] as Map<String, dynamic>? ?? {};
+
+                    final title = prop['address_canonical'] ?? 'Inmueble Guardado';
+                    final priceStr = _formatPrice(prop);
+                    final surface = prop['total_surface_m2'] ?? 0;
+                    final priceM2Str = _getPricePerM2(prop);
+                    
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Image Placeholder
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F4F8),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.image, color: Colors.black12, size: 28),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Details
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: KazaTheme.azulKaza,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                priceStr,
+                                style: const TextStyle(
+                                  color: KazaTheme.azulKaza,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                surface > 0 ? '$surface m² - $priceM2Str' : 'Superficie: No informado',
+                                style: const TextStyle(
+                                  color: KazaTheme.textMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
     );
   }
 
-  Widget _buildEmptySavedState(String category) {
+  Widget _buildEmptySavedState() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.bookmark_border, size: 64, color: KazaTheme.primaryTealLight),
+            const Icon(Icons.bookmark_border, size: 64, color: KazaTheme.textMuted),
             const SizedBox(height: 16),
-            Text(
-              'No tienes guardados en $category',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const Text(
+              'No tienes guardados',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Explora el mapa y presiona el ícono 🔖 en tus inmuebles favoritos para conservarlos en tu lista personalizada.',
+              'Explora el mapa y guarda propiedades.',
               textAlign: TextAlign.center,
               style: TextStyle(color: KazaTheme.textMuted, fontSize: 13),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSavedCard({
-    required String title,
-    required String price,
-    required String surface,
-    required String rooms,
-    required String location,
-    required bool isPlus,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade800,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.apartment, color: Colors.white54),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (isPlus) const KazaPlusBadge(),
-                      const Spacer(),
-                      const Icon(Icons.bookmark, color: KazaTheme.primaryTealLight, size: 20),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  Text(location, style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
-                  const SizedBox(height: 6),
-                  Text(price, style: const TextStyle(color: KazaTheme.primaryTealLight, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComparisonColumn({
-    required String title,
-    required String price,
-    required String priceM2,
-    required String surface,
-    required String rooms,
-    required String bathrooms,
-    required String dom,
-  }) {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: KazaTheme.cardSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: KazaTheme.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-          const SizedBox(height: 8),
-          Text(price, style: const TextStyle(color: KazaTheme.primaryTealLight, fontSize: 18, fontWeight: FontWeight.w800)),
-          Text(priceM2, style: const TextStyle(color: KazaTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold)),
-          const Divider(height: 24, color: KazaTheme.glassBorder),
-          _compRow('Superficie', surface),
-          _compRow('Dormitorios', rooms),
-          _compRow('Baños', bathrooms),
-          _compRow('Días Mercado', dom),
-        ],
-      ),
-    );
-  }
-
-  Widget _compRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-        ],
       ),
     );
   }
