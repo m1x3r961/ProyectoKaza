@@ -227,62 +227,65 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
   // ---------------------------------------------------------------------------
   Widget _buildOverviewTab() {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.zero, // Remove global padding to allow edge-to-edge gallery
       children: [
-        // Gallery Header Simulation
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              Container(
-                height: 220,
-                width: double.infinity,
-                color: KazaTheme.grisClaro,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.image_outlined, size: 48, color: KazaTheme.grisMedio),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Galería Fotográfica Verificada (HD)',
-                        style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Row(
+        // Gallery Header Simulation (Edge to Edge)
+        Stack(
+          children: [
+            Container(
+              height: 260,
+              width: double.infinity,
+              color: const Color(0xFFE2E8F0), // A more visible gray for the placeholder
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (widget.property.isPlus) const KazaPlusBadge(),
-                    const SizedBox(width: 8),
-                    KazaTrustBadge(
-                      label: widget.property.trustLabel,
-                      isOrganization: widget.property.isOrg,
+                    Icon(Icons.photo_library_outlined, size: 56, color: KazaTheme.textSecondary.withValues(alpha: 0.5)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Galería HD',
+                      style: TextStyle(color: KazaTheme.textSecondary.withValues(alpha: 0.8), fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
-              Positioned(
-                bottom: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(12),
+            ),
+            Positioned(
+              top: 16,
+              left: 16,
+              child: Row(
+                children: [
+                  if (widget.property.isPlus) const KazaPlusBadge(),
+                  const SizedBox(width: 8),
+                  KazaTrustBadge(
+                    label: widget.property.trustLabel,
+                    isOrganization: widget.property.isOrg,
                   ),
-                  child: const Text('1 / 12 Fotos', style: TextStyle(color: Colors.white, fontSize: 12)),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                ),
+                child: const Text('1 / 12 Fotos', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
         ),
 
-        const SizedBox(height: 20),
+        // Main content padding wrapper
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
         // Title Info
         Row(
@@ -442,7 +445,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
           ),
         ),
       ],
-    );
+    ), // Closes Column
+    ), // Closes Padding
+    ], // Closes ListView.children
+    ); // Closes ListView
   }
 
   Widget _buildSpecChip(IconData icon, String label) {
