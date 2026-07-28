@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../models/listing_model.dart';
+import '../providers/my_listings_provider.dart';
 
-/// 🏠 MIS PUBLICACIONES v0.3 FINAL (Gestión de Inmuebles)
+/// 🏠 MIS PUBLICACIONES v0.3 FINAL (Gestión de Inmuebles Real)
 class MyListingsScreen extends ConsumerStatefulWidget {
   const MyListingsScreen({super.key});
 
@@ -15,6 +17,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final listingsAsync = ref.watch(myListingsProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -45,41 +49,36 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
           ),
           const Divider(color: KazaTheme.glassBorder, height: 1),
 
-          // Lista de inmuebles
+          // Lista de inmuebles desde Supabase
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                _buildPropertyCard(
-                  title: 'Casa contemporánea con jardín',
-                  price: '\$us 450.000',
-                  status: 'ACTIVO',
-                  statusColor: KazaTheme.statusAvailable,
-                  actions: ['Actualizar disponibilidad', 'Pausar', 'Editar'],
-                ),
-                _buildPropertyCard(
-                  title: 'Departamento con terraza',
-                  price: 'USD 120.000',
-                  status: 'RESERVADO',
-                  statusColor: KazaTheme.statusReserved,
-                  actions: ['Marcar disponible', 'Cerrar operación', 'Editar'],
-                ),
-                _buildPropertyCard(
-                  title: 'Terrenos en Urubó',
-                  price: 'Consultar',
-                  status: 'PAUSADO',
-                  statusColor: KazaTheme.statusPaused,
-                  actions: ['Reactivar', 'Editar', 'Retirar'],
-                ),
-                _buildPropertyCard(
-                  title: 'Borrador: casa zona norte',
-                  price: 'DRAFT',
-                  status: 'DRAFT',
-                  statusColor: KazaTheme.textMuted,
-                  actions: ['Continuar borrador', 'Eliminar borrador'],
-                  isDraft: true,
-                ),
-              ],
+            child: listingsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator(color: Colors.redAccent)),
+              error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent))),
+              data: (listings) {
+                // Filtrar según el tab seleccionado
+                final filteredListings = listings.where((listing) {
+                  if (_selectedTab == 'Todas') return true;
+                  if (_selectedTab == 'Activas') return listing.status == 'AVAILABLE';
+                  if (_selectedTab == 'Pausadas') return listing.status == 'PAUSED';
+                  if (_selectedTab == 'Borradores') return listing.status == 'DRAFT';
+                  return true;
+                }).toList();
+
+                if (filteredListings.isEmpty) {
+                  return const Center(
+                    child: Text('No se encontraron publicaciones en este estado.', style: TextStyle(color: KazaTheme.textMuted)),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: filteredListings.length,
+                  itemBuilder: (context, index) {
+                    final listing = filteredListings[index];
+                    return _buildPropertyCard(listing);
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -112,14 +111,47 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
     );
   }
 
-  Widget _buildPropertyCard({
-    required String title,
-    required String price,
-    required String status,
-    required Color statusColor,
-    required List<String> actions,
-    bool isDraft = false,
-  }) {
+  Widget _buildPropertyCard(ListingModel listing) {
+    // Determinar UI según el estado real
+    String displayStatus = listing.status;
+    Color statusColor = KazaTheme.textMuted;
+    List<String> actions = [];
+
+    switch (listing.status) {
+      case 'AVAILABLE':
+        displayStatus = 'ACTIVO';
+        statusColor = KazaTheme.statusAvailable;
+        actions = ['Actualizar disponibilidad', 'Pausar', 'Editar', 'Retirar'];
+        break;
+      case 'PAUSED':
+        displayStatus = 'PAUSADO';
+        statusColor = KazaTheme.statusPaused;
+        actions = ['Reactivar', 'Editar', 'Retirar'];
+        break;
+      case 'RESERVED':
+        displayStatus = 'RESERVADO';
+        statusColor = KazaTheme.statusReserved;
+        actions = ['Marcar disponible', 'Cerrar operación', 'Editar'];
+        break;
+      case 'DRAFT':
+        displayStatus = 'DRAFT';
+        statusColor = KazaTheme.textMuted;
+        actions = ['Continuar borrador', 'Eliminar borrador'];
+        break;
+      case 'CLOSED':
+        displayStatus = 'CERRADO';
+        statusColor = KazaTheme.statusClosed;
+        actions = ['Ver historial'];
+        break;
+      case 'WITHDRAWN':
+        displayStatus = 'RETIRADO';
+        statusColor = KazaTheme.textMuted;
+        actions = ['Ver historial', 'Republicar'];
+        break;
+    }
+
+    final isDraft = listing.status == 'DRAFT';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
@@ -152,9 +184,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
+                      Text(listing.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
                       const SizedBox(height: 4),
-                      Text(price, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDraft ? KazaTheme.textMuted : KazaTheme.textPrimary)),
+                      Text(listing.formattedPrice, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDraft ? KazaTheme.textMuted : KazaTheme.textPrimary)),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -162,7 +194,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                           color: statusColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        child: Text(displayStatus, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       ),
                     ],
                   ),
@@ -180,7 +212,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
               children: actions.map((actionName) {
                 final isPrimaryAction = actionName == 'Actualizar disponibilidad' || actionName == 'Continuar borrador' || actionName == 'Reactivar' || actionName == 'Marcar disponible';
                 return OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _handleAction(actionName, listing),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     side: BorderSide(color: isPrimaryAction ? Colors.redAccent : KazaTheme.glassBorder),
@@ -201,5 +233,38 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
         ],
       ),
     );
+  }
+
+  void _handleAction(String action, ListingModel listing) {
+    final notifier = ref.read(myListingsProvider.notifier);
+    
+    switch (action) {
+      case 'Actualizar disponibilidad':
+        notifier.refreshAvailability(listing.id);
+        break;
+      case 'Pausar':
+        notifier.updateStatus(listing.id, 'PAUSED');
+        break;
+      case 'Reactivar':
+      case 'Marcar disponible':
+      case 'Republicar':
+        notifier.updateStatus(listing.id, 'AVAILABLE');
+        break;
+      case 'Retirar':
+        notifier.updateStatus(listing.id, 'WITHDRAWN');
+        break;
+      case 'Cerrar operación':
+        notifier.updateStatus(listing.id, 'CLOSED');
+        break;
+      case 'Eliminar borrador':
+        // Not implemented yet, usually an ARCHIVED status or physical DELETE
+        notifier.updateStatus(listing.id, 'ARCHIVED');
+        break;
+      case 'Editar':
+      case 'Continuar borrador':
+      case 'Ver historial':
+        // These would navigate to other screens
+        break;
+    }
   }
 }
