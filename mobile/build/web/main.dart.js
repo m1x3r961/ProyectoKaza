@@ -99578,27 +99578,31 @@ s=p}while(true)switch(s){case 0:a6=n.gfg().iK($.vo(),t.Un)
 a7=a6.b
 a8=a6.d
 if(a8==null)a8="Agente Kaza"
-i=n.dy
-h=A.tJ(i.a.a)
-m=h==null?0:h
-g=B.c.fT(n.fx.a.a)
-l=g.length!==0?g:n.z+" en "+n.at.a.a
-k=!1
+h=n.dy
+g=A.tJ(h.a.a)
+m=g==null?0:g
+f=B.c.fT(n.fx.a.a)
+l=f.length!==0?f:n.z+" en "+n.at.a.a
+k="VENTA"
+e=n.y
+if(e==="Alquilar")k="ALQUILER"
+if(e==="Dar en Anticr\xe9tico")k="ANTICRETICO"
+j=!1
 p=4
-f=$.dX().b
-f===$&&A.a()
-e=n.z
-d=n.y
-c=A.je(n.ay.a.a,null)
-if(c==null)c=0
-b=A.je(n.ch.a.a,null)
+e=$.dX().b
+e===$&&A.a()
+d=n.z
+c=k
+b=A.je(n.ay.a.a,null)
 if(b==null)b=0
-a=A.je(n.CW.a.a,null)
+a=A.je(n.ch.a.a,null)
 if(a==null)a=0
-a0=t.z
+a0=A.je(n.CW.a.a,null)
+if(a0==null)a0=0
+a1=t.z
 s=7
-return A.B(f.OE("fn_create_property",A.a_(["p_title",l,"p_property_type",e,"p_operation",d.toUpperCase(),"p_price",m,"p_surface",c,"p_rooms",b,"p_bathrooms",a,"p_latitude",n.Q,"p_longitude",n.as,"p_owner_id",a7],t.N,a0),a0),$async$wd)
-case 7:k=!0
+return A.B(e.OE("fn_create_property",A.a_(["p_title",l,"p_property_type",d,"p_operation",c,"p_price",m,"p_surface",b,"p_rooms",a,"p_bathrooms",a0,"p_latitude",n.Q,"p_longitude",n.as,"p_owner_id",a7],t.N,a1),a1),$async$wd)
+case 7:j=!0
 p=2
 s=6
 break
@@ -99608,63 +99612,62 @@ s=6
 break
 case 3:s=2
 break
-case 6:s=!k?8:9
+case 6:s=!j?8:9
 break
 case 8:p=11
-f=$.dX().b
-f===$&&A.a()
-f=f.mC("properties")
-e=n.z
-d=A.je(n.ay.a.a,null)
-if(d==null)d=0
-c=A.je(n.ch.a.a,null)
+e=$.dX().b
+e===$&&A.a()
+e=e.mC("properties")
+d=n.z
+c=A.je(n.ay.a.a,null)
 if(c==null)c=0
-b=A.je(n.CW.a.a,null)
+b=A.je(n.ch.a.a,null)
 if(b==null)b=0
+a=A.je(n.CW.a.a,null)
+if(a==null)a=0
 s=14
-return A.B(f.qg(0,A.a_(["title",l,"address_canonical",l,"property_type",e,"price_usd",m,"total_surface_m2",d,"rooms",c,"bathrooms",b,"status","PUBLISHED","latitude",n.Q,"longitude",n.as,"operation",n.y.toUpperCase(),"owner_id",a7],t.N,t.X)),$async$wd)
-case 14:k=!0
+return A.B(e.qg(0,A.a_(["title",l,"address_canonical",l,"property_type",d,"price_usd",m,"total_surface_m2",c,"rooms",b,"bathrooms",a,"status","PUBLISHED","latitude",n.Q,"longitude",n.as,"operation",k,"owner_id",a7],t.N,t.X)),$async$wd)
+case 14:j=!0
 p=2
 s=13
 break
 case 11:p=10
 b0=o
-j=A.W(b0)
-A.Aq("Error en fallback insert: "+A.k(j))
+i=A.W(b0)
+A.Aq("Error en fallback insert: "+A.k(i))
 s=13
 break
 case 10:s=2
 break
-case 13:case 9:if(!k){i=n.c
-if(i!=null)i.ae(t.R).f.ii(B.Yb)
+case 13:case 9:if(!j){h=n.c
+if(h!=null)h.ae(t.R).f.ii(B.Yb)
 s=1
-break}f=B.h.k(Date.now())
-e=n.z
-d=n.at.a.a
-c=n.dx
-i=i.a.a
-b=n.y
+break}e=B.h.k(Date.now())
+d=n.dx
+h=h.a.a
+c=k
+b=n.z
 a=n.Q
 a0=n.as
-a2=A.je(n.ch.a.a,null)
-if(a2==null)a2=0
+a1=A.je(n.ch.a.a,null)
+if(a1==null)a1=0
 a3=A.je(n.CW.a.a,null)
 if(a3==null)a3=0
 a4=n.ay.a.a
 a5=n.gfg().iK($.aQ3().gyC(),t.Re)
-a4=A.b([new A.dx(f,e+" \xb7 "+d,c+" "+i,b.toUpperCase(),e,new A.cI(a,a0),a2,a3,a4+" m\xb2",!0,a8,!0,1,null,null)],t.vs)
+a4=A.b([new A.dx(e,l,d+" "+h,c,b,new A.cI(a,a0),a1,a3,a4+" m\xb2",!0,a8,!0,1,null,null)],t.vs)
 B.b.K(a4,a5.f)
 a5.siP(a4)
 a4=n.gfg()
 a5=$.a4I()
 if(a4.e==null)A.Z(A.ad(u.w))
 a4.gpd().ya(a5)
-i=n.c
-if(i!=null){i.ae(t.R).f.ii(B.Ye)
+h=n.c
+if(h!=null){h.ae(t.R).f.ii(B.Ye)
 n.aqR()
-i=n.c
-i.toString
-A.CS(i).uY("/map",null)}case 1:return A.G(q,r)
+h=n.c
+h.toString
+A.CS(h).uY("/map",null)}case 1:return A.G(q,r)
 case 2:return A.F(o,r)}})
 return A.H($async$wd,r)},
 aqR(){this.w.No(0)

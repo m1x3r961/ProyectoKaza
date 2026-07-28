@@ -105,12 +105,16 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         ? _titleCtrl.text.trim() 
         : '$_propertyType en ${_addressCtrl.text}';
 
+    String dbOperation = 'VENTA';
+    if (_operationType == 'Alquilar') dbOperation = 'ALQUILER';
+    if (_operationType == 'Dar en Anticrético') dbOperation = 'ANTICRETICO';
+
     bool inserted = false;
     try {
       await SupabaseConfig.client.rpc('fn_create_property', params: {
         'p_title': finalTitle,
         'p_property_type': _propertyType,
-        'p_operation': _operationType.toUpperCase(),
+        'p_operation': dbOperation,
         'p_price': priceNum,
         'p_surface': int.tryParse(_builtCtrl.text) ?? 0,
         'p_rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
@@ -135,7 +139,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
           'status': 'PUBLISHED',
           'latitude': _selectedLat,
           'longitude': _selectedLng,
-          'operation': _operationType.toUpperCase(),
+          'operation': dbOperation,
           'owner_id': userId,
         });
         inserted = true;
@@ -158,9 +162,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
     final newItem = PropertyMapItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: '$_propertyType · ${_addressCtrl.text}',
+      title: finalTitle,
       price: '$_currency ${_priceCtrl.text}',
-      operation: _operationType.toUpperCase(),
+      operation: dbOperation,
       type: _propertyType,
       location: LatLng(_selectedLat, _selectedLng),
       bedrooms: int.tryParse(_bedroomsCtrl.text) ?? 0,
