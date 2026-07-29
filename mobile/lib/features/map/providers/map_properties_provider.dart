@@ -108,20 +108,34 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
 final mapPropertiesProvider = StreamProvider<List<PropertyMapItem>>((ref) async* {
   final localItems = ref.watch(localPublishedPropertiesProvider);
 
-  // Función interna para cargar todas las propiedades de Supabase
+  // Función interna para cargar todas las propiedades de Supabase (sin duplicados)
   Future<List<PropertyMapItem>> fetchAll() async {
-    final List<PropertyMapItem> items = [...localItems];
+    final List<PropertyMapItem> items = [];
+    final Set<String> seenKeys = {};
+
     try {
       final response =
           await SupabaseConfig.client.from('properties').select('*');
       for (final row in response) {
         try {
-          final id = row['id'].toString();
-          if (items.any((it) => it.id == id)) continue;
-          items.add(_rowToItem(row));
+          final item = _rowToItem(row);
+          final key = '${item.location.latitude.toStringAsFixed(4)}_${item.location.longitude.toStringAsFixed(4)}_${item.title.trim().toLowerCase()}';
+          if (!seenKeys.contains(key)) {
+            seenKeys.add(key);
+            items.add(item);
+          }
         } catch (_) {}
       }
     } catch (_) {}
+
+    for (final loc in localItems) {
+      final key = '${loc.location.latitude.toStringAsFixed(4)}_${loc.location.longitude.toStringAsFixed(4)}_${loc.title.trim().toLowerCase()}';
+      if (!seenKeys.contains(key)) {
+        seenKeys.add(key);
+        items.add(loc);
+      }
+    }
+
     return items;
   }
 

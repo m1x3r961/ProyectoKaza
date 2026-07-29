@@ -63,6 +63,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   bool _msgWhatsapp = true;
   bool _call = false;
   String _precisionType = 'Zona aproximada';
+  bool _isPublishing = false;
 
   @override
   void dispose() {
@@ -99,97 +100,90 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   }
 
   Future<void> _publish() async {
-    final authState = ref.read(kazaAuthProvider);
-    final userId = authState.userId;
-    final agentName = authState.fullName ?? 'Agente Kaza';
-    final priceNum = double.tryParse(_priceCtrl.text) ?? 0;
-    
-    final finalTitle = _titleCtrl.text.trim().isNotEmpty 
-        ? _titleCtrl.text.trim() 
-        : '$_propertyType en ${_addressCtrl.text}';
+    if (_isPublishing) return;
+    setState(() => _isPublishing = true);
 
-    String dbOperation = 'VENTA';
-    if (_operationType == 'Alquilar') dbOperation = 'ALQUILER';
-    if (_operationType == 'Dar en Anticrético') dbOperation = 'ANTICRETICO';
-
-    bool inserted = false;
     try {
-      await SupabaseConfig.client.rpc('fn_create_property', params: {
-        'p_title': finalTitle,
-        'p_property_type': _propertyType,
-        'p_operation': dbOperation,
-        'p_price': priceNum,
-        'p_surface': int.tryParse(_builtCtrl.text) ?? 0,
-        'p_rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
-        'p_bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
-        'p_latitude': _selectedLat,
-        'p_longitude': _selectedLng,
-        'p_owner_id': userId,
-      });
-      inserted = true;
-    } catch (_) {}
+      final authState = ref.read(kazaAuthProvider);
+      final userId = authState.userId;
+      final agentName = authState.fullName ?? 'Agente Kaza';
+      final priceNum = double.tryParse(_priceCtrl.text) ?? 0;
+      
+      final finalTitle = _titleCtrl.text.trim().isNotEmpty 
+          ? _titleCtrl.text.trim() 
+          : '$_propertyType en ${_addressCtrl.text}';
 
-    if (!inserted) {
+      String dbOperation = 'VENTA';
+      if (_operationType == 'Alquilar') dbOperation = 'ALQUILER';
+      if (_operationType == 'Dar en Anticrético') dbOperation = 'ANTICRETICO';
+
+      bool inserted = false;
       try {
-        await SupabaseConfig.client.from('properties').insert({
-          'title': finalTitle,
-          'address_canonical': finalTitle,
-          'property_type': _propertyType,
-          'price_usd': priceNum,
-          'total_surface_m2': int.tryParse(_builtCtrl.text) ?? 0,
-          'rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
-          'bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
-          'status': 'PUBLISHED',
-          'latitude': _selectedLat,
-          'longitude': _selectedLng,
-          'operation': dbOperation,
-          'owner_id': userId,
+        await SupabaseConfig.client.rpc('fn_create_property', params: {
+          'p_title': finalTitle,
+          'p_property_type': _propertyType,
+          'p_operation': dbOperation,
+          'p_price': priceNum,
+          'p_surface': int.tryParse(_builtCtrl.text) ?? 0,
+          'p_rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
+          'p_bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
+          'p_latitude': _selectedLat,
+          'p_longitude': _selectedLng,
+          'p_owner_id': userId,
         });
         inserted = true;
-      } catch (e) {
-        print('Error en fallback insert: $e');
-      }
-    }
+      } catch (_) {}
 
-    if (!inserted) {
+      if (!inserted) {
+        try {
+          await SupabaseConfig.client.from('properties').insert({
+            'title': finalTitle,
+            'address_canonical': finalTitle,
+            'property_type': _propertyType,
+            'price_usd': priceNum,
+            'total_surface_m2': int.tryParse(_builtCtrl.text) ?? 0,
+            'rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
+            'bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
+            'status': 'PUBLISHED',
+            'latitude': _selectedLat,
+            'longitude': _selectedLng,
+            'operation': dbOperation,
+            'owner_id': userId,
+          });
+          inserted = true;
+        } catch (e) {
+          debugPrint('Error en fallback insert: $e');
+        }
+      }
+
+      if (!inserted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al crear la publicación en la base de datos.'),
+              backgroundColor: KazaTheme.primaryCoral,
+            ),
+          );
+        }
+        return;
+      }
+
+      ref.invalidate(mapPropertiesProvider);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Error al crear la publicación en la base de datos.'),
-            backgroundColor: KazaTheme.primaryCoral,
+            content: Text('🎉 ¡Publicación creada! Ya aparece en el mapa.'),
+            backgroundColor: Color(0xFF27AE60),
           ),
         );
+        _resetForm();
+        context.go('/map');
       }
-      return;
-    }
-
-    final newItem = PropertyMapItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: finalTitle,
-      price: '$_currency ${_priceCtrl.text}',
-      operation: dbOperation,
-      type: _propertyType,
-      location: LatLng(_selectedLat, _selectedLng),
-      bedrooms: int.tryParse(_bedroomsCtrl.text) ?? 0,
-      bathrooms: int.tryParse(_bathroomsCtrl.text) ?? 0,
-      surface: '${_builtCtrl.text} m²',
-      isPlus: true,
-      trustLabel: agentName,
-      isOrg: true,
-    );
-
-    ref.read(localPublishedPropertiesProvider.notifier).addProperty(newItem);
-    ref.invalidate(mapPropertiesProvider);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 ¡Publicación creada! Ya aparece en el mapa.'),
-          backgroundColor: Color(0xFF27AE60),
-        ),
-      );
-      _resetForm();
-      context.go('/map');
+    } finally {
+      if (mounted) {
+        setState(() => _isPublishing = false);
+      }
     }
   }
 
@@ -649,11 +643,16 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
-              onPressed: isLast ? _publish : _goNext,
-              child: Text(
-                btnText,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-              ),
+              onPressed: _isPublishing ? null : (isLast ? _publish : _goNext),
+              child: _isPublishing
+                  ? const SizedBox(
+                      width: 22, height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : Text(
+                      btnText,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
             ),
           ),
         ],
