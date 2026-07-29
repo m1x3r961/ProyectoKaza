@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
@@ -222,163 +225,300 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     });
   }
 
+  Future<void> _updateLocationAddress(double lat, double lng, {void Function(String name)? onAddressResolved}) async {
+    if (!mounted) return;
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+      final res = await http.get(
+        uri,
+        headers: {'User-Agent': 'KazaApp/1.0 (com.kaza.app)'},
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final addr = data['address'] as Map<String, dynamic>?;
+        if (addr != null) {
+          final road = addr['road'] ?? addr['pedestrian'] ?? addr['street'] ?? addr['footway'] ?? addr['path'] ?? addr['suburb'] ?? '';
+          final suburb = addr['suburb'] ?? addr['neighbourhood'] ?? addr['quarter'] ?? addr['city_district'] ?? addr['city'] ?? '';
+          
+          String formatted = '';
+          if (road.toString().isNotEmpty && suburb.toString().isNotEmpty && road.toString() != suburb.toString()) {
+            formatted = '${road.toString()} · ${suburb.toString()}';
+          } else if (road.toString().isNotEmpty) {
+            formatted = road.toString();
+          } else if (suburb.toString().isNotEmpty) {
+            formatted = suburb.toString();
+          } else if (data['display_name'] != null) {
+            final parts = (data['display_name'] as String).split(',');
+            formatted = parts.take(2).join(',').trim();
+          }
+
+          if (formatted.isNotEmpty) {
+            if (onAddressResolved != null) {
+              onAddressResolved(formatted);
+            } else if (mounted) {
+              setState(() {
+                _addressCtrl.text = formatted;
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Reverse geocoding error: $e');
+    }
+  }
 
   void _openMapPickerModal() {
     double tempLat = _selectedLat;
     double tempLng = _selectedLng;
+    String tempAddress = _addressCtrl.text;
+    MapController modalMapCtrl = MapController();
+    TextEditingController searchCtrl = TextEditingController();
+    List<Map<String, dynamic>> searchResults = [];
+    bool isSearching = false;
+    Timer? debounce;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Container(
-          height: MediaQuery.of(context).size.height * 0.88,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on_rounded, color: KazaTheme.coralKaza),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Ubicación exacta',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.azulKaza)),
-                          Text('Toca el mapa para colocar el PIN',
-                              style: TextStyle(color: KazaTheme.grisMedio, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close, color: KazaTheme.azulKaza),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        builder: (ctx, setModal) {
+          void performSearch(String query) {
+            if (debounce?.isActive ?? false) debounce!.cancel();
+            debounce = Timer(const Duration(milliseconds: 400), () async {
+              if (query.trim().length < 3) {
+                setModal(() { searchResults = []; isSearching = false; });
+                return;
+              }
+              setModal(() { isSearching = true; });
+              try {
+                final searchUrl = Uri.parse(
+                  'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent("$query, Santa Cruz, Bolivia")}&limit=5&addressdetails=1',
+                );
+                final res = await http.get(searchUrl, headers: {'User-Agent': 'KazaApp/1.0 (com.kaza.app)'});
+                if (res.statusCode == 200) {
+                  final List data = jsonDecode(res.body);
+                  setModal(() {
+                    searchResults = data.map<Map<String, dynamic>>((item) => {
+                      'display_name': item['display_name'],
+                      'lat': double.parse(item['lat']),
+                      'lon': double.parse(item['lon']),
+                      'name': item['name'] ?? item['display_name'].toString().split(',')[0],
+                    }).toList();
+                    isSearching = false;
+                  });
+                }
+              } catch (e) {
+                setModal(() { isSearching = false; });
+              }
+            });
+          }
+
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.88,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40, height: 4,
                   decoration: BoxDecoration(
-                    color: KazaTheme.grisClaro,
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  child: const Row(
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Row(
                     children: [
-                      Icon(Icons.search, size: 18, color: KazaTheme.grisMedio),
-                      SizedBox(width: 8),
-                      Text('Buscar calle, barrio o zona',
-                          style: TextStyle(color: KazaTheme.grisMedio, fontSize: 13)),
+                      const Icon(Icons.location_on_rounded, color: KazaTheme.coralKaza),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Ubicación exacta',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.azulKaza)),
+                            Text('Toca el mapa para colocar el PIN',
+                                style: TextStyle(color: KazaTheme.grisMedio, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close, color: KazaTheme.azulKaza),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Stack(
-                  children: [
-                    FlutterMap(
-                      options: MapOptions(
-                        initialCenter: LatLng(tempLat, tempLng),
-                        initialZoom: 15,
-                        onTap: (_, point) {
-                          setModal(() {
-                            tempLat = point.latitude;
-                            tempLng = point.longitude;
-                          });
-                        },
-                      ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: KazaTheme.grisClaro,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
                       children: [
-                        TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.kaza.app',
-                        ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: LatLng(tempLat, tempLng),
-                              width: 44, height: 56,
-                              child: CustomPaint(
-                                painter: KazaPinPainter(icon: Icons.location_on_rounded, isSelected: false),
-                              ),
+                        const Icon(Icons.search, size: 18, color: KazaTheme.grisMedio),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: searchCtrl,
+                            onChanged: performSearch,
+                            style: const TextStyle(fontSize: 13, color: KazaTheme.azulKaza),
+                            decoration: const InputDecoration(
+                              hintText: 'Buscar calle, avenida, barrio o zona',
+                              hintStyle: TextStyle(color: KazaTheme.grisMedio, fontSize: 13),
+                              border: InputBorder.none,
                             ),
-                          ],
+                          ),
                         ),
+                        if (isSearching)
+                          const SizedBox(
+                            width: 14, height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: KazaTheme.coralKaza),
+                          ),
                       ],
                     ),
-                    Positioned(
-                      top: 12, left: 12, right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.95),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
-                        ),
-                        child: Text(
-                          '${tempLat.toStringAsFixed(4)}, ${tempLng.toStringAsFixed(4)}',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: KazaTheme.azulKaza),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_addressCtrl.text,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: KazaTheme.azulKaza, fontSize: 13)),
-                    const Text('Mueve el pin para ajustar la ubicación. La dirección pública puede ser menor.',
-                        style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: KazaTheme.azulKaza,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _selectedLat = tempLat;
-                        _selectedLng = tempLng;
-                      });
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Confirmar ubicación',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+                if (searchResults.isNotEmpty)
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: searchResults.length,
+                      itemBuilder: (ctx, i) {
+                        final item = searchResults[i];
+                        return ListTile(
+                          dense: true,
+                          title: Text(item['name'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          subtitle: Text(item['display_name'], style: const TextStyle(fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          onTap: () {
+                            setModal(() {
+                              tempLat = item['lat'];
+                              tempLng = item['lon'];
+                              tempAddress = item['name'];
+                              searchResults = [];
+                              searchCtrl.text = item['name'];
+                            });
+                            modalMapCtrl.move(LatLng(tempLat, tempLng), 16);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      FlutterMap(
+                        mapController: modalMapCtrl,
+                        options: MapOptions(
+                          initialCenter: LatLng(tempLat, tempLng),
+                          initialZoom: 15,
+                          onTap: (_, point) {
+                            setModal(() {
+                              tempLat = point.latitude;
+                              tempLng = point.longitude;
+                            });
+                            _updateLocationAddress(tempLat, tempLng, onAddressResolved: (resolvedName) {
+                              setModal(() {
+                                tempAddress = resolvedName;
+                              });
+                            });
+                          },
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.kaza.app',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: LatLng(tempLat, tempLng),
+                                width: 44, height: 56,
+                                child: CustomPaint(
+                                  painter: KazaPinPainter(icon: Icons.location_on_rounded, isSelected: false),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        top: 12, left: 12, right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
+                          ),
+                          child: Text(
+                            '${tempLat.toStringAsFixed(4)}, ${tempLng.toStringAsFixed(4)}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: KazaTheme.azulKaza),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tempAddress,
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: KazaTheme.azulKaza, fontSize: 13)),
+                      const Text('Mueve el pin para ajustar la ubicación. La dirección pública puede ser menor.',
+                          style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KazaTheme.azulKaza,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _selectedLat = tempLat;
+                          _selectedLng = tempLng;
+                          _addressCtrl.text = tempAddress;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Confirmar ubicación',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -707,6 +847,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                             _selectedLat = point.latitude;
                             _selectedLng = point.longitude;
                           });
+                          _updateLocationAddress(point.latitude, point.longitude);
                         },
                       ),
                       children: [
