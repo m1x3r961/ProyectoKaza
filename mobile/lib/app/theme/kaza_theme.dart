@@ -9,8 +9,8 @@ import 'package:flutter/material.dart';
 /// - Verde Entorno: #27AE60 (Kaza Score / Verificado)
 class KazaTheme {
   // 1. PALETA DE COLORES OFICIAL DE MARCA
-  static const Color azulKaza = Color(0xFF101F31);       // #101F31 Azul Kaza
-  static const Color coralKaza = Color(0xFFF45B45);      // #F45B45 Coral Kaza
+  static const Color azulKaza = Color(0xFF0F1F2E);       // #0F1F2E Azul Kaza
+  static const Color coralKaza = Color(0xFFFF5A3C);      // #FF5A3C Coral Kaza
   static const Color grisClaro = Color(0xFFF2F4F7);       // #F2F4F7 Gris Claro
   static const Color grisMedio = Color(0xFFA3A9B2);       // #A3A9B2 Gris Medio
   static const Color verdeEntorno = Color(0xFF27AE60);    // #27AE60 Verde Entorno

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
@@ -143,18 +142,11 @@ class MainShellScreen extends ConsumerWidget {
     final fabIconSize = screenWidth < 360 ? 26.0 : 32.0;
 
     return Scaffold(
-      extendBody: true,
       body: navigationShell,
-      bottomNavigationBar: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-          child: Container(
-            height: navHeight + bottomSafe,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.85),
-              border: Border(
-                top: BorderSide(color: Colors.black.withValues(alpha: 0.05), width: 0.5),
-              ),
+      bottomNavigationBar: Container(
+        height: navHeight + bottomSafe,
+        decoration: const BoxDecoration(
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black12,
@@ -240,8 +232,6 @@ class MainShellScreen extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-        ),
         ),
       ),
     );

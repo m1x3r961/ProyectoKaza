@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../app/theme/kaza_theme.dart';
 
 /// 📍 PIN PAINTER CANÓNICO DE KAZA (Sin fondo blanco, vector degradado)
 /// Soporta badge numérico de cantidad de propiedades (diseño WM-01 v0.2)
@@ -48,8 +47,8 @@ class KazaPinPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawPath(pinPath.shift(const Offset(0, 3)), shadowPaint);
 
-    // 2. Kaza Navy or Coral Fill
-    final Paint fillPaint = Paint()..color = isSelected ? KazaTheme.coralKaza : KazaTheme.azulKaza;
+    // 2. Kaza Navy Fill
+    final Paint fillPaint = Paint()..color = const Color(0xFF0F1F2E); // Azul Kaza
     canvas.drawPath(pinPath, fillPaint);
 
     // 3. Crisp White Border
