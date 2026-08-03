@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/network/supabase_config.dart';
 
-/// Modelo de datos parseado para el mapa
+/// Modelo de datos parseado para el mapa y la ficha completa de propiedad
 class PropertyMapItem {
   final String id;
   final String title;
@@ -22,8 +22,40 @@ class PropertyMapItem {
   final int propertyCount;
   /// Lista de propiedades agrupadas si es un clúster
   final List<PropertyMapItem>? subItems;
+
+  // ── Campos extendidos (B04 Publish + Ficha completa B16) ──────────────────
   /// Imagen principal de la propiedad
   final String? imageUrl;
+  /// Galería completa de fotos
+  final List<String> photos;
+  /// Descripción larga de la propiedad
+  final String? description;
+  /// Lista de amenidades (e.g. ['Piscina', 'Gimnasio', 'Terraza'])
+  final List<String> amenities;
+  /// Highlights / puntos clave de la descripción
+  final List<String> highlights;
+  /// Nombre del anunciante / agente
+  final String? agentName;
+  /// Teléfono de contacto del anunciante
+  final String? contactPhone;
+  /// Nombre del contacto
+  final String? contactName;
+  /// Superficie construida (m²)
+  final String? coveredSurface;
+  /// Parqueos / garages
+  final int parkingSpaces;
+  /// Antigüedad en años
+  final int ageYears;
+  /// Total de pisos del edificio/propiedad
+  final int floorsTotal;
+  /// Moneda del precio
+  final String currency;
+  /// Dirección canónica / legible
+  final String? address;
+  /// Estado de la publicación (PUBLISHED, AVAILABLE, DRAFT...)
+  final String status;
+  /// ID del dueño/publicador
+  final String? ownerId;
 
   PropertyMapItem({
     required this.id,
@@ -41,6 +73,21 @@ class PropertyMapItem {
     this.propertyCount = 1,
     this.subItems,
     this.imageUrl,
+    this.photos = const [],
+    this.description,
+    this.amenities = const [],
+    this.highlights = const [],
+    this.agentName,
+    this.contactPhone,
+    this.contactName,
+    this.coveredSurface,
+    this.parkingSpaces = 0,
+    this.ageYears = 0,
+    this.floorsTotal = 1,
+    this.currency = 'USD',
+    this.address,
+    this.status = 'PUBLISHED',
+    this.ownerId,
   });
 }
 
@@ -64,6 +111,12 @@ num _parseNum(dynamic val, [num defaultValue = 0]) {
   return defaultValue;
 }
 
+List<String> _parseJsonbList(dynamic val) {
+  if (val == null) return [];
+  if (val is List) return val.map((e) => e.toString()).toList();
+  return [];
+}
+
 // =============================================================================
 // HELPERS
 // =============================================================================
@@ -74,24 +127,50 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
   final double lat = _extractLat(row);
   final double lng = _extractLng(row);
   final num price = _parseNum(row['price_usd'], _parseNum(row['price_original'], 0));
+
+  // Fotos: puede ser JSONB array o campo `photos`
+  final List<String> photosList = _parseJsonbList(row['photos']);
+  final String? firstPhoto = photosList.isNotEmpty ? photosList.first : null;
+
+  // Amenidades
+  final List<String> amenitiesList = _parseJsonbList(row['amenities']);
+
+  // Highlights
+  final List<String> highlightsList = _parseJsonbList(row['highlights']);
+
+  // Superficie cubierta
+  final covSurface = row['covered_surface_m2'];
+  final String? covStr = covSurface != null ? '$covSurface m²' : null;
+
   return PropertyMapItem(
     id: idStr,
-    title: row['address_canonical'] ?? row['title'] ?? 'Propiedad Kaza',
+    title: row['title'] ?? row['address_canonical'] ?? 'Propiedad Kaza',
     price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
     operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
     type: row['property_type'] ?? 'Departamento',
     location: LatLng(lat, lng),
     bedrooms: _parseNum(row['rooms'], 0).toInt(),
     bathrooms: _parseNum(row['bathrooms'], 0).toInt(),
-    surface: '${row['total_surface_m2'] ?? 0} m²',
-    isPlus: true,
+    surface: '${_parseNum(row['total_surface_m2'], 0).toStringAsFixed(0)} m²',
+    isPlus: row['has_active_promotion'] == true,
     trustLabel: 'Actor Verificado',
-    isOrg: true,
-    imageUrl: (row['photos'] != null &&
-            row['photos'] is List &&
-            (row['photos'] as List).isNotEmpty)
-        ? row['photos'][0]
-        : null,
+    isOrg: false,
+    imageUrl: firstPhoto,
+    photos: photosList,
+    description: row['description'] as String?,
+    amenities: amenitiesList,
+    highlights: highlightsList,
+    agentName: row['contact_name'] as String? ?? 'Anunciante KAZA',
+    contactPhone: row['contact_phone'] as String?,
+    contactName: row['contact_name'] as String?,
+    coveredSurface: covStr,
+    parkingSpaces: _parseNum(row['parking_spaces'], 0).toInt(),
+    ageYears: _parseNum(row['age_years'], 0).toInt(),
+    floorsTotal: _parseNum(row['floors_total'], 1).toInt(),
+    currency: row['currency_code'] as String? ?? 'USD',
+    address: row['address_canonical'] as String?,
+    status: row['status'] as String? ?? 'PUBLISHED',
+    ownerId: row['owner_id'] as String?,
   );
 }
 

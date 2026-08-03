@@ -192,10 +192,10 @@ class PropertyHeroSection extends StatelessWidget {
             children: [
               const Icon(Icons.location_on_outlined, size: 14, color: KazaTheme.primaryCoral),
               const SizedBox(width: 4),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Equipetrol Norte, Santa Cruz',
-                  style: TextStyle(fontSize: 12, color: KazaTheme.textSecondary),
+                  property.address ?? 'Santa Cruz, Bolivia',
+                  style: const TextStyle(fontSize: 12, color: KazaTheme.textSecondary),
                 ),
               ),
             ],
@@ -208,34 +208,38 @@ class PropertyHeroSection extends StatelessWidget {
               _heroSpecItem(Icons.straighten, property.surface),
               _heroSpecItem(Icons.king_bed_outlined, '${property.bedrooms} Dorm'),
               _heroSpecItem(Icons.bathtub_outlined, '${property.bathrooms} Baños'),
-              _heroSpecItem(Icons.local_parking_outlined, '2 Park'),
+              if (property.parkingSpaces > 0)
+                _heroSpecItem(Icons.local_parking_outlined, '${property.parkingSpaces} Park'),
             ],
           ),
           const SizedBox(height: 16),
 
-          // Estado + Agente
+          // Estado + Operación
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
+                  color: KazaTheme.semanticSuccess.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFFB74D).withValues(alpha: 0.5)),
+                  border: Border.all(color: KazaTheme.semanticSuccess.withValues(alpha: 0.4)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.construction, size: 13, color: Color(0xFFF57C00)),
-                    SizedBox(width: 4),
-                    Text('En obra', style: TextStyle(fontSize: 11, color: Color(0xFFF57C00), fontWeight: FontWeight.bold)),
+                    const Icon(Icons.check_circle, size: 13, color: KazaTheme.semanticSuccess),
+                    const SizedBox(width: 4),
+                    const Text('Disponible', style: TextStyle(fontSize: 11, color: KazaTheme.semanticSuccess, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              const Text('Piso 7 · Apt. 7B', style: TextStyle(fontSize: 12, color: KazaTheme.textSecondary)),
+              Text(
+                property.operation,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+              ),
               const Spacer(),
               Text(
-                'Actualizado 12 may. 2025',
+                property.type,
                 style: TextStyle(fontSize: 11, color: KazaTheme.textSecondary.withValues(alpha: 0.7)),
               ),
             ],
@@ -278,21 +282,34 @@ class PropertyHeroSection extends StatelessWidget {
                 child: Icon(Icons.person, size: 18, color: Colors.white),
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Torres Sky Park', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
-                    Text('Desarrolladora Inmobiliaria', style: TextStyle(fontSize: 11, color: KazaTheme.textSecondary)),
+                    Text(
+                      property.agentName ?? 'Anunciante KAZA',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+                    ),
+                    Text(
+                      property.contactPhone ?? 'Ver datos de contacto',
+                      style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary),
+                    ),
                   ],
                 ),
               ),
-              Text(
-                property.operation,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: KazaTheme.primaryCoral,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: KazaTheme.primaryCoral.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  property.operation,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: KazaTheme.primaryCoral,
+                  ),
                 ),
               ),
             ],
@@ -405,9 +422,9 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      '5 / 33',
-                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    child: Text(
+                      '1 / ${widget.property.photos.isEmpty ? 1 : widget.property.photos.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -421,10 +438,11 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
             height: 64,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: 6,
+              itemCount: widget.property.photos.isEmpty ? 1 : widget.property.photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final isSelected = i == 0;
+                final photoUrl = widget.property.photos.isNotEmpty ? widget.property.photos[i] : widget.property.imageUrl;
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
@@ -437,9 +455,9 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
                       borderRadius: BorderRadius.circular(8),
                       color: KazaTheme.grisClaro,
                     ),
-                    child: widget.property.imageUrl != null
+                    child: photoUrl != null
                         ? Image.network(
-                            widget.property.imageUrl!,
+                            photoUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(Icons.photo, color: KazaTheme.grisMedio),
                           )
@@ -537,16 +555,18 @@ class PropertyDetailsSection extends StatelessWidget {
           const SizedBox(height: 10),
 
           _detailRow(Icons.straighten, 'Área total', property.surface),
-          _detailRow(Icons.home_outlined, 'Área construida', '98 m²'),
+          if (property.coveredSurface != null)
+            _detailRow(Icons.home_outlined, 'Área construida', property.coveredSurface!),
           _detailRow(Icons.king_bed_outlined, 'Dormitorios', '${property.bedrooms}'),
           _detailRow(Icons.bathtub_outlined, 'Baños', '${property.bathrooms}'),
-          _detailRow(Icons.local_parking_outlined, 'Parkeos', '2'),
+          if (property.parkingSpaces > 0)
+            _detailRow(Icons.local_parking_outlined, 'Parqueos', '${property.parkingSpaces}'),
 
           _divider(),
 
-          _detailRow(Icons.layers_outlined, 'Piso', '7 de 12'),
-          _detailRow(Icons.history, 'Antigüedad', 'En obra'),
-          _detailRow(Icons.apartment_outlined, 'Tipo de propiedad', 'Departamento'),
+          _detailRow(Icons.layers_outlined, 'Piso', '${property.floorsTotal > 1 ? "1 de " : ""}${property.floorsTotal}'),
+          _detailRow(Icons.history, 'Antigüedad', property.ageYears > 0 ? '${property.ageYears} años' : 'A estrenar'),
+          _detailRow(Icons.apartment_outlined, 'Tipo de propiedad', property.type),
 
           _divider(),
 
@@ -557,14 +577,13 @@ class PropertyDetailsSection extends StatelessWidget {
           const SizedBox(height: 10),
 
           _detailRow(
-            Icons.construction_outlined,
+            Icons.check_circle_outline,
             'Estado',
-            'En obra',
-            valueColor: const Color(0xFFF57C00),
+            'Disponible',
+            valueColor: KazaTheme.semanticSuccess,
           ),
-          _detailRow(Icons.event_outlined, 'Entrega estimada', 'Dic. 2025'),
-          _detailRow(Icons.home_work_outlined, 'Uso permitido', 'Residencial'),
-          _detailRow(Icons.fingerprint, 'ID de propiedad', 'KZA-TRS-001245'),
+          _detailRow(Icons.event_outlined, 'Entrega estimada', 'Inmediata'),
+          _detailRow(Icons.fingerprint, 'ID de propiedad', 'KZA-${property.id.substring(0, 8)}'),
         ],
       ),
     );
@@ -575,7 +594,8 @@ class PropertyDetailsSection extends StatelessWidget {
 // 04 · DESCRIPCIÓN Y DESTACADOS
 // ─────────────────────────────────────────────────────────────────────────────
 class PropertyDescriptionSection extends StatefulWidget {
-  const PropertyDescriptionSection({super.key});
+  final PropertyMapItem property;
+  const PropertyDescriptionSection({super.key, required this.property});
 
   @override
   State<PropertyDescriptionSection> createState() => _PropertyDescriptionSectionState();
@@ -584,23 +604,15 @@ class PropertyDescriptionSection extends StatefulWidget {
 class _PropertyDescriptionSectionState extends State<PropertyDescriptionSection> {
   bool _expanded = false;
 
-  static const _highlights = [
-    'Excelente ubicación en Equipetrol',
-    'Diseño moderno y funcional',
-    'Áreas sociales con vista panorámica',
-    'Seguridad 24/7',
-    'Alto potencial de valorización',
-  ];
-
   static const _idealFor = ['Familias', 'Inversión', 'Profesionales'];
 
   @override
   Widget build(BuildContext context) {
-    const fullText =
-        'Moderno departamento de 3 dormitorios en Equipetrol Norte, con excelente distribución e iluminación natural. Acabados de primera calidad, amplios ambientes y balcón con vista panorámica.\n\n'
-        'Ubicado en una de las zonas más exclusivas y de mayor plusvalía de Santa Cruz.';
+    final fullText = widget.property.description?.isNotEmpty == true
+        ? widget.property.description!
+        : 'Sin descripción detallada. Contacta al anunciante para más información.';
 
-    final displayText = _expanded ? fullText : '${fullText.substring(0, 120)}...';
+    final displayText = (_expanded || fullText.length < 120) ? fullText : '${fullText.substring(0, 120)}...';
 
     return _sectionCard(
       child: Column(
@@ -619,42 +631,44 @@ class _PropertyDescriptionSectionState extends State<PropertyDescriptionSection>
             displayText,
             style: const TextStyle(fontSize: 13, color: KazaTheme.textSecondary, height: 1.6),
           ),
-          GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Text(
-              _expanded ? 'Ver menos' : 'Ver más',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: KazaTheme.primaryCoral,
+          if (fullText.length >= 120)
+            GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Text(
+                _expanded ? 'Ver menos' : 'Ver más',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: KazaTheme.primaryCoral,
+                ),
               ),
             ),
-          ),
 
-          _divider(),
+          if (widget.property.highlights.isNotEmpty) ...[
+            _divider(),
 
           // Highlights
-          const Text(
-            'Highlights',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
-          ),
-          const SizedBox(height: 10),
-          ..._highlights.map(
-            (h) => Padding(
-              padding: const EdgeInsets.only(bottom: 7),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, size: 16, color: KazaTheme.verdeEntorno),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(h, style: const TextStyle(fontSize: 13, color: KazaTheme.textSecondary)),
-                  ),
-                ],
+            const Text(
+              'Highlights',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+            ),
+            const SizedBox(height: 10),
+            ...widget.property.highlights.map(
+              (h) => Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, size: 16, color: KazaTheme.verdeEntorno),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(h, style: const TextStyle(fontSize: 13, color: KazaTheme.textSecondary)),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-
-          _divider(),
+            _divider(),
+          ],
 
           // Ideal para
           const Text(
@@ -705,27 +719,23 @@ class _PropertyDescriptionSectionState extends State<PropertyDescriptionSection>
 // 05 · AMENIDADES Y CARACTERÍSTICAS
 // ─────────────────────────────────────────────────────────────────────────────
 class PropertyAmenitiesSection extends StatelessWidget {
-  const PropertyAmenitiesSection({super.key});
+  final PropertyMapItem property;
+  const PropertyAmenitiesSection({super.key, required this.property});
 
-  static const _amenidades = [
-    {'label': 'Piscina', 'icon': Icons.pool},
-    {'label': 'Gimnasio', 'icon': Icons.fitness_center},
-    {'label': 'Coworking', 'icon': Icons.computer_outlined},
-    {'label': 'Sala de eventos', 'icon': Icons.event_seat_outlined},
-    {'label': 'Churrasquero', 'icon': Icons.outdoor_grill},
-    {'label': 'Parque infantil', 'icon': Icons.child_care},
-    {'label': 'Lobby', 'icon': Icons.meeting_room_outlined},
-    {'label': 'Seguridad 24/7', 'icon': Icons.security},
-  ];
-
-  static const _caracteristicas = [
-    'Techo de 12 pisos',
-    '2 ascensores de última generación',
-    'Generador eléctrico',
-    'Calefón solar',
-    'Parques para visitas',
-    'Pet friendly',
-  ];
+  IconData _getIconForAmenity(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('piscina')) return Icons.pool;
+    if (lower.contains('gimnasio') || lower.contains('gym')) return Icons.fitness_center;
+    if (lower.contains('coworking') || lower.contains('oficina')) return Icons.computer_outlined;
+    if (lower.contains('eventos') || lower.contains('salon')) return Icons.celebration_outlined;
+    if (lower.contains('churrasquera') || lower.contains('parrilla')) return Icons.outdoor_grill_outlined;
+    if (lower.contains('parque') || lower.contains('infantil')) return Icons.child_friendly_outlined;
+    if (lower.contains('seguridad')) return Icons.security;
+    if (lower.contains('ascensor')) return Icons.elevator_outlined;
+    if (lower.contains('pet')) return Icons.pets;
+    if (lower.contains('aire')) return Icons.ac_unit;
+    return Icons.check_circle_outline;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -742,45 +752,41 @@ class PropertyAmenitiesSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              childAspectRatio: 0.85,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+          if (property.amenities.isEmpty)
+            const Text(
+              'No se especificaron amenidades.',
+              style: TextStyle(fontSize: 13, color: KazaTheme.textSecondary),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 16,
+              children: property.amenities.map((amenity) {
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 48 - 16) / 3,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: KazaTheme.azulKaza.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(_getIconForAmenity(amenity), size: 24, color: KazaTheme.azulKaza),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        amenity,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary, fontWeight: FontWeight.w600),
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
-            itemCount: _amenidades.length,
-            itemBuilder: (context, i) {
-              final item = _amenidades[i];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: KazaTheme.azulKaza.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      item['icon'] as IconData,
-                      size: 22,
-                      color: KazaTheme.azulKaza,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item['label'] as String,
-                    style: const TextStyle(fontSize: 10, color: KazaTheme.textSecondary, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                  ),
-                ],
-              );
-            },
-          ),
 
           _divider(),
 
@@ -790,26 +796,9 @@ class PropertyAmenitiesSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          ..._caracteristicas.map(
-            (c) => Padding(
-              padding: const EdgeInsets.only(bottom: 7),
-              child: Row(
-                children: [
-                  Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: KazaTheme.verdeEntorno.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.check, size: 12, color: KazaTheme.verdeEntorno),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(c, style: const TextStyle(fontSize: 13, color: KazaTheme.textSecondary)),
-                ],
-              ),
-            ),
-          ),
+          _detailRow(Icons.business, 'Torre', '${property.floorsTotal} pisos'),
+          _detailRow(Icons.elevator_outlined, 'Ascensores', 'Sí'),
+          _detailRow(Icons.local_parking_outlined, 'Parqueo para visitas', property.parkingSpaces > 0 ? 'Sí' : 'No'),
         ],
       ),
     );

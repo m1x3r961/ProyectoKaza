@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
@@ -14,8 +12,7 @@ import '../../map/providers/map_properties_provider.dart';
 import '../../media/models/kaza_media_item.dart';
 import '../../media/widgets/media_picker_widget.dart';
 
-/// ➕ PUBLICAR WIZARD v2 — Diseño WM-03 v0.3 FINAL
-/// Slider horizontal de 6 pasos con dots de progreso animados
+/// ➕ PUBLICAR WIZARD B04 — 12 Pasos
 class PublishScreen extends ConsumerStatefulWidget {
   const PublishScreen({super.key});
   @override
@@ -25,45 +22,59 @@ class PublishScreen extends ConsumerStatefulWidget {
 class _PublishScreenState extends ConsumerState<PublishScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  static const int _totalPages = 5;
 
-  // Step 1
-  String _operationType = 'Vender';
-  String _propertyType = 'Departamento';
-
-  // Step 2
-  double _selectedLat = -17.7833;
-  double _selectedLng = -63.1821;
-  final _addressCtrl = TextEditingController(text: 'Av. San Martín · Equipetrol');
-
-  // Step 3
-  final _terrainCtrl = TextEditingController(text: '300');
-  final _builtCtrl = TextEditingController(text: '180');
-  final _bedroomsCtrl = TextEditingController(text: '3');
-  final _bathroomsCtrl = TextEditingController(text: '3');
-  final _garageCtrl = TextEditingController(text: '2');
-  final _floorCtrl = TextEditingController(text: '3');
-
-  // Step 4 (Media & Price) -> now integrated in Step 3
-  List<KazaMediaItem> _mediaItems = [];
-  String _currency = 'BOB';
-  final _priceCtrl = TextEditingController(text: '850000');
-  bool _consultarPrecio = false;
-
-  // Step 5 (Description & Plus) -> now mostly in Step 3, plus in Step 4
-  final _titleCtrl = TextEditingController(text: 'Casa contemporánea con jardín y galería');
-  final _descCtrl = TextEditingController();
-  bool _plusVideo = false;
-  bool _plusPlano = false;
-  bool _plus3D = false;
-  bool _plusImagen = false;
+  // Datos del formulario
+  String _operationType = '';
+  String _propertyType = '';
   
-  // Step 5 (Review)
-  bool _msgKaza = true;
-  bool _msgWhatsapp = true;
-  bool _call = false;
-  String _precisionType = 'Zona aproximada';
+  // Ubicación
+  final double _selectedLat = -17.7833;
+  final double _selectedLng = -63.1821;
+  final _addressCtrl = TextEditingController();
+  
+  // Características
+  final _terrainCtrl = TextEditingController();
+  final _builtCtrl = TextEditingController();
+  final _bedroomsCtrl = TextEditingController();
+  final _bathroomsCtrl = TextEditingController();
+  final _garageCtrl = TextEditingController();
+  final _floorCtrl = TextEditingController();
+  final _ageCtrl = TextEditingController();
+  final _totalFloorsCtrl = TextEditingController(text: '1');
+  
+  // Precio
+  String _currency = 'USD';
+  final _priceCtrl = TextEditingController();
+  bool _consultarPrecio = false;
+  
+  // Fotos
+  List<KazaMediaItem> _mediaItems = [];
+  
+  // Descripción
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  
+  // Amenities
+  final List<String> _selectedAmenities = [];
+  final List<String> _popularAmenities = ['Piscina', 'Gimnasio', 'Sala de eventos', 'Seguridad 24/7', 'Parqueo visitas', 'Aire acondicionado', 'Balcón', 'Churrasquera', 'Cocina equipada'];
+  
+  // Anunciante
+  final _contactNameCtrl = TextEditingController();
+  final _contactPhoneCtrl = TextEditingController();
+  bool _showContact = true;
+  
   bool _isPublishing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill user data if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = ref.read(kazaAuthProvider);
+      if (auth.fullName != null) _contactNameCtrl.text = auth.fullName!;
+      if (auth.userId != null) _contactPhoneCtrl.text = '+591 70000000'; // Mock phone for now
+    });
+  }
 
   @override
   void dispose() {
@@ -75,28 +86,45 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     _bathroomsCtrl.dispose();
     _garageCtrl.dispose();
     _floorCtrl.dispose();
+    _ageCtrl.dispose();
+    _totalFloorsCtrl.dispose();
     _priceCtrl.dispose();
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _contactNameCtrl.dispose();
+    _contactPhoneCtrl.dispose();
     super.dispose();
   }
 
   void _goNext() {
-    if (_currentPage < _totalPages - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 340),
-        curve: Curves.easeInOut,
-      );
+    if (_currentPage == 11) {
+      context.go('/map'); // Go to map after success
+      return;
     }
+    
+    // Validations per step
+    if (_currentPage == 1 && _operationType.isEmpty) return _showError('Selecciona el tipo de operación');
+    if (_currentPage == 2 && _propertyType.isEmpty) return _showError('Selecciona el tipo de propiedad');
+    if (_currentPage == 5 && !_consultarPrecio && _priceCtrl.text.isEmpty) return _showError('Ingresa un precio');
+    
+    if (_currentPage == 10) {
+      _publish();
+      return;
+    }
+
+    _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   void _goBack() {
-    if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 340),
-        curve: Curves.easeInOut,
-      );
+    if (_currentPage > 0 && _currentPage < 11) {
+      _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    } else if (_currentPage == 0) {
+      context.go('/map');
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: KazaTheme.semanticError));
   }
 
   Future<void> _publish() async {
@@ -106,1404 +134,546 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     try {
       final authState = ref.read(kazaAuthProvider);
       final userId = authState.userId;
-      final agentName = authState.fullName ?? 'Agente Kaza';
-      final priceNum = double.tryParse(_priceCtrl.text) ?? 0;
       
-      final finalTitle = _titleCtrl.text.trim().isNotEmpty 
-          ? _titleCtrl.text.trim() 
-          : '$_propertyType en ${_addressCtrl.text}';
+      final priceNum = double.tryParse(_priceCtrl.text) ?? 0;
+      final finalTitle = _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : '$_propertyType en ${_addressCtrl.text}';
 
       String dbOperation = 'VENTA';
-      if (_operationType == 'Alquilar') dbOperation = 'ALQUILER';
-      if (_operationType == 'Dar en Anticrético') dbOperation = 'ANTICRETICO';
+      if (_operationType == 'Alquiler') dbOperation = 'ALQUILER';
+      if (_operationType == 'Anticrético') dbOperation = 'ANTICRETICO';
+      if (_operationType == 'Alquiler temporal') dbOperation = 'TEMPORAL';
 
-      bool inserted = false;
-      try {
-        await SupabaseConfig.client.rpc('fn_create_property', params: {
-          'p_title': finalTitle,
-          'p_property_type': _propertyType,
-          'p_operation': dbOperation,
-          'p_price': priceNum,
-          'p_surface': int.tryParse(_builtCtrl.text) ?? 0,
-          'p_rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
-          'p_bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
-          'p_latitude': _selectedLat,
-          'p_longitude': _selectedLng,
-          'p_owner_id': userId,
-        });
-        inserted = true;
-      } catch (_) {}
+      final photosList = _mediaItems.map((m) => m.path).toList(); // En un caso real subiríamos a Storage primero
 
-      if (!inserted) {
-        try {
-          await SupabaseConfig.client.from('properties').insert({
-            'title': finalTitle,
-            'address_canonical': finalTitle,
-            'property_type': _propertyType,
-            'price_usd': priceNum,
-            'total_surface_m2': int.tryParse(_builtCtrl.text) ?? 0,
-            'rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
-            'bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
-            'status': 'PUBLISHED',
-            'latitude': _selectedLat,
-            'longitude': _selectedLng,
-            'operation': dbOperation,
-            'owner_id': userId,
-          });
-          inserted = true;
-        } catch (e) {
-          debugPrint('Error en fallback insert: $e');
-        }
-      }
+      final propertyData = {
+        'title': finalTitle,
+        'address_canonical': _addressCtrl.text,
+        'property_type': _propertyType,
+        'price_usd': priceNum,
+        'currency_code': _currency,
+        'total_surface_m2': int.tryParse(_terrainCtrl.text) ?? 0,
+        'covered_surface_m2': int.tryParse(_builtCtrl.text) ?? 0,
+        'rooms': int.tryParse(_bedroomsCtrl.text) ?? 0,
+        'bathrooms': int.tryParse(_bathroomsCtrl.text) ?? 0,
+        'parking_spaces': int.tryParse(_garageCtrl.text) ?? 0,
+        'age_years': int.tryParse(_ageCtrl.text) ?? 0,
+        'floors_total': int.tryParse(_totalFloorsCtrl.text) ?? 1,
+        'status': 'PUBLISHED',
+        'latitude': _selectedLat,
+        'longitude': _selectedLng,
+        'operation': dbOperation,
+        'owner_id': userId,
+        'description': _descCtrl.text,
+        'amenities': _selectedAmenities,
+        'photos': photosList,
+        'contact_name': _contactNameCtrl.text,
+        'contact_phone': _contactPhoneCtrl.text,
+      };
 
-      if (!inserted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al crear la publicación en la base de datos.'),
-              backgroundColor: KazaTheme.primaryCoral,
-            ),
-          );
-        }
-        return;
-      }
+      await SupabaseConfig.client.from('properties').insert(propertyData);
 
       ref.invalidate(mapPropertiesProvider);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 ¡Publicación creada! Ya aparece en el mapa.'),
-            backgroundColor: Color(0xFF27AE60),
-          ),
-        );
-        _resetForm();
-        context.go('/map');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isPublishing = false);
-      }
-    }
-  }
-
-  void _resetForm() {
-    _pageController.jumpToPage(0);
-    setState(() {
-      _currentPage = 0;
-      _operationType = 'Vender';
-      _propertyType = 'Departamento';
-      _selectedLat = -17.7833;
-      _selectedLng = -63.1821;
-      _addressCtrl.text = 'Av. San Martín · Equipetrol';
-      _terrainCtrl.text = '300';
-      _builtCtrl.text = '180';
-      _bedroomsCtrl.text = '3';
-      _bathroomsCtrl.text = '3';
-      _garageCtrl.text = '2';
-      _floorCtrl.text = '3';
-      _mediaItems = [];
-      _currency = 'BOB';
-      _priceCtrl.text = '850000';
-      _consultarPrecio = false;
-      _titleCtrl.text = 'Casa contemporánea con jardín y galería';
-      _descCtrl.clear();
-      _plusVideo = false;
-      _plusPlano = false;
-      _plus3D = false;
-      _plusImagen = false;
-      _msgKaza = true;
-      _msgWhatsapp = true;
-      _call = false;
-      _precisionType = 'Zona aproximada';
-    });
-  }
-
-  Future<void> _updateLocationAddress(double lat, double lng, {void Function(String name)? onAddressResolved}) async {
-    if (!mounted) return;
-    try {
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
-      );
-      final res = await http.get(
-        uri,
-        headers: {'User-Agent': 'KazaApp/1.0 (com.kaza.app)'},
-      );
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final addr = data['address'] as Map<String, dynamic>?;
-        if (addr != null) {
-          final road = addr['road'] ?? addr['pedestrian'] ?? addr['street'] ?? addr['footway'] ?? addr['path'] ?? addr['suburb'] ?? '';
-          final suburb = addr['suburb'] ?? addr['neighbourhood'] ?? addr['quarter'] ?? addr['city_district'] ?? addr['city'] ?? '';
-          
-          String formatted = '';
-          if (road.toString().isNotEmpty && suburb.toString().isNotEmpty && road.toString() != suburb.toString()) {
-            formatted = '${road.toString()} · ${suburb.toString()}';
-          } else if (road.toString().isNotEmpty) {
-            formatted = road.toString();
-          } else if (suburb.toString().isNotEmpty) {
-            formatted = suburb.toString();
-          } else if (data['display_name'] != null) {
-            final parts = (data['display_name'] as String).split(',');
-            formatted = parts.take(2).join(',').trim();
-          }
-
-          if (formatted.isNotEmpty) {
-            if (onAddressResolved != null) {
-              onAddressResolved(formatted);
-            } else if (mounted) {
-              setState(() {
-                _addressCtrl.text = formatted;
-              });
-            }
-          }
-        }
-      }
+      
+      // Go to success step (12)
+      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } catch (e) {
-      debugPrint('Reverse geocoding error: $e');
+      _showError('Error al publicar: $e');
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
     }
-  }
-
-  void _openMapPickerModal() {
-    double tempLat = _selectedLat;
-    double tempLng = _selectedLng;
-    String tempAddress = _addressCtrl.text;
-    MapController modalMapCtrl = MapController();
-    TextEditingController searchCtrl = TextEditingController();
-    List<Map<String, dynamic>> searchResults = [];
-    bool isSearching = false;
-    Timer? debounce;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) {
-          void performSearch(String query) {
-            if (debounce?.isActive ?? false) debounce!.cancel();
-            debounce = Timer(const Duration(milliseconds: 400), () async {
-              if (query.trim().length < 3) {
-                setModal(() { searchResults = []; isSearching = false; });
-                return;
-              }
-              setModal(() { isSearching = true; });
-              try {
-                final searchUrl = Uri.parse(
-                  'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent("$query, Santa Cruz, Bolivia")}&limit=5&addressdetails=1',
-                );
-                final res = await http.get(searchUrl, headers: {'User-Agent': 'KazaApp/1.0 (com.kaza.app)'});
-                if (res.statusCode == 200) {
-                  final List data = jsonDecode(res.body);
-                  setModal(() {
-                    searchResults = data.map<Map<String, dynamic>>((item) => {
-                      'display_name': item['display_name'],
-                      'lat': double.parse(item['lat']),
-                      'lon': double.parse(item['lon']),
-                      'name': item['name'] ?? item['display_name'].toString().split(',')[0],
-                    }).toList();
-                    isSearching = false;
-                  });
-                }
-              } catch (e) {
-                setModal(() { isSearching = false; });
-              }
-            });
-          }
-
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.88,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on_rounded, color: KazaTheme.coralKaza),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Ubicación exacta',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.azulKaza)),
-                            Text('Toca el mapa para colocar el PIN',
-                                style: TextStyle(color: KazaTheme.grisMedio, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close, color: KazaTheme.azulKaza),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: KazaTheme.grisClaro,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, size: 18, color: KazaTheme.grisMedio),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: searchCtrl,
-                            onChanged: performSearch,
-                            style: const TextStyle(fontSize: 13, color: KazaTheme.azulKaza),
-                            decoration: const InputDecoration(
-                              hintText: 'Buscar calle, avenida, barrio o zona',
-                              hintStyle: TextStyle(color: KazaTheme.grisMedio, fontSize: 13),
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                        if (isSearching)
-                          const SizedBox(
-                            width: 14, height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: KazaTheme.coralKaza),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (searchResults.isNotEmpty)
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
-                    ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: searchResults.length,
-                      itemBuilder: (ctx, i) {
-                        final item = searchResults[i];
-                        return ListTile(
-                          dense: true,
-                          title: Text(item['name'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          subtitle: Text(item['display_name'], style: const TextStyle(fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          onTap: () {
-                            setModal(() {
-                              tempLat = item['lat'];
-                              tempLng = item['lon'];
-                              tempAddress = item['name'];
-                              searchResults = [];
-                              searchCtrl.text = item['name'];
-                            });
-                            modalMapCtrl.move(LatLng(tempLat, tempLng), 16);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      FlutterMap(
-                        mapController: modalMapCtrl,
-                        options: MapOptions(
-                          initialCenter: LatLng(tempLat, tempLng),
-                          initialZoom: 15,
-                          onTap: (_, point) {
-                            setModal(() {
-                              tempLat = point.latitude;
-                              tempLng = point.longitude;
-                            });
-                            _updateLocationAddress(tempLat, tempLng, onAddressResolved: (resolvedName) {
-                              setModal(() {
-                                tempAddress = resolvedName;
-                              });
-                            });
-                          },
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.kaza.app',
-                          ),
-                          MarkerLayer(
-                            markers: [
-                              Marker(
-                                point: LatLng(tempLat, tempLng),
-                                width: 44, height: 56,
-                                child: CustomPaint(
-                                  painter: KazaPinPainter(icon: Icons.location_on_rounded, isSelected: false),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Positioned(
-                        top: 12, left: 12, right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.95),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
-                          ),
-                          child: Text(
-                            '${tempLat.toStringAsFixed(4)}, ${tempLng.toStringAsFixed(4)}',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: KazaTheme.azulKaza),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(tempAddress,
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: KazaTheme.azulKaza, fontSize: 13)),
-                      const Text('Mueve el pin para ajustar la ubicación. La dirección pública puede ser menor.',
-                          style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: KazaTheme.azulKaza,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _selectedLat = tempLat;
-                          _selectedLng = tempLng;
-                          _addressCtrl.text = tempAddress;
-                        });
-                        Navigator.pop(ctx);
-                      },
-                      child: const Text('Confirmar ubicación',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(kazaAuthProvider);
-    final agentName = authState.fullName ?? 'Agente Kaza';
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(context),
+            if (_currentPage < 11) _buildTopBar(),
+            if (_currentPage < 11) _buildProgressBar(),
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _currentPage = i),
                 children: [
-                  _buildStep1(),
-                  _buildStep2(),
-                  _buildStep3(),
-                  _buildStep5(), // Old step 5 (Plus options) becomes step 4
-                  _buildStep6(agentName), // New step 5 (Review)
+                  _buildStep01Inicio(),
+                  _buildStep02Operacion(),
+                  _buildStep03Tipo(),
+                  _buildStep04Ubicacion(),
+                  _buildStep05Caracteristicas(),
+                  _buildStep06Precio(),
+                  _buildStep07Fotos(),
+                  _buildStep08Descripcion(),
+                  _buildStep09Amenities(),
+                  _buildStep10Anunciante(),
+                  _buildStep11Revision(),
+                  _buildStep12Exito(),
                 ],
               ),
             ),
-            _buildBottomNav(),
+            if (_currentPage < 11) _buildBottomNav(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
-    String stepTitle = 'Publicar';
-    if (_currentPage == 2) stepTitle = 'Detalles';
-    if (_currentPage == 4) stepTitle = 'Revisar y publicar';
-    
+  Widget _buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              if (_currentPage > 0)
-                GestureDetector(
-                  onTap: _goBack,
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 12),
-                    child: Icon(Icons.arrow_back, size: 22, color: KazaTheme.azulKaza),
-                  ),
+              GestureDetector(
+                onTap: _goBack,
+                child: const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Icon(Icons.arrow_back, size: 24, color: KazaTheme.azulKaza),
                 ),
-              Text(stepTitle,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: KazaTheme.textPrimary)),
+              ),
+              const Text('Publicar propiedad',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: KazaTheme.azulKaza)),
             ],
           ),
-          Text('${_currentPage + 1}/$_totalPages',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: KazaTheme.grisMedio)),
+          const Icon(Icons.person_outline, color: KazaTheme.azulKaza),
         ],
       ),
     );
   }
 
-  Widget _buildBottomNav() {
-    final isLast = _currentPage == _totalPages - 1;
-    final isFirst = _currentPage == 0;
-    
-    String btnText = 'Continuar';
-    if (_currentPage == 2) btnText = 'Guardar y continuar';
-    if (isLast) btnText = 'Publicar';
+  Widget _buildProgressBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        children: List.generate(11, (index) {
+          final isActive = index <= _currentPage;
+          return Expanded(
+            child: Container(
+              height: 4,
+              margin: EdgeInsets.only(right: index < 10 ? 4 : 0),
+              decoration: BoxDecoration(
+                color: isActive ? KazaTheme.azulKaza : KazaTheme.grisClaro,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
 
+  Widget _buildBottomNav() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       decoration: const BoxDecoration(
         color: Colors.white,
+        border: Border(top: BorderSide(color: KazaTheme.glassBorder)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isFirst)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(color: KazaTheme.grisClaro, borderRadius: BorderRadius.circular(10)),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('☁️ Guardado automáticamente', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-                    GestureDetector(
-                      onTap: () => context.go('/map'),
-                      child: const Text('Salir', style: TextStyle(color: KazaTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (_currentPage == 2)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(color: KazaTheme.grisClaro, borderRadius: BorderRadius.circular(10)),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Estados del borrador', style: TextStyle(color: KazaTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 4),
-                    Text('Guardando... Sin conexión, pendiente de sincronizar', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-                    SizedBox(height: 4),
-                    Text('Borrador recuperado', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: KazaTheme.azulKaza,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
               ),
-              onPressed: _isPublishing ? null : (isLast ? _publish : _goNext),
+              onPressed: _isPublishing ? null : _goNext,
               child: _isPublishing
-                  ? const SizedBox(
-                      width: 22, height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                    )
-                  : Text(
-                      btnText,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                    ),
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(_currentPage == 10 ? 'Publicar ahora' : 'Continuar', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => context.go('/map'),
+            child: const Text('Guardar borrador', style: TextStyle(color: KazaTheme.textSecondary, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStep1() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Propiedad',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Row(
-            children: ['Venta', 'Alquiler', 'Anticrético'].map((op) {
-              final sel = _operationType == op;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _operationType = op),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: sel ? KazaTheme.primaryCoralLight : KazaTheme.glassBorder, width: 1.5),
-                    ),
-                    child: Text(op,
-                        style: TextStyle(
-                            color: sel ? KazaTheme.primaryCoralLight : KazaTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-          const Text('Tipo',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Row(
-            children: ['Casa', 'Departamento'].map((type) {
-              final sel = _propertyType == type;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _propertyType = type),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: sel ? KazaTheme.primaryCoralLight : KazaTheme.glassBorder, width: 1.5),
-                    ),
-                    child: Text(type,
-                        style: TextStyle(
-                            color: sel ? KazaTheme.primaryCoralLight : KazaTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: ['Terreno', 'Local'].map((type) {
-              final sel = _propertyType == type;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _propertyType = type),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: sel ? KazaTheme.primaryCoralLight : KazaTheme.glassBorder, width: 1.5),
-                    ),
-                    child: Text(type,
-                        style: TextStyle(
-                            color: sel ? KazaTheme.primaryCoralLight : KazaTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: KazaTheme.grisClaro,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Posible coincidencia encontrada',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
-                const SizedBox(height: 8),
-                const Text('Una Property existente parece coincidir por ubicación y características físicas.',
-                    style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13)),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: KazaTheme.primaryCoralLight,
-                          side: const BorderSide(color: KazaTheme.primaryCoralLight),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                        ),
-                        child: const Text('Es la misma'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: KazaTheme.textPrimary,
-                          side: const BorderSide(color: KazaTheme.glassBorder),
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                        ),
-                        child: const Text('No es la misma'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  // ─────────────────────────────────────────────────────────────────────────
+  // STEPS BUILDERS
+  // ─────────────────────────────────────────────────────────────────────────
+  
+  Widget _buildStep01Inicio() {
+    return _stepContainer('01', 'Inicio', 'Elige qué quieres publicar.', [
+      _selectionCard('Publicar nueva propiedad', 'Crear un nuevo anuncio desde cero', Icons.add, true, () => _goNext()),
+      const SizedBox(height: 16),
+      _selectionCard('Republicar', 'Usar una publicación anterior', Icons.refresh, false, () {}),
+    ]);
   }
 
-  Widget _buildStep2() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Ubicación',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: KazaTheme.azulKaza)),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: _openMapPickerModal,
+  Widget _buildStep02Operacion() {
+    final ops = ['Venta', 'Alquiler', 'Alquiler temporal', 'Anticrético'];
+    return _stepContainer('02', 'Tipo de operación', 'Define el tipo de operación.', ops.map((op) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _selectionCard(op, 'Publica para ${op.toLowerCase()}', Icons.sell_outlined, _operationType == op, () {
+          setState(() => _operationType = op);
+        }),
+      );
+    }).toList());
+  }
+
+  Widget _buildStep03Tipo() {
+    final tipos = [
+      {'label': 'Departamento', 'icon': Icons.apartment},
+      {'label': 'Casa', 'icon': Icons.home_outlined},
+      {'label': 'Oficina', 'icon': Icons.business},
+      {'label': 'Terreno', 'icon': Icons.landscape},
+      {'label': 'Local', 'icon': Icons.storefront},
+      {'label': 'Galpón', 'icon': Icons.warehouse},
+      {'label': 'Parqueo', 'icon': Icons.local_parking},
+      {'label': 'Otro', 'icon': Icons.category},
+    ];
+    return _stepContainer('03', 'Tipo de propiedad', 'Selecciona el tipo de propiedad.', [
+      GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1,
+        ),
+        itemCount: tipos.length,
+        itemBuilder: (ctx, i) {
+          final t = tipos[i];
+          final isSel = _propertyType == t['label'];
+          return GestureDetector(
+            onTap: () => setState(() => _propertyType = t['label'] as String),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: KazaTheme.grisClaro,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: KazaTheme.glassBorder),
+                border: Border.all(color: isSel ? KazaTheme.azulKaza : KazaTheme.glassBorder, width: isSel ? 2 : 1),
+                borderRadius: BorderRadius.circular(12),
+                color: isSel ? KazaTheme.azulKaza.withValues(alpha: 0.05) : Colors.white,
               ),
-              child: const Row(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search, size: 18, color: KazaTheme.grisMedio),
-                  SizedBox(width: 8),
-                  Text('Buscar calle, barrio o zona',
-                      style: TextStyle(color: KazaTheme.grisMedio, fontSize: 13)),
+                  Icon(t['icon'] as IconData, color: isSel ? KazaTheme.azulKaza : KazaTheme.textSecondary, size: 32),
+                  const SizedBox(height: 8),
+                  Text(t['label'] as String, style: TextStyle(color: isSel ? KazaTheme.azulKaza : KazaTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
+          );
+        },
+      ),
+    ]);
+  }
+
+  Widget _buildStep04Ubicacion() {
+    return _stepContainer('04', 'Ubicación', 'Indica la ubicación exacta.', [
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: KazaTheme.grisClaro, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.search, color: KazaTheme.grisMedio),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _addressCtrl,
+                decoration: const InputDecoration(hintText: 'Buscar dirección o lugar', border: InputBorder.none, isDense: true),
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+      Container(
+        height: 200,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: KazaTheme.grisClaro),
+        child: Stack(
+          children: [
+            FlutterMap(
+              options: MapOptions(initialCenter: LatLng(_selectedLat, _selectedLng), initialZoom: 14),
+              children: [
+                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.kaza.app'),
+                MarkerLayer(markers: [
+                  Marker(point: LatLng(_selectedLat, _selectedLng), width: 44, height: 56, child: CustomPaint(painter: KazaPinPainter(icon: Icons.location_on, isSelected: true))),
+                ]),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildStep05Caracteristicas() {
+    return _stepContainer('05', 'Características', 'Agrega los detalles principales.', [
+      _numberInput('Área total (m²)', _terrainCtrl),
+      _numberInput('Área construida (m²)', _builtCtrl),
+      _numberInput('Dormitorios', _bedroomsCtrl),
+      _numberInput('Baños', _bathroomsCtrl),
+      _numberInput('Parqueos', _garageCtrl),
+      _numberInput('Antigüedad (años)', _ageCtrl),
+      _numberInput('Piso', _floorCtrl),
+    ]);
+  }
+
+  Widget _buildStep06Precio() {
+    return _stepContainer('06', 'Precio', 'Define el precio y condiciones.', [
+      Row(
+        children: [
+          DropdownButton<String>(
+            value: _currency,
+            items: ['USD', 'BOB'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            onChanged: (v) => setState(() => _currency = v!),
+            underline: const SizedBox(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(width: 12),
           Expanded(
-            child: GestureDetector(
-              onTap: _openMapPickerModal,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  children: [
-                    FlutterMap(
-                      options: MapOptions(
-                        initialCenter: LatLng(_selectedLat, _selectedLng),
-                        initialZoom: 14,
-                        onTap: (_, point) {
-                          setState(() {
-                            _selectedLat = point.latitude;
-                            _selectedLng = point.longitude;
-                          });
-                          _updateLocationAddress(point.latitude, point.longitude);
-                        },
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.kaza.app',
-                        ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: LatLng(_selectedLat, _selectedLng),
-                              width: 44, height: 56,
-                              child: CustomPaint(
-                                painter: KazaPinPainter(icon: Icons.location_on_rounded, isSelected: false),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      top: 8, right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.edit_location_alt, size: 14, color: KazaTheme.coralKaza),
-                            SizedBox(width: 4),
-                            Text('Editar PIN',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: KazaTheme.azulKaza)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            child: TextField(
+              controller: _priceCtrl,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+              decoration: const InputDecoration(hintText: 'Ej. 125000', border: UnderlineInputBorder()),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
+      SwitchListTile(
+        title: const Text('Precio negociable', style: TextStyle(fontWeight: FontWeight.w600)),
+        value: _consultarPrecio,
+        onChanged: (v) => setState(() => _consultarPrecio = v),
+        activeColor: KazaTheme.primaryCoral,
+        contentPadding: EdgeInsets.zero,
+      ),
+    ]);
+  }
+
+  Widget _buildStep07Fotos() {
+    return _stepContainer('07', 'Fotos', 'Sube fotos de alta calidad.', [
+      MediaPickerWidget(
+        initialItems: _mediaItems,
+        onChanged: (items) => setState(() => _mediaItems = items),
+      ),
+    ]);
+  }
+
+  Widget _buildStep08Descripcion() {
+    return _stepContainer('08', 'Descripción', 'Cuenta lo mejor de tu propiedad.', [
+      TextField(
+        controller: _titleCtrl,
+        maxLength: 60,
+        decoration: const InputDecoration(labelText: 'Título de la publicación', hintText: 'Ej. Moderno departamento...'),
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _descCtrl,
+        maxLines: 6,
+        maxLength: 1000,
+        decoration: const InputDecoration(labelText: 'Descripción detallada', hintText: 'Describe los ambientes, acabados, entorno...', alignLabelWithHint: true),
+      ),
+    ]);
+  }
+
+  Widget _buildStep09Amenities() {
+    return _stepContainer('09', 'Amenities', 'Selecciona las amenidades.', [
+      const Text('Populares', style: TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 8, runSpacing: 8,
+        children: _popularAmenities.map((am) {
+          final isSel = _selectedAmenities.contains(am);
+          return FilterChip(
+            label: Text(am),
+            selected: isSel,
+            onSelected: (val) {
+              setState(() {
+                if (val) {
+                  _selectedAmenities.add(am);
+                } else {
+                  _selectedAmenities.remove(am);
+                }
+              });
+            },
+            selectedColor: KazaTheme.azulKaza.withValues(alpha: 0.1),
+            checkmarkColor: KazaTheme.azulKaza,
+          );
+        }).toList(),
+      ),
+    ]);
+  }
+
+  Widget _buildStep10Anunciante() {
+    return _stepContainer('10', 'Anunciante', 'Quién publica y cómo contactarlo.', [
+      TextField(controller: _contactNameCtrl, decoration: const InputDecoration(labelText: 'Nombre de contacto', prefixIcon: Icon(Icons.person_outline))),
+      const SizedBox(height: 16),
+      TextField(controller: _contactPhoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'WhatsApp', prefixIcon: Icon(Icons.phone_outlined))),
+      const SizedBox(height: 24),
+      SwitchListTile(
+        title: const Text('Mostrar contacto', style: TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: const Text('Los interesados verán tu contacto'),
+        value: _showContact,
+        onChanged: (v) => setState(() => _showContact = v),
+        activeColor: KazaTheme.primaryCoral,
+        contentPadding: EdgeInsets.zero,
+      ),
+    ]);
+  }
+
+  Widget _buildStep11Revision() {
+    return _stepContainer('11', 'Revisión', 'Revisa y confirma tu publicación.', [
+      _reviewRow('Operación', _operationType),
+      _reviewRow('Propiedad', _propertyType),
+      _reviewRow('Precio', '$_currency ${_priceCtrl.text}'),
+      _reviewRow('Ubicación', _addressCtrl.text.isNotEmpty ? _addressCtrl.text : 'Lat: $_selectedLat, Lng: $_selectedLng'),
+      _reviewRow('Superficie', '${_terrainCtrl.text} m²'),
+      _reviewRow('Dorm/Baños', '${_bedroomsCtrl.text} dorm - ${_bathroomsCtrl.text} baños'),
+      _reviewRow('Fotos', '${_mediaItems.length} agregadas'),
+      _reviewRow('Contacto', '${_contactNameCtrl.text} (${_contactPhoneCtrl.text})'),
+    ]);
+  }
+
+  Widget _buildStep12Exito() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle, size: 80, color: KazaTheme.semanticSuccess),
+            const SizedBox(height: 24),
+            const Text('¡Publicación enviada!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+            const SizedBox(height: 12),
+            const Text('Tu propiedad está en revisión.\nTe notificaremos cuando esté activa.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: KazaTheme.textSecondary)),
+            const SizedBox(height: 48),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: KazaTheme.azulKaza, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: () => context.go('/profile'),
+                child: const Text('Ver mis publicaciones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: KazaTheme.grisClaro, borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_addressCtrl.text,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: KazaTheme.azulKaza)),
-                const Text('Mueve el pin para ajustar la ubicación. La dirección pública puede ser menor.',
-                    style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
-              ],
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => context.go('/map'),
+              child: const Text('Volver al mapa', style: TextStyle(color: KazaTheme.textSecondary, fontWeight: FontWeight.w600)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStep3() {
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMMONS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _stepContainer(String number, String title, String subtitle, List<Widget> children) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Atributos',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _specFieldNew('Superficie construida', '180 m²', _builtCtrl)),
-              const SizedBox(width: 12),
-              Expanded(child: _specFieldNew('Terreno', '300 m²', _terrainCtrl)),
+              Text(number, style: const TextStyle(color: KazaTheme.primaryCoral, fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(color: KazaTheme.azulKaza, fontSize: 24, fontWeight: FontWeight.w800)),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _specFieldNew('Dormitorios', '3', _bedroomsCtrl)),
-              const SizedBox(width: 12),
-              Expanded(child: _specFieldNew('Baños', '2', _bathroomsCtrl)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text('Título editorial',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 8),
-          const Text('Título', style: TextStyle(fontSize: 12, color: KazaTheme.textPrimary)),
           const SizedBox(height: 4),
-          TextField(
-            controller: _titleCtrl,
-            style: const TextStyle(fontSize: 14, color: KazaTheme.textPrimary),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text('Separado de atributos y descripción.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-          
-          const SizedBox(height: 24),
-          const Text('Descripción',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: KazaTheme.glassBorder),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                TextField(
-                  controller: _descCtrl,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    hintText: 'Espacios amplios, galería conectada al jardín...',
-                    hintStyle: TextStyle(color: KazaTheme.textSecondary, fontSize: 13),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(14),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: KazaTheme.textPrimary,
-                      side: const BorderSide(color: KazaTheme.glassBorder),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                    child: const Text('Ayuda con IA', style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text('IA propone - tu confirmas.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-
-          const SizedBox(height: 24),
-          const Text('Precio',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Row(
-            children: ['BOB', 'USD', 'Consultar'].map((op) {
-              final sel = (op == 'Consultar' && _consultarPrecio) || (op == _currency && !_consultarPrecio);
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (op == 'Consultar') {
-                        _consultarPrecio = true;
-                      } else {
-                        _consultarPrecio = false;
-                        _currency = op;
-                      }
-                    });
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: sel ? KazaTheme.primaryCoralLight : KazaTheme.glassBorder, width: 1.5),
-                    ),
-                    child: Text(op,
-                        style: TextStyle(
-                            color: sel ? KazaTheme.primaryCoralLight : KazaTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          const Text('Monto', style: TextStyle(fontSize: 12, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 4),
-          TextField(
-            controller: _priceCtrl,
-            enabled: !_consultarPrecio,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 14, color: KazaTheme.textPrimary),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: _consultarPrecio ? KazaTheme.grisClaro : Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-              disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text('Al elegir Consultar, Monto se oculta/desactiva.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-
-          const SizedBox(height: 24),
-          const Text('Media',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: KazaTheme.grisClaro,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: List.generate(3, (index) {
-                    return Expanded(
-                      child: Container(
-                        height: 80,
-                        margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: KazaTheme.glassBorder),
-                        ),
-                        child: Center(child: Text('Foto ${index + 1}', style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 11))),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 12),
-                const Text('Portada: Foto 1 • Mantén pulsado para reordenar', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-                const SizedBox(height: 4),
-                const Text('Docs sensibles no van aquí.', style: TextStyle(color: KazaTheme.primaryCoralLight, fontSize: 11, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          const Text('Media IA (solo cuando aplique)',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: KazaTheme.glassBorder),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Amoblado virtual - disclosure obligatorio', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13)),
-                const SizedBox(height: 12),
-                const Text('Ver original →', style: TextStyle(color: KazaTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
+          Text(subtitle, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
+          const SizedBox(height: 32),
+          ...children,
         ],
       ),
     );
   }
 
-  Widget _specFieldNew(String label, String hint, TextEditingController ctrl) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: KazaTheme.textPrimary)),
-        const SizedBox(height: 4),
-        TextField(
-          controller: ctrl,
-          style: const TextStyle(fontSize: 14, color: KazaTheme.textPrimary),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: KazaTheme.textSecondary),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: KazaTheme.glassBorder)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _specField(String label, String? unit, TextEditingController ctrl) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: KazaTheme.grisMedio, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 4),
-        TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: KazaTheme.azulKaza),
-          decoration: InputDecoration(
-            suffixText: unit,
-            suffixStyle: const TextStyle(color: KazaTheme.grisMedio, fontWeight: FontWeight.w500),
-            filled: true,
-            fillColor: KazaTheme.grisClaro,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep4() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Fotos + precio',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: KazaTheme.azulKaza)),
-          const SizedBox(height: 20),
-          MediaPickerWidget(
-            initialItems: _mediaItems,
-            onChanged: (items) => setState(() => _mediaItems = items),
-          ),
-          const SizedBox(height: 24),
-          const Text('Moneda',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: KazaTheme.azulKaza)),
-          const SizedBox(height: 10),
-          Row(
-            children: ['BOB', 'USD'].map((c) {
-              final sel = _currency == c;
-              return GestureDetector(
-                onTap: () => setState(() => _currency = c),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: sel ? KazaTheme.azulKaza : KazaTheme.grisClaro,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(c,
-                      style: TextStyle(
-                          color: sel ? Colors.white : KazaTheme.azulKaza,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14)),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _priceCtrl,
-            enabled: !_consultarPrecio,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: KazaTheme.azulKaza),
-            decoration: InputDecoration(
-              prefixText: '$_currency ',
-              prefixStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: KazaTheme.grisMedio),
-              filled: true,
-              fillColor: KazaTheme.grisClaro,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => setState(() => _consultarPrecio = !_consultarPrecio),
-            child: Row(
-              children: [
-                Checkbox(
-                  value: _consultarPrecio,
-                  onChanged: (v) => setState(() => _consultarPrecio = v ?? false),
-                  activeColor: KazaTheme.azulKaza,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                ),
-                const Text('Consultar precio',
-                    style: TextStyle(color: KazaTheme.azulKaza, fontSize: 14, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-          const Text('Monto o Consultar: excluyentes.',
-              style: TextStyle(color: KazaTheme.grisMedio, fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStep5() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Presentación',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: KazaTheme.azulKaza)),
-          const SizedBox(height: 20),
-          const Text('Descripción',
-              style: TextStyle(fontSize: 13, color: KazaTheme.grisMedio, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _descCtrl,
-            maxLines: 5,
-            style: const TextStyle(color: KazaTheme.azulKaza, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'Describe el inmueble...',
-              hintStyle: const TextStyle(color: KazaTheme.grisMedio),
-              filled: true,
-              fillColor: KazaTheme.grisClaro,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.all(14),
-            ),
-          ),
-          const SizedBox(height: 28),
-          const Text('Mejora la presentación',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.azulKaza)),
-          const SizedBox(height: 12),
-          ...[
-            ['Video', Icons.videocam_rounded, _plusVideo],
-            ['Plano', Icons.architecture_rounded, _plusPlano],
-            ['Recorrido / 3D', Icons.view_in_ar_rounded, _plus3D],
-            ['KAZA imagen', Icons.auto_awesome_rounded, _plusImagen],
-          ].map((item) {
-            final label = item[0] as String;
-            final icon = item[1] as IconData;
-            final active = item[2] as bool;
-            return GestureDetector(
-              onTap: () => setState(() {
-                if (label == 'Video') _plusVideo = !_plusVideo;
-                if (label == 'Plano') _plusPlano = !_plusPlano;
-                if (label == 'Recorrido / 3D') _plus3D = !_plus3D;
-                if (label == 'KAZA imagen') _plusImagen = !_plusImagen;
-              }),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: active ? KazaTheme.azulKaza.withValues(alpha: 0.06) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: active ? KazaTheme.azulKaza : KazaTheme.glassBorder),
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, size: 20, color: active ? KazaTheme.azulKaza : KazaTheme.grisMedio),
-                    const SizedBox(width: 10),
-                    Text(label,
-                        style: TextStyle(
-                            color: active ? KazaTheme.azulKaza : KazaTheme.textSecondary,
-                            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                            fontSize: 14)),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                          color: KazaTheme.coralKaza.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6)),
-                      child: const Text('PLUS',
-                          style: TextStyle(color: KazaTheme.coralKaza, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                    ),
-                    if (active) ...[
-                      const SizedBox(width: 8),
-                      const Icon(Icons.check_circle_rounded, color: KazaTheme.azulKaza, size: 18),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          }),
-          const SizedBox(height: 8),
-          const Text('Ahora no →',
-              style: TextStyle(color: KazaTheme.grisMedio, fontSize: 12, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStep6(String agentName) {
-    final priceText = _consultarPrecio
-        ? 'Consultar'
-        : '${_currency == 'BOB' ? 'Bs' : '\$'} ${_priceCtrl.text.isEmpty ? '—' : _priceCtrl.text}';
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Canales de contacto',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          _contactSwitch('Mensaje KAZA', _msgKaza, (val) => setState(() => _msgKaza = val)),
-          const SizedBox(height: 8),
-          _contactSwitch('WhatsApp', _msgWhatsapp, (val) => setState(() => _msgWhatsapp = val)),
-          const SizedBox(height: 8),
-          _contactSwitch('Llamar', _call, (val) => setState(() => _call = val)),
-          const SizedBox(height: 4),
-          const Text('Kaza Chat es obligatorio por seguridad.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11)),
-
-          const SizedBox(height: 24),
-          const Text('Revisión',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Column(
-            children: [
-              _reviewItem('Score de calidad KAZA: 85%'),
-              const SizedBox(height: 8),
-              _reviewItem('Validación de ubicación completada'),
-              const SizedBox(height: 8),
-              _reviewItem('Imágenes sin marcas de agua'),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFBF4E4), // Light yellow
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Ejemplo de validación de negocio',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
-                const SizedBox(height: 8),
-                const Text('Esta propiedad será etiquetada como "Plus" porque el usuario tiene un plan activo.',
-                    style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13)),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-          const Text('Así la verán',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: KazaTheme.textPrimary)),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: KazaTheme.glassBorder),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Container(
-                    height: 180, width: double.infinity,
-                    color: KazaTheme.grisClaro,
-                    child: Center(
-                      child: Icon(
-                          _mediaItems.isNotEmpty ? Icons.image_rounded : Icons.image_not_supported_rounded,
-                          size: 48, color: KazaTheme.grisMedio),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('$_propertyType · $_operationType · ${_addressCtrl.text.split(',').first}',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: KazaTheme.azulKaza)),
-                      const SizedBox(height: 8),
-                      Text(priceText,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: KazaTheme.textPrimary)),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          _chip(Icons.straighten_rounded, '${_builtCtrl.text} m²'),
-                          const SizedBox(width: 12),
-                          _chip(Icons.bed_rounded, '${_bedroomsCtrl.text} dorm.'),
-                          const SizedBox(width: 12),
-                          _chip(Icons.bathtub_rounded, '${_bathroomsCtrl.text} baños'),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(color: KazaTheme.glassBorder, height: 1),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const CircleAvatar(
-                              radius: 14,
-                              backgroundColor: KazaTheme.primaryCoralLight,
-                              child: Icon(Icons.person, size: 14, color: Colors.white)),
-                          const SizedBox(width: 8),
-                          Text(agentName,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: KazaTheme.textPrimary)),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: const Color(0xFF27AE60).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6)),
-                            child: const Text('✓ Verificado',
-                                style: TextStyle(color: Color(0xFF27AE60), fontSize: 11, fontWeight: FontWeight.w700)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _contactSwitch(String label, bool value, Function(bool) onChanged) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: KazaTheme.textPrimary)),
-        Switch(
-          value: value,
-          onChanged: (label == 'Mensaje KAZA') ? null : onChanged,
-          activeColor: Colors.white,
-          activeTrackColor: KazaTheme.primaryCoralLight,
-        ),
-      ],
-    );
-  }
-
-  Widget _reviewItem(String text) {
-    return Row(
-      children: [
-        const Icon(Icons.check_circle, color: Color(0xFF27AE60), size: 16),
-        const SizedBox(width: 8),
-        Text(text, style: const TextStyle(color: Color(0xFF27AE60), fontSize: 13, fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
-
-  Widget _chip(IconData icon, String text) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: KazaTheme.grisMedio),
-          const SizedBox(width: 3),
-          Text(text, style: const TextStyle(fontSize: 12, color: KazaTheme.textSecondary, fontWeight: FontWeight.w500)),
-        ],
-      );
-
-  Widget _plusBadge(String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+  Widget _selectionCard(String title, String subtitle, IconData icon, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: KazaTheme.coralKaza.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(6)),
-        child: Text('$label · PLUS',
-            style: const TextStyle(color: KazaTheme.coralKaza, fontSize: 11, fontWeight: FontWeight.w700)),
-      );
+          border: Border.all(color: isSelected ? KazaTheme.azulKaza : KazaTheme.glassBorder, width: isSelected ? 2 : 1),
+          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? KazaTheme.azulKaza.withValues(alpha: 0.05) : Colors.white,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? KazaTheme.azulKaza : KazaTheme.grisMedio, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isSelected ? KazaTheme.azulKaza : KazaTheme.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+            if (isSelected) const Icon(Icons.check_circle, color: KazaTheme.azulKaza),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _numberInput(String label, TextEditingController ctrl) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: KazaTheme.textPrimary)),
+          Row(
+            children: [
+              IconButton(icon: const Icon(Icons.remove_circle_outline), onPressed: () {
+                int val = int.tryParse(ctrl.text) ?? 0;
+                if (val > 0) ctrl.text = (val - 1).toString();
+              }),
+              SizedBox(
+                width: 60,
+                child: TextField(
+                  controller: ctrl,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: InputBorder.none),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () {
+                int val = int.tryParse(ctrl.text) ?? 0;
+                ctrl.text = (val + 1).toString();
+              }),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 100, child: Text(label, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 14))),
+          Expanded(child: Text(value, style: const TextStyle(color: KazaTheme.azulKaza, fontSize: 14, fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
+  }
 }

@@ -292,13 +292,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
             ),
 
             // ── 04 · Descripción y destacados ─────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyDescriptionSection(),
+            SliverToBoxAdapter(
+              child: PropertyDescriptionSection(property: widget.property),
             ),
 
             // ── 05 · Amenidades y características ─────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyAmenitiesSection(),
+            SliverToBoxAdapter(
+              child: PropertyAmenitiesSection(property: widget.property),
             ),
 
             // ── 06 · Disponibilidad y frescura ────────────────────────────
