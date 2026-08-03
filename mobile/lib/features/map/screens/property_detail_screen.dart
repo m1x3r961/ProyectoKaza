@@ -1,15 +1,17 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
-import '../../../core/utils/responsive_utils.dart';
-import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../saved/screens/saved_screen.dart';
+import '../widgets/property_detail_sections.dart';
 
-/// 🏠 PROPERTY DETAIL SCREEN - Detalle completo de la propiedad, Plano 2D y Visor 3D 360°
+/// 🏠 PROPERTY DETAIL SCREEN — Ficha Completa de Propiedad KAZA v2
+/// Prototipo B16 · Ficha completa con 12 secciones
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   final PropertyMapItem property;
 
@@ -19,11 +21,13 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
 }
 
-class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _selectedRoomIndex = 0;
+class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
+    with SingleTickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  bool _showStickyHeader = false;
 
-  // 3D Orbital Controls State
+  // Legacy 2D/3D state (for dedicated tab view if user requests it)
+  int _selectedRoomIndex = 0;
   double _rotationY = 0.6;
   double _rotationX = 0.3;
   double _zoomScale = 1.0;
@@ -73,704 +77,637 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> wit
     },
   ];
 
-  final List<Map<String, dynamic>> _amenities = [
-    {'name': 'Piscina Infinity', 'icon': Icons.pool},
-    {'name': 'Churrasquero BBQ', 'icon': Icons.outdoor_grill},
-    {'name': 'Seguridad 24/7 Biométrica', 'icon': Icons.security},
-    {'name': 'Garaje Subterráneo', 'icon': Icons.directions_car},
-    {'name': 'Gimnasio Equipado', 'icon': Icons.fitness_center},
-    {'name': 'Aire Acondicionado Central', 'icon': Icons.ac_unit},
-    {'name': 'Balcón Panorámico', 'icon': Icons.balcony},
-    {'name': 'Pet Friendly', 'icon': Icons.pets},
-    {'name': 'Ascensor Inteligente', 'icon': Icons.elevator},
-    {'name': 'Sistema Domótico IoT', 'icon': Icons.home_max},
-  ];
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _scrollController.addListener(() {
+      final show = _scrollController.offset > 220;
+      if (show != _showStickyHeader) {
+        setState(() => _showStickyHeader = show);
+      }
+    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // ─── SAVE PROPERTY ─────────────────────────────────────────────────────────
+  Future<void> _saveProperty() async {
+    try {
+      final userId = SupabaseConfig.client.auth.currentUser?.id;
+      final payload = {'property_id': widget.property.id};
+      if (userId != null) payload['user_id'] = userId;
+      await SupabaseConfig.client.from('saved_properties').insert(payload);
+      ref.invalidate(savedPropertiesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⭐ Propiedad guardada en favoritos'),
+          backgroundColor: KazaTheme.primaryCoral,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: KazaTheme.azulKaza,
-        elevation: 0,
-        title: Text(widget.property.title, overflow: TextOverflow.ellipsis, style: const TextStyle(color: KazaTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark_border, color: KazaTheme.textSecondary),
-            onPressed: () async {
-              try {
-                final userId = SupabaseConfig.client.auth.currentUser?.id;
-                final payload = {'property_id': widget.property.id};
-                if (userId != null) payload['user_id'] = userId;
-
-                await SupabaseConfig.client.from('saved_properties').insert(payload);
-                
-                ref.invalidate(savedPropertiesProvider);
-
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('⭐ Propiedad guardada en tu lista de favoritos'),
-                    backgroundColor: KazaTheme.primaryCoral,
-                  ),
-                );
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error al guardar (¿ya está guardada?): $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.share, color: KazaTheme.textSecondary),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('🔗 Enlace copiado al portapapeles')),
-              );
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: KazaTheme.primaryCoralLight,
-          labelColor: KazaTheme.primaryCoralLight,
-          unselectedLabelColor: KazaTheme.textSecondary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.info_outline, size: 18),
-              // Ocultar texto en pantallas muy pequeñas (<360px)
-              text: MediaQuery.of(context).size.width < 360 ? null : 'OFERTA',
-            ),
-            Tab(
-              icon: const Icon(Icons.architecture, size: 18),
-              text: MediaQuery.of(context).size.width < 360 ? null : 'PLANO 2D',
-            ),
-            Tab(
-              icon: const Icon(Icons.view_in_ar, size: 18),
-              text: MediaQuery.of(context).size.width < 360 ? null : 'VISOR 3D',
-            ),
-          ],
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Tab 1: Características & Ofertas de la propiedad
-          _buildOverviewTab(),
-
-          // Tab 2: Plano 2D Interactivo con cotas y áreas
-          _buildFloorPlan2DTab(),
-
-          // Tab 3: Visor 3D & Recorrido Virtual Interactivo
-          _buildVirtualTour3DTab(),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 12,
-          // Respetar safe area (notch inferior) en iPhones y Android con gesture bar
-          bottom: 12 + MediaQuery.of(context).padding.bottom,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: KazaTheme.glassBorder)),
-        ),
-        child: Row(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Precio Final', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
-                Text(
-                  widget.property.price,
-                  style: TextStyle(
-                    color: KazaTheme.textPrimary,
-                    fontSize: MediaQuery.of(context).size.width < 360 ? 17 : 20,
-                    fontWeight: FontWeight.w900,
-                  ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF2F4F7),
+        body: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            // ── Sticky AppBar ──────────────────────────────────────────────
+            SliverAppBar(
+              pinned: true,
+              floating: false,
+              backgroundColor: Colors.white,
+              foregroundColor: KazaTheme.azulKaza,
+              elevation: _showStickyHeader ? 2 : 0,
+              surfaceTintColor: Colors.transparent,
+              shadowColor: Colors.black12,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: AnimatedOpacity(
+                opacity: _showStickyHeader ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.property.title,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: KazaTheme.azulKaza,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      widget.property.price,
+                      style: const TextStyle(
+                        color: KazaTheme.primaryCoral,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.bookmark_border_rounded, size: 22),
+                  onPressed: _saveProperty,
+                  tooltip: 'Guardar propiedad',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share_rounded, size: 22),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('🔗 Enlace copiado')),
+                    );
+                  },
+                  tooltip: 'Compartir',
                 ),
               ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  height: 1,
+                  color: _showStickyHeader ? const Color(0xFFE2E8F0) : Colors.transparent,
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: KazaTheme.primaryCoral,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                icon: const Icon(Icons.chat, size: 18),
-                label: Text(
-                  MediaQuery.of(context).size.width < 360
-                      ? 'Contactar'
-                      : 'Contactar / Agendar',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('💬 Iniciando chat seguro con el agente certificado...'),
-                      backgroundColor: KazaTheme.primaryCoral,
+
+            // ── Page Header ────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: KazaTheme.azulKaza,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Ficha completa de propiedad',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: KazaTheme.azulKaza,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Explora en detalle con transparencia, contexto y confianza.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: KazaTheme.textSecondary.withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+
+                    // Trust pillars horizontal scroll
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _trustPillar(Icons.verified_outlined, 'Datos oficiales\ny verificados'),
+                          const SizedBox(width: 8),
+                          _trustPillar(Icons.update_rounded, 'Actualizado\ny transparente'),
+                          const SizedBox(width: 8),
+                          _trustPillar(Icons.bar_chart_rounded, 'Cobertura y\nmetodología visibles'),
+                          const SizedBox(width: 8),
+                          _trustPillar(Icons.business_center_outlined, 'Sin sesgos\ncomerciales'),
+                          const SizedBox(width: 8),
+                          _trustPillar(Icons.lock_outlined, 'Privado y\nseguro'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── 01 · Hero / Resumen ────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: PropertyHeroSection(
+                property: widget.property,
+                onScrollToGallery: () {
+                  _scrollController.animateTo(
+                    500,
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOut,
                   );
                 },
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // ---------------------------------------------------------------------------
-  // TAB 1: Oferta, Características y Amenidades
-  // ---------------------------------------------------------------------------
-  Widget _buildOverviewTab() {
-    return ListView(
-      padding: EdgeInsets.zero, // Remove global padding to allow edge-to-edge gallery
-      children: [
-        // Gallery Header — altura dinámica según tamaño de pantalla
-        Stack(
-          children: [
-            Container(
-              height: KazaResponsive.galleryHeight(context),
-              width: double.infinity,
-              color: const Color(0xFFE2E8F0), // A more visible gray for the placeholder
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.photo_library_outlined, size: 56, color: KazaTheme.textSecondary.withValues(alpha: 0.5)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Galería HD',
-                      style: TextStyle(color: KazaTheme.textSecondary.withValues(alpha: 0.8), fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
+            // ── 02 · Galería de fotos ──────────────────────────────────────
+            SliverToBoxAdapter(
+              child: PropertyGallerySection(property: widget.property),
             ),
-            Positioned(
-              top: 16,
-              left: 16,
-              child: Row(
-                children: [
-                  if (widget.property.isPlus) const KazaPlusBadge(),
-                  const SizedBox(width: 8),
-                  KazaTrustBadge(
-                    label: widget.property.trustLabel,
-                    isOrganization: widget.property.isOrg,
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                ),
-                child: const Text('1 / 12 Fotos', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
 
-        // Main content padding wrapper
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            // ── 03 · Detalles de la propiedad ─────────────────────────────
+            SliverToBoxAdapter(
+              child: PropertyDetailsSection(property: widget.property),
+            ),
 
-        // Title Info
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.property.title,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, size: 16, color: KazaTheme.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Equipetrol / Sirari, Santa Cruz, Bolivia',
-                        style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ],
+            // ── 03b · Plano 2D Interactivo ─────────────────────────────────
+            SliverToBoxAdapter(
+              child: _buildFloorPlanCard(),
+            ),
+
+            // ── 04 · Descripción y destacados ─────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyDescriptionSection(),
+            ),
+
+            // ── 05 · Amenidades y características ─────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyAmenitiesSection(),
+            ),
+
+            // ── 06 · Disponibilidad y frescura ────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyAvailabilitySection(),
+            ),
+
+            // ── 07 · Ubicación y entorno ───────────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyLocationSection(),
+            ),
+
+            // ── 08 · Anunciante / Publicador ──────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyAgentSection(),
+            ),
+
+            // ── 09 · Documentos y legales ─────────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyDocumentsSection(),
+            ),
+
+            // ── 10 · Guardar, comparar y compartir ────────────────────────
+            SliverToBoxAdapter(
+              child: PropertySaveShareSection(
+                property: widget.property,
+                onSave: _saveProperty,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: KazaTheme.primaryCoralLight.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                widget.property.operation,
-                style: const TextStyle(color: KazaTheme.primaryCoralLight, fontWeight: FontWeight.bold, fontSize: 12),
-              ),
+
+            // ── 11 · Contacto y visitas ────────────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyContactSection(),
+            ),
+
+            // ── 12 · Reportar publicación ──────────────────────────────────
+            const SliverToBoxAdapter(
+              child: PropertyReportSection(),
+            ),
+
+            // ── Visor 3D (bonus — collapsible) ────────────────────────────
+            SliverToBoxAdapter(
+              child: _buildVirtualTourCard(),
+            ),
+
+            // Bottom spacing
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 100),
             ),
           ],
         ),
 
-        const SizedBox(height: 20),
-
-        // Quick Specs Cards Row
-        Row(
-          children: [
-            _buildSpecChip(Icons.king_bed_outlined, '${widget.property.bedrooms} Dormitorios'),
-            const SizedBox(width: 8),
-            _buildSpecChip(Icons.bathtub_outlined, '${widget.property.bathrooms} Baños'),
-            const SizedBox(width: 8),
-            _buildSpecChip(Icons.square_foot, widget.property.surface),
-            const SizedBox(width: 8),
-            _buildSpecChip(Icons.directions_car_outlined, '1 Garaje'),
-          ],
-        ),
-
-        const SizedBox(height: 24),
-        const Divider(color: KazaTheme.glassBorder),
-        const SizedBox(height: 16),
-
-        // SECTION: Lo que ofrece esta propiedad
-        Row(
-          children: [
-            const Icon(Icons.verified_outlined, color: KazaTheme.accentGold, size: 22),
-            const SizedBox(width: 8),
-            const Text(
-              'Lo que ofrece esta propiedad',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: KazaResponsive.gridCrossAxisCount(context, phone: 2, tablet: 3),
-            childAspectRatio: KazaResponsive.isTablet(context) ? 3.8 : 3.5,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+        // ── Sticky Bottom CTA ──────────────────────────────────────────────
+        bottomNavigationBar: Container(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: 12 + MediaQuery.of(context).padding.bottom,
           ),
-          itemCount: _amenities.length,
-          itemBuilder: (context, idx) {
-            final item = _amenities[idx];
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: KazaTheme.glassBorder),
-              ),
-              child: Row(
-                children: [
-                  Icon(item['icon'] as IconData, size: 18, color: KazaTheme.textSecondary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      item['name'] as String,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: KazaTheme.textPrimary),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 24),
-        const Divider(color: KazaTheme.glassBorder),
-        const SizedBox(height: 16),
-
-        // SECTION: Descripción
-        const Text('Descripción del Inmueble', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
-        const SizedBox(height: 8),
-        const Text(
-          'Exclusivo inmueble ubicado en la zona de mayor plusvalía de Santa Cruz. Cuenta con acabados de primera calidad, pisos de porcelanato italiano importado, mesones de granito en cocina y baños, suite principal con vestidor amplio y balcón privado con orientación privilegiada.\n\n'
-          'Edificio de categoría premium con lobby de doble altura, seguridad física 24/7 con control biométrico, 2 ascensores de alta velocidad y terraza social panorámica.',
-          style: TextStyle(color: KazaTheme.textSecondary, height: 1.5, fontSize: 13),
-        ),
-
-        const SizedBox(height: 24),
-        const Divider(color: KazaTheme.glassBorder),
-        const SizedBox(height: 16),
-
-        // SECTION: Vendedor / Agente Certificado
-        Container(
-          padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: KazaTheme.glassBorder),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4))],
+            border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: KazaTheme.primaryCoralLight,
-                child: const Icon(Icons.business, color: Colors.white),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Precio',
+                    style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11),
+                  ),
+                  Text(
+                    widget.property.price,
+                    style: const TextStyle(
+                      color: KazaTheme.azulKaza,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Inmobiliaria Kaza Pro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: KazaTheme.textPrimary)),
-                    const SizedBox(height: 2),
-                    const Text('Empresa Verificada por Kaza Guard', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    KazaTrustBadge(label: widget.property.trustLabel, isOrganization: widget.property.isOrg),
-                  ],
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: KazaTheme.primaryCoral,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  icon: const Icon(Icons.chat_rounded, size: 18),
+                  label: const Text(
+                    'Contactar anunciante',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('💬 Iniciando chat seguro con el anunciante...'),
+                        backgroundColor: KazaTheme.primaryCoral,
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
           ),
-        ),
-      ],
-    ), // Closes Column
-    ), // Closes Padding
-    ], // Closes ListView.children
-    ); // Closes ListView
-  }
-
-  Widget _buildSpecChip(IconData icon, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: KazaTheme.glassBorder),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 16, color: KazaTheme.textSecondary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // TAB 2: Plano 2D Interactivo con Cotas
-  // ---------------------------------------------------------------------------
-  Widget _buildFloorPlan2DTab() {
-    final selectedRoom = _rooms[_selectedRoomIndex];
-
-    return Column(
-      children: [
-        // Room Selector Header Chips
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          color: Colors.white,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: List.generate(_rooms.length, (idx) {
-                final r = _rooms[idx];
-                final isSel = idx == _selectedRoomIndex;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: ChoiceChip(
-                    avatar: Icon(r['icon'] as IconData, size: 16, color: isSel ? Colors.white : KazaTheme.textSecondary),
-                    label: Text(r['name'] as String),
-                    selected: isSel,
-                    selectedColor: KazaTheme.primaryCoralLight,
-                    backgroundColor: KazaTheme.grisClaro,
-                    labelStyle: TextStyle(
-                      color: isSel ? Colors.white : KazaTheme.textPrimary,
-                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 12,
-                    ),
-                    side: BorderSide(color: isSel ? Colors.transparent : KazaTheme.glassBorder),
-                    onSelected: (_) {
-                      setState(() => _selectedRoomIndex = idx);
-                    },
-                  ),
-                );
-              }),
-            ),
+  // ─── TRUST PILLAR CHIP ──────────────────────────────────────────────────────
+  Widget _trustPillar(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: KazaTheme.azulKaza),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: KazaTheme.textSecondary, height: 1.3),
           ),
-        ),
-
-        // Floorplan Canvas Area
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F4F8), // Light blueprint background
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: KazaTheme.glassBorder),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
-                  // Blueprint Grid & Custom Painter
-                  CustomPaint(
-                    size: Size.infinite,
-                    painter: FloorPlan2DPainter(
-                      rooms: _rooms,
-                      selectedIndex: _selectedRoomIndex,
-                    ),
-                  ),
-
-                  // Room Info Floating Overlay
-                  Positioned(
-                    bottom: 12,
-                    left: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: KazaTheme.glassBorder),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(selectedRoom['icon'] as IconData, color: selectedRoom['color'] as Color, size: 28),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  selectedRoom['name'] as String,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary),
-                                ),
-                                Text(
-                                  'Dimensiones: ${selectedRoom['dimensions']} · Área: ${selectedRoom['surface']}',
-                                  style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: (selectedRoom['color'] as Color).withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              selectedRoom['surface'] as String,
-                              style: TextStyle(
-                                color: selectedRoom['color'] as Color,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // TAB 3: Visor 3D & Recorrido Virtual Interactivo
-  // ---------------------------------------------------------------------------
-  Widget _buildVirtualTour3DTab() {
-    return Column(
-      children: [
-        // 3D Controls Bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: Colors.white,
-          child: Row(
-            children: [
-              const Icon(Icons.threed_rotation, color: KazaTheme.primaryCoralLight, size: 20),
-              const SizedBox(width: 8),
-              const Text('Visor Espacial 3D', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.textPrimary)),
-              const Spacer(),
-
-              // Floor Level Switcher
-              DropdownButton<int>(
-                value: _activeFloor,
-                dropdownColor: Colors.white,
-                underline: const SizedBox(),
-                items: const [
-                  DropdownMenuItem(value: 1, child: Text('Nivel 1', style: TextStyle(fontSize: 12, color: KazaTheme.textPrimary))),
-                  DropdownMenuItem(value: 2, child: Text('Nivel 2 (Terraza)', style: TextStyle(fontSize: 12, color: KazaTheme.textPrimary))),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _activeFloor = val);
-                },
-              ),
-              const SizedBox(width: 8),
-
-              // Wireframe Toggle Button
-              IconButton(
-                icon: Icon(
-                  _showWireframe3D ? Icons.grid_4x4 : Icons.view_in_ar,
-                  color: _showWireframe3D ? KazaTheme.primaryCoralLight : KazaTheme.textSecondary,
+  // ─── PLANO 2D CARD ──────────────────────────────────────────────────────────
+  Widget _buildFloorPlanCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 26, height: 26,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(color: KazaTheme.azulKaza, shape: BoxShape.circle),
+                  child: const Text('03b', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                 ),
-                tooltip: 'Modo Estructura 3D',
-                onPressed: () {
-                  setState(() => _showWireframe3D = !_showWireframe3D);
-                },
-              ),
-            ],
-          ),
-        ),
-
-        // Interactive 3D Canvas
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8ECEF),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: KazaTheme.glassBorder),
+                const SizedBox(width: 10),
+                const Icon(Icons.architecture, size: 18, color: KazaTheme.azulKaza),
+                const SizedBox(width: 6),
+                const Text('Plano 2D Interactivo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+              ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: GestureDetector(
-                onPanUpdate: (details) {
-                  setState(() {
-                    _rotationY += details.delta.dx * 0.01;
-                    _rotationX += details.delta.dy * 0.01;
-                    // Clamp pitch angle
-                    _rotationX = _rotationX.clamp(-1.0, 1.0);
-                  });
-                },
-                child: Stack(
-                  children: [
-                    // 3D Custom Painter (Orbital Projection)
-                    CustomPaint(
-                      size: Size.infinite,
-                      painter: VirtualModel3DPainter(
-                        rotationY: _rotationY,
-                        rotationX: _rotationX,
-                        zoom: _zoomScale,
-                        isWireframe: _showWireframe3D,
-                        floor: _activeFloor,
-                      ),
-                    ),
+            const SizedBox(height: 14),
 
-                    // Touch Instructions Overlay
-                    Positioned(
-                      top: 12,
-                      left: 12,
+            // Room chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(_rooms.length, (idx) {
+                  final r = _rooms[idx];
+                  final isSel = idx == _selectedRoomIndex;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedRoomIndex = idx),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: KazaTheme.glassBorder),
+                          color: isSel ? KazaTheme.azulKaza : KazaTheme.grisClaro,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSel ? KazaTheme.azulKaza : const Color(0xFFE2E8F0),
+                          ),
                         ),
-                        child: const Row(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.touch_app, size: 14, color: KazaTheme.primaryCoralLight),
-                            SizedBox(width: 6),
-                            Text('Arrastra para orbitar en 360°', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+                            Icon(r['icon'] as IconData, size: 14, color: isSel ? Colors.white : KazaTheme.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              r['name'] as String,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isSel ? Colors.white : KazaTheme.textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 12),
 
-                    // Zoom In/Out Buttons
+            // 2D Canvas
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 260,
+                child: Stack(
+                  children: [
+                    CustomPaint(
+                      size: const Size(double.infinity, 260),
+                      painter: FloorPlan2DPainter(rooms: _rooms, selectedIndex: _selectedRoomIndex),
+                    ),
+                    // Room info overlay
                     Positioned(
-                      right: 12,
-                      bottom: 12,
-                      child: Column(
-                        children: [
-                          FloatingActionButton.small(
-                            heroTag: 'zoom_in_3d',
-                            backgroundColor: Colors.white,
-                            child: const Icon(Icons.add, color: KazaTheme.textPrimary),
-                            onPressed: () {
-                              setState(() => _zoomScale = (_zoomScale * 1.2).clamp(0.5, 3.0));
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          FloatingActionButton.small(
-                            heroTag: 'zoom_out_3d',
-                            backgroundColor: Colors.white,
-                            child: const Icon(Icons.remove, color: KazaTheme.textPrimary),
-                            onPressed: () {
-                              setState(() => _zoomScale = (_zoomScale / 1.2).clamp(0.5, 3.0));
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          FloatingActionButton.small(
-                            heroTag: 'reset_3d',
-                            backgroundColor: Colors.white,
-                            child: const Icon(Icons.restart_alt, color: KazaTheme.primaryCoralLight),
-                            onPressed: () {
-                              setState(() {
-                                _rotationY = 0.6;
-                                _rotationX = 0.3;
-                                _zoomScale = 1.0;
-                              });
-                            },
-                          ),
-                        ],
+                      bottom: 12, left: 12, right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(_rooms[_selectedRoomIndex]['icon'] as IconData, color: _rooms[_selectedRoomIndex]['color'] as Color, size: 24),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(_rooms[_selectedRoomIndex]['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.azulKaza)),
+                                  Text(
+                                    '${_rooms[_selectedRoomIndex]['dimensions']} · ${_rooms[_selectedRoomIndex]['surface']}',
+                                    style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (_rooms[_selectedRoomIndex]['color'] as Color).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                _rooms[_selectedRoomIndex]['surface'] as String,
+                                style: TextStyle(color: _rooms[_selectedRoomIndex]['color'] as Color, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  // ─── VISOR 3D CARD (Collapsible) ────────────────────────────────────────────
+  Widget _buildVirtualTourCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 26, height: 26,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(color: KazaTheme.azulKaza, shape: BoxShape.circle),
+                  child: const Text('+', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 10),
+                const Icon(Icons.view_in_ar_outlined, size: 18, color: KazaTheme.azulKaza),
+                const SizedBox(width: 6),
+                const Text('Visor 3D Interactivo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+                const Spacer(),
+                // Floor level
+                DropdownButton<int>(
+                  value: _activeFloor,
+                  dropdownColor: Colors.white,
+                  underline: const SizedBox(),
+                  style: const TextStyle(fontSize: 12, color: KazaTheme.azulKaza),
+                  items: const [
+                    DropdownMenuItem(value: 1, child: Text('Nivel 1')),
+                    DropdownMenuItem(value: 2, child: Text('Nivel 2')),
+                  ],
+                  onChanged: (v) { if (v != null) setState(() => _activeFloor = v); },
+                ),
+                IconButton(
+                  icon: Icon(
+                    _showWireframe3D ? Icons.grid_4x4 : Icons.view_in_ar,
+                    size: 20,
+                    color: _showWireframe3D ? KazaTheme.primaryCoral : KazaTheme.textSecondary,
+                  ),
+                  onPressed: () => setState(() => _showWireframe3D = !_showWireframe3D),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 3D canvas
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 280,
+                child: GestureDetector(
+                  onPanUpdate: (d) {
+                    setState(() {
+                      _rotationY += d.delta.dx * 0.01;
+                      _rotationX = (_rotationX + d.delta.dy * 0.01).clamp(-1.0, 1.0);
+                    });
+                  },
+                  child: Stack(
+                    children: [
+                      Container(color: const Color(0xFFE8ECEF)),
+                      CustomPaint(
+                        size: const Size(double.infinity, 280),
+                        painter: VirtualModel3DPainter(
+                          rotationY: _rotationY,
+                          rotationX: _rotationX,
+                          zoom: _zoomScale,
+                          isWireframe: _showWireframe3D,
+                          floor: _activeFloor,
+                        ),
+                      ),
+                      // Instructions
+                      Positioned(
+                        top: 10, left: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.touch_app, size: 13, color: KazaTheme.primaryCoral),
+                              SizedBox(width: 5),
+                              Text('Arrastra para orbitar en 360°', style: TextStyle(fontSize: 11, color: KazaTheme.textSecondary, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Zoom controls
+                      Positioned(
+                        right: 10, bottom: 10,
+                        child: Column(
+                          children: [
+                            _zoomBtn(Icons.add, 'zi', () => setState(() => _zoomScale = (_zoomScale * 1.2).clamp(0.5, 3.0))),
+                            const SizedBox(height: 6),
+                            _zoomBtn(Icons.remove, 'zo', () => setState(() => _zoomScale = (_zoomScale / 1.2).clamp(0.5, 3.0))),
+                            const SizedBox(height: 6),
+                            _zoomBtn(Icons.restart_alt, 'zr', () => setState(() { _rotationY = 0.6; _rotationX = 0.3; _zoomScale = 1.0; })),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _zoomBtn(IconData icon, String tag, VoidCallback onPressed) {
+    return FloatingActionButton.small(
+      heroTag: tag,
+      backgroundColor: Colors.white,
+      elevation: 2,
+      onPressed: onPressed,
+      child: Icon(icon, size: 18, color: KazaTheme.azulKaza),
     );
   }
 }
@@ -786,11 +723,14 @@ class FloorPlan2DPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Grid Background (Blueprint Style)
+    // Blueprint background
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = const Color(0xFFF0F4F8));
+
+    // Grid
     final gridPaint = Paint()
       ..color = const Color(0x153B82F6)
       ..strokeWidth = 1;
-
     const double step = 25.0;
     for (double x = 0; x < size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
@@ -799,14 +739,13 @@ class FloorPlan2DPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // 2. Draw Rooms
+    // Rooms
     final borderPaint = Paint()
       ..color = Colors.black12
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
-
     final selectedBorderPaint = Paint()
-      ..color = KazaTheme.primaryCoralLight
+      ..color = KazaTheme.primaryCoral
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
@@ -816,7 +755,6 @@ class FloorPlan2DPainter extends CustomPainter {
       final Color roomColor = r['color'] as Color;
       final bool isSel = i == selectedIndex;
 
-      // Scale rect to canvas size
       final scaledRect = Rect.fromLTWH(
         rawRect.left * (size.width / 340),
         rawRect.top * (size.height / 320),
@@ -824,30 +762,28 @@ class FloorPlan2DPainter extends CustomPainter {
         rawRect.height * (size.height / 320),
       );
 
-      // Room Fill
       final fillPaint = Paint()
         ..color = roomColor.withValues(alpha: isSel ? 0.35 : 0.15)
         ..style = PaintingStyle.fill;
 
       canvas.drawRRect(RRect.fromRectAndRadius(scaledRect, const Radius.circular(8)), fillPaint);
-      canvas.drawRRect(RRect.fromRectAndRadius(scaledRect, const Radius.circular(8)), isSel ? selectedBorderPaint : borderPaint);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(scaledRect, const Radius.circular(8)),
+          isSel ? selectedBorderPaint : borderPaint);
 
-      // Room Title Text
       final textSpan = TextSpan(
         text: '${r['name']}\n${r['surface']}',
         style: TextStyle(
-          color: isSel ? KazaTheme.primaryCoralLight : KazaTheme.textPrimary,
+          color: isSel ? KazaTheme.primaryCoral : KazaTheme.textPrimary,
           fontSize: isSel ? 12 : 10,
           fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
         ),
       );
-
       final textPainter = TextPainter(
         text: textSpan,
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
       );
-
       textPainter.layout(maxWidth: scaledRect.width);
       textPainter.paint(
         canvas,
@@ -886,64 +822,47 @@ class VirtualModel3DPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2 + 20);
 
-    // 3D Bounding Box Vertices for Floor Model
     final List<List<double>> rawVertices = [
-      // Base
-      [-100, 60, -80],
-      [100, 60, -80],
-      [100, 60, 80],
-      [-100, 60, 80],
-      // Roof / Ceiling Level 1
-      [-100, -20, -80],
-      [100, -20, -80],
-      [100, -20, 80],
-      [-100, -20, 80],
+      [-100, 60, -80], [100, 60, -80], [100, 60, 80], [-100, 60, 80],
+      [-100, -20, -80], [100, -20, -80], [100, -20, 80], [-100, -20, 80],
     ];
 
     if (floor == 2) {
-      // Add Level 2 structure
       rawVertices.addAll([
-        [-60, -90, -50],
-        [60, -90, -50],
-        [60, -90, 50],
-        [-60, -90, 50],
+        [-60, -90, -50], [60, -90, -50], [60, -90, 50], [-60, -90, 50],
       ]);
     }
 
-    // 3D Orbital Projection Math
     final projected = rawVertices.map((v) {
       double x = v[0] * zoom;
       double y = v[1] * zoom;
       double z = v[2] * zoom;
 
-      // Rotate Y (Yaw)
       double radY = rotationY;
       double x1 = x * math.cos(radY) + z * math.sin(radY);
       double z1 = -x * math.sin(radY) + z * math.cos(radY);
 
-      // Rotate X (Pitch)
       double radX = rotationX;
       double y2 = y * math.cos(radX) - z1 * math.sin(radX);
 
       return Offset(center.dx + x1, center.dy + y2);
     }).toList();
 
-    // 3D Edges
     final List<List<int>> edges = [
-      [0, 1], [1, 2], [2, 3], [3, 0], // Base
-      [4, 5], [5, 6], [6, 7], [7, 4], // Ceiling Level 1
-      [0, 4], [1, 5], [2, 6], [3, 7], // Columns
+      [0, 1], [1, 2], [2, 3], [3, 0],
+      [4, 5], [5, 6], [6, 7], [7, 4],
+      [0, 4], [1, 5], [2, 6], [3, 7],
     ];
 
     if (floor == 2 && projected.length >= 12) {
       edges.addAll([
-        [8, 9], [9, 10], [10, 11], [11, 8], // Level 2 Roof
+        [8, 9], [9, 10], [10, 11], [11, 8],
         [4, 8], [5, 9], [6, 10], [7, 11],
       ]);
     }
 
     final edgePaint = Paint()
-      ..color = isWireframe ? KazaTheme.accentGold : KazaTheme.primaryCoralLight
+      ..color = isWireframe ? KazaTheme.accentGold : KazaTheme.primaryCoral
       ..strokeWidth = isWireframe ? 1.5 : 2.5
       ..style = PaintingStyle.stroke;
 
@@ -951,7 +870,6 @@ class VirtualModel3DPainter extends CustomPainter {
       ..color = KazaTheme.primaryCoral.withValues(alpha: isWireframe ? 0.05 : 0.25)
       ..style = PaintingStyle.fill;
 
-    // Draw Solid Faces if not wireframe mode
     if (!isWireframe) {
       final Path wallPath = Path()
         ..moveTo(projected[0].dx, projected[0].dy)
@@ -971,12 +889,10 @@ class VirtualModel3DPainter extends CustomPainter {
       canvas.drawPath(roofPath, fillPaint);
     }
 
-    // Draw Wireframe Edges
     for (final edge in edges) {
       canvas.drawLine(projected[edge[0]], projected[edge[1]], edgePaint);
     }
 
-    // Draw Nodes / Vertices
     final nodePaint = Paint()..color = KazaTheme.accentGold;
     for (final pt in projected) {
       canvas.drawCircle(pt, 3, nodePaint);

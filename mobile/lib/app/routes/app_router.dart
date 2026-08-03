@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/shell/screens/main_shell_screen.dart';
+import '../../features/shell/screens/kaza_splash_screen.dart';
 import '../../features/map/screens/map_screen.dart';
 import '../../features/saved/screens/saved_screen.dart';
 import '../../features/publish/screens/publish_screen.dart';
@@ -10,11 +11,16 @@ import '../../features/profile/screens/my_listings_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
-/// GoRouter configuration for Kaza 5-Tab Stateful Navigation Shell
+/// GoRouter configuration for Kaza — includes Splash + 5-Tab Shell
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/map',
+  initialLocation: '/splash',
   routes: [
+    // ── SPLASH SCREEN ────────────────────────────────────────────
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const KazaSplashScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainShellScreen(navigationShell: navigationShell);

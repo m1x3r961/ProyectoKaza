@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/utils/responsive_utils.dart';
 import '../../../core/widgets/kaza_badges.dart';
+import '../../../core/widgets/kaza_logo_widget.dart';
 import '../../../core/widgets/kaza_pin_painter.dart';
 import '../providers/map_properties_provider.dart';
 import '../widgets/map_filter_bottom_sheet.dart';
@@ -361,7 +362,53 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Row 1: Search Bar
+              // ── KAZA Logo flotante sobre el mapa ───────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Logo animado
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const KazaAnimatedLogo(width: 90, height: 30),
+                  ),
+                  // Tagline pill
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: KazaTheme.azulKaza.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'Más que un lugar.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Row 1: Search Bar
                       Container(
                         height: isTablet ? 54 : 50,
                         decoration: BoxDecoration(

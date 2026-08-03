@@ -69,6 +69,7 @@ flutter:
   # Assets del sistema Kaza: Logo, Pines de Mapa e Iconos
   assets:
     - assets/images/
+    - assets/images/kaza_logo.gif
     - assets/pins/
     - assets/icons/
 
