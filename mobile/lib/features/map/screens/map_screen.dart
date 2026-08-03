@@ -366,9 +366,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Logo animado
+                  // Logo animado (GIF)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
@@ -380,7 +380,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         ),
                       ],
                     ),
-                    child: const KazaAnimatedLogo(width: 90, height: 30),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: const KazaAnimatedLogo(width: 54, height: 48, fit: BoxFit.cover),
+                    ),
                   ),
                   // Tagline pill
                   Container(

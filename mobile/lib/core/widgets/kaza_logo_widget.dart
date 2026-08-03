@@ -33,8 +33,6 @@ class KazaAnimatedLogo extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        // Fallback a PNG si el GIF falla
-        errorBuilder: (context, error, stackTrace) => _fallbackLogo(),
       );
     }
     return _fallbackLogo();
