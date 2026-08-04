@@ -28,8 +28,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   String _propertyType = '';
   
   // Ubicación
-  final double _selectedLat = -17.7833;
-  final double _selectedLng = -63.1821;
+  double _selectedLat = -17.7833;
+  double _selectedLng = -63.1821;
   final _addressCtrl = TextEditingController();
   
   // Características
@@ -399,11 +399,25 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         child: Stack(
           children: [
             FlutterMap(
-              options: MapOptions(initialCenter: LatLng(_selectedLat, _selectedLng), initialZoom: 14),
+              options: MapOptions(
+                initialCenter: LatLng(_selectedLat, _selectedLng),
+                initialZoom: 14,
+                onTap: (tapPosition, point) {
+                  setState(() {
+                    _selectedLat = point.latitude;
+                    _selectedLng = point.longitude;
+                  });
+                },
+              ),
               children: [
                 TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.kaza.app'),
                 MarkerLayer(markers: [
-                  Marker(point: LatLng(_selectedLat, _selectedLng), width: 44, height: 56, child: CustomPaint(painter: KazaPinPainter(icon: Icons.location_on, isSelected: true))),
+                  Marker(
+                    point: LatLng(_selectedLat, _selectedLng),
+                    width: 44,
+                    height: 56,
+                    child: CustomPaint(painter: KazaPinPainter(icon: Icons.location_on, isSelected: true)),
+                  ),
                 ]),
               ],
             ),
