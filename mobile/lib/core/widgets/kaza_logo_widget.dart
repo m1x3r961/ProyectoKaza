@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import '../../app/theme/kaza_theme.dart';
-import 'video_logo/video_logo_stub.dart' if (dart.library.html) 'video_logo/video_logo_web.dart';
 
 /// 🎬 KAZA Animated Logo Widget — Design System Maestro B26
 ///
@@ -29,7 +28,8 @@ class KazaAnimatedLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (useGif) {
-      return buildPlatformVideoLogo(
+      return Image.asset(
+        'assets/images/kaza_logo.gif',
         width: width,
         height: height ?? width,
         fit: fit,
