@@ -47,8 +47,8 @@ class KazaPinPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawPath(pinPath.shift(const Offset(0, 3)), shadowPaint);
 
-    // 2. Kaza Navy Fill
-    final Paint fillPaint = Paint()..color = const Color(0xFF0F1F2E); // Azul Kaza
+    // 2. Kaza Fill
+    final Paint fillPaint = Paint()..color = isSelected ? const Color(0xFFFF5A3C) : const Color(0xFF0F1F2E);
     canvas.drawPath(pinPath, fillPaint);
 
     // 3. Crisp White Border

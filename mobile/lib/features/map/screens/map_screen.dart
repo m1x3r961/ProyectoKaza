@@ -452,61 +452,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 10),
-
-                      // Row 2: Operation Pills
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildOperationPill(
-                            'Comprar',
-                            isSelected: _selectedOperation == 'Comprar',
-                            onTap: () => setState(() => _selectedOperation = 'Comprar'),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildOperationPill(
-                            'Alquilar',
-                            isSelected: _selectedOperation == 'Alquilar',
-                            onTap: () => setState(() => _selectedOperation = 'Alquilar'),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildOperationPill(
-                            'Anticrético',
-                            isSelected: _selectedOperation == 'Anticrético',
-                            onTap: () => setState(() => _selectedOperation = 'Anticrético'),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Row 3: Category Chips
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: ['Todos', 'Casa', 'Dpto.', 'Terreno', 'Local', 'Oficina', 'Más'].map((cat) {
-                            final isSel = _selectedCategory == cat;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 6.0),
-                              child: ChoiceChip(
-                                label: Text(cat),
-                                selected: isSel,
-                                selectedColor: KazaTheme.azulKaza,
-                                backgroundColor: Colors.white,
-                                elevation: 2,
-                                shadowColor: Colors.black12,
-                                side: BorderSide.none,
-                                labelStyle: TextStyle(
-                                  color: isSel ? Colors.white : KazaTheme.azulKaza,
-                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                                onSelected: (_) => setState(() => _selectedCategory = cat),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                      // Se eliminaron las pastillas de filtros rápidos para mantener el diseño "01 MAPA / DESCUBRIMIENTO" limpio
                     ],
                   ),
                 );
@@ -611,70 +557,114 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 },
                 child: Card(
                   clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: EdgeInsets.all(KazaResponsive.isTablet(context) ? 14.0 : 12.0),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: KazaResponsive.isTablet(context) ? 100 : 84,
-                            height: KazaResponsive.isTablet(context) ? 100 : 84,
-                            color: Colors.grey.shade800,
-                            child: Icon(_getIconForType(_selectedProperty!.type), color: Colors.white54, size: 36),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 8,
+                  shadowColor: Colors.black26,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Imagen (Header)
+                      Stack(
+                        children: [
+                          Container(
+                            height: 140,
+                            color: Colors.grey.shade300,
+                            width: double.infinity,
+                            child: Icon(_getIconForType(_selectedProperty!.type), color: Colors.white54, size: 48),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  if (_selectedProperty!.isPlus) ...[
-                                    const KazaPlusBadge(),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  KazaTrustBadge(
-                                    label: _selectedProperty!.trustLabel,
-                                    isOrganization: _selectedProperty!.isOrg,
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _selectedProperty!.operation,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4)]),
+                              onPressed: () => setState(() => _selectedProperty = null),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Detalles
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedProperty!.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_selectedProperty!.bedrooms} dorm. · ${_selectedProperty!.surface} · ${_selectedProperty!.type}',
+                              style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _selectedProperty!.address ?? 'Sin dirección específica',
+                              style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _selectedProperty!.price,
+                              style: const TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.w900, fontSize: 16),
+                            ),
+                            const SizedBox(height: 12),
+                            // Botones de acción
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: KazaTheme.azulKaza,
+                                      side: const BorderSide(color: KazaTheme.azulKaza),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PropertyDetailScreen(property: _selectedProperty!),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('Ver detalle'),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _selectedProperty!.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_selectedProperty!.bedrooms} Dorm · ${_selectedProperty!.bathrooms} Baños · ${_selectedProperty!.surface}',
-                                style: const TextStyle(
-                                  color: KazaTheme.textMuted,
-                                  fontSize: 12,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: KazaTheme.azulKaza,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () {},
+                                    child: const Text('Contactar'),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _selectedProperty!.price,
-                                style: const TextStyle(
-                                  color: KazaTheme.primaryCoralLight,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ),
-                        const Icon(Icons.chevron_right, color: KazaTheme.textMuted),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
