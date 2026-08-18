@@ -1,13 +1,31 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// 📍 PIN PAINTER CANÓNICO DE KAZA (Sin fondo blanco, vector degradado)
-/// Soporta badge numérico de cantidad de propiedades (diseño WM-01 v0.2)
+/// 📍 KAZA MAP VISUAL GRAMMAR — Pin Painter v2.0
+/// Implements the complete visual grammar from the KAZA Master Design:
+///
+///   ● Property (disponible) — Navy drop-pin with white icon
+///   ● Property seleccionada — Coral drop-pin with white icon
+///   ● Cluster (propiedades) — Navy circle with white count number
+///   ● POI / Punto de interés — Small green dot
+///   ● Contexto / Barrio — Small peach/salmon dot
+///
+enum KazaPinType {
+  property,     // Navy drop-pin
+  selected,     // Coral drop-pin
+  cluster,      // Navy circle with number
+  poi,          // Green dot
+  context,      // Peach dot
+}
+
 class KazaPinPainter extends CustomPainter {
   final IconData icon;
   final bool isSelected;
-  /// Número de propiedades a mostrar en el badge. Si es <= 1, no se muestra badge.
   final int propertyCount;
+
+  // Kaza brand colors
+  static const Color _navyColor = Color(0xFF0F1F2E);
+  static const Color _coralColor = Color(0xFFFF5A3C);
 
   KazaPinPainter({
     required this.icon,
@@ -17,16 +35,26 @@ class KazaPinPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double width = size.width;
-    final double height = size.height;
-    final double radius = width / 2;
+    // If cluster (propertyCount > 1), draw circle with number
+    if (propertyCount > 1) {
+      _drawClusterCircle(canvas, size);
+      return;
+    }
+
+    // Otherwise, draw drop-pin
+    _drawDropPin(canvas, size);
+  }
+
+  /// Draws a navy/coral drop-pin shape with icon
+  void _drawDropPin(Canvas canvas, Size size) {
+    final double radius = size.width / 2;
 
     final Path pinPath = Path();
-    pinPath.moveTo(radius, height);
+    pinPath.moveTo(radius, size.height);
     pinPath.cubicTo(
-      width, height * 0.55,
-      width, radius * 0.8,
-      width, radius,
+      size.width, size.height * 0.55,
+      size.width, radius * 0.8,
+      size.width, radius,
     );
     pinPath.arcTo(
       Rect.fromCircle(center: Offset(radius, radius), radius: radius),
@@ -36,33 +64,34 @@ class KazaPinPainter extends CustomPainter {
     );
     pinPath.cubicTo(
       0, radius * 0.8,
-      0, height * 0.55,
-      radius, height,
+      0, size.height * 0.55,
+      radius, size.height,
     );
     pinPath.close();
 
-    // 1. Soft Shadow
+    // 1. Soft shadow
     final Paint shadowPaint = Paint()
-      ..color = Colors.black38
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      ..color = Colors.black26
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
     canvas.drawPath(pinPath.shift(const Offset(0, 3)), shadowPaint);
 
-    // 2. Kaza Fill
-    final Paint fillPaint = Paint()..color = isSelected ? const Color(0xFFFF5A3C) : const Color(0xFF0F1F2E);
+    // 2. Fill — Navy default, Coral when selected
+    final Paint fillPaint = Paint()
+      ..color = isSelected ? _coralColor : _navyColor;
     canvas.drawPath(pinPath, fillPaint);
 
-    // 3. Crisp White Border
+    // 3. White border
     final Paint borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isSelected ? 2.5 : 1.5;
+      ..strokeWidth = isSelected ? 2.5 : 2.0;
     canvas.drawPath(pinPath, borderPaint);
 
-    // 4. Category Icon in White
+    // 4. White icon centered in the circle portion
     final TextSpan span = TextSpan(
       text: String.fromCharCode(icon.codePoint),
       style: TextStyle(
-        fontSize: radius * 1.1,
+        fontSize: radius * 1.0,
         fontFamily: icon.fontFamily,
         package: icon.fontPackage,
         color: Colors.white,
@@ -75,65 +104,60 @@ class KazaPinPainter extends CustomPainter {
     );
     tp.layout();
     tp.paint(canvas, Offset(radius - tp.width / 2, (radius * 0.95) - tp.height / 2));
-
-    // 6. Property Count Badge (top-right corner) — sólo si hay más de 1 propiedad
-    if (propertyCount > 1) {
-      _drawCountBadge(canvas, width, propertyCount);
-    }
   }
 
-  void _drawCountBadge(Canvas canvas, double pinWidth, int count) {
-    final String label = count > 99 ? '99+' : count.toString();
-    final double badgeRadius = pinWidth * 0.28;
-    // Posición: esquina superior derecha del pin
-    final Offset badgeCenter = Offset(pinWidth - badgeRadius * 0.4, badgeRadius * 0.4);
+  /// Draws a navy circle with white number for clusters
+  void _drawClusterCircle(Canvas canvas, Size size) {
+    final double centerX = size.width / 2;
+    final double centerY = size.height / 2;
+    final double radius = math.min(centerX, centerY);
 
-    // Sombra del badge
+    // 1. Shadow
     canvas.drawCircle(
-      badgeCenter + const Offset(0, 1.5),
-      badgeRadius,
+      Offset(centerX, centerY + 2),
+      radius,
       Paint()
         ..color = Colors.black26
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
 
-    // Fondo blanco del badge
+    // 2. Navy fill
     canvas.drawCircle(
-      badgeCenter,
-      badgeRadius,
-      Paint()..color = Colors.white,
+      Offset(centerX, centerY),
+      radius,
+      Paint()..color = _navyColor,
     );
 
-    // Borde del badge con color coral
+    // 3. White border
     canvas.drawCircle(
-      badgeCenter,
-      badgeRadius,
+      Offset(centerX, centerY),
+      radius,
       Paint()
-        ..color = const Color(0xFFFF5A3C)
+        ..color = Colors.white
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
+        ..strokeWidth = 2.5,
     );
 
-    // Número dentro del badge
-    final TextPainter badgeTp = TextPainter(
+    // 4. White number
+    final String label = propertyCount > 99 ? '99+' : propertyCount.toString();
+    final double fontSize = propertyCount > 9 ? radius * 0.85 : radius * 1.0;
+
+    final TextPainter tp = TextPainter(
       text: TextSpan(
         text: label,
         style: TextStyle(
-          fontSize: badgeRadius * (count > 9 ? 0.9 : 1.15),
-          fontWeight: FontWeight.w900,
-          color: const Color(0xFF0F1F2E), // Azul Kaza
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
           height: 1.0,
         ),
       ),
       textDirection: TextDirection.ltr,
     );
-    badgeTp.layout();
-    badgeTp.paint(
+    tp.layout();
+    tp.paint(
       canvas,
-      Offset(
-        badgeCenter.dx - badgeTp.width / 2,
-        badgeCenter.dy - badgeTp.height / 2,
-      ),
+      Offset(centerX - tp.width / 2, centerY - tp.height / 2),
     );
   }
 
@@ -142,4 +166,74 @@ class KazaPinPainter extends CustomPainter {
       oldDelegate.isSelected != isSelected ||
       oldDelegate.icon != icon ||
       oldDelegate.propertyCount != propertyCount;
+}
+
+/// 🟢 POI Pin Painter — Small colored dot for points of interest
+class KazaPoiPinPainter extends CustomPainter {
+  final Color color;
+  final IconData? icon;
+
+  static const Color poiGreen = Color(0xFF27AE60);
+  static const Color contextPeach = Color(0xFFF6BD7B);
+
+  KazaPoiPinPainter({
+    this.color = poiGreen,
+    this.icon,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double centerX = size.width / 2;
+    final double centerY = size.height / 2;
+    final double radius = math.min(centerX, centerY);
+
+    // Shadow
+    canvas.drawCircle(
+      Offset(centerX, centerY + 1.5),
+      radius,
+      Paint()
+        ..color = Colors.black12
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+
+    // Fill
+    canvas.drawCircle(
+      Offset(centerX, centerY),
+      radius,
+      Paint()..color = color,
+    );
+
+    // White border
+    canvas.drawCircle(
+      Offset(centerX, centerY),
+      radius,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
+
+    // Icon if provided
+    if (icon != null) {
+      final TextSpan span = TextSpan(
+        text: String.fromCharCode(icon!.codePoint),
+        style: TextStyle(
+          fontSize: radius * 0.9,
+          fontFamily: icon!.fontFamily,
+          package: icon!.fontPackage,
+          color: Colors.white,
+        ),
+      );
+      final TextPainter tp = TextPainter(
+        text: span,
+        textDirection: TextDirection.ltr,
+      );
+      tp.layout();
+      tp.paint(canvas, Offset(centerX - tp.width / 2, centerY - tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant KazaPoiPinPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.icon != icon;
 }

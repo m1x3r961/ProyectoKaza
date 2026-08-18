@@ -6,9 +6,8 @@ import '../../../core/utils/responsive_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 
-/// 🏛️ MAIN SHELL SCREEN — Responsive Navigation Host
-/// • Phone  (<600px) : Bottom navigation bar con FAB central
-/// • Tablet (≥600px) : NavigationRail lateral + FAB en rail
+/// 🏛️ MAIN SHELL SCREEN — 5-Tab Navigation (KAZA Master Design)
+/// Tabs: Mapa, Buscar, Guardados, Comparar, Perfil
 class MainShellScreen extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -21,13 +20,8 @@ class MainShellScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = navigationShell.currentIndex;
     final bottomSafe = KazaResponsive.bottomSafeArea(context);
-
-    // ── PHONE: Bottom nav bar ─────────────────────────────────────────────
     final navHeight = KazaResponsive.bottomNavHeight(context);
     final screenWidth = KazaResponsive.screenWidth(context);
-    // En pantallas muy pequeñas (< 360px) reducir el FAB
-    final fabSize = screenWidth < 360 ? 44.0 : 52.0;
-    final fabIconSize = screenWidth < 360 ? 26.0 : 32.0;
 
     return Scaffold(
       body: navigationShell,
@@ -59,53 +53,38 @@ class MainShellScreen extends ConsumerWidget {
               ),
               _buildNavItem(
                 index: 1,
+                icon: Icons.search_rounded,
+                activeIcon: Icons.search_rounded,
+                label: 'Buscar',
+                currentIndex: currentIndex,
+                screenWidth: screenWidth,
+                onTap: () => navigationShell.goBranch(1),
+              ),
+              _buildNavItem(
+                index: 2,
                 icon: Icons.favorite_border_rounded,
                 activeIcon: Icons.favorite_rounded,
                 label: 'Guardados',
                 currentIndex: currentIndex,
                 screenWidth: screenWidth,
-                onTap: () => navigationShell.goBranch(1),
-              ),
-              // FAB central "Publicar"
-              GestureDetector(
                 onTap: () => checkProgressiveAuth(
                   context: context,
                   ref: ref,
-                  actionName: 'Publicar un Inmueble',
+                  actionName: 'Ver tus Guardados',
                   onAuthenticatedAction: () => navigationShell.goBranch(2),
-                ),
-                child: Container(
-                  width: fabSize,
-                  height: fabSize,
-                  decoration: const BoxDecoration(
-                    color: KazaTheme.coralKaza,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x55FF5A3C),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.add_rounded,
-                    color: Colors.white,
-                    size: fabIconSize,
-                  ),
                 ),
               ),
               _buildNavItem(
                 index: 3,
-                icon: Icons.chat_bubble_outline_rounded,
-                activeIcon: Icons.chat_bubble_rounded,
-                label: 'Mensajes',
+                icon: Icons.compare_arrows_rounded,
+                activeIcon: Icons.compare_arrows_rounded,
+                label: 'Comparar',
                 currentIndex: currentIndex,
                 screenWidth: screenWidth,
                 onTap: () => checkProgressiveAuth(
                   context: context,
                   ref: ref,
-                  actionName: 'Ver tus Mensajes',
+                  actionName: 'Comparar propiedades',
                   onAuthenticatedAction: () => navigationShell.goBranch(3),
                 ),
               ),
@@ -135,7 +114,7 @@ class MainShellScreen extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     final isSelected = currentIndex == index;
-    // Ocultar label en pantallas muy pequeñas para evitar overflow
+    // Hide label on very small screens to prevent overflow
     final showLabel = screenWidth >= 340;
     final iconSize = screenWidth < 360 ? 22.0 : 24.0;
 
@@ -170,4 +149,3 @@ class MainShellScreen extends ConsumerWidget {
     );
   }
 }
-

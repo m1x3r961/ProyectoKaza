@@ -3,15 +3,16 @@ import 'package:go_router/go_router.dart';
 import '../../features/shell/screens/main_shell_screen.dart';
 import '../../features/shell/screens/kaza_splash_screen.dart';
 import '../../features/map/screens/map_screen.dart';
+import '../../features/map/screens/search_screen.dart';
 import '../../features/saved/screens/saved_screen.dart';
-import '../../features/publish/screens/publish_screen.dart';
-import '../../features/messages/screens/messages_screen.dart';
+import '../../features/saved/screens/compare_tab_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
-/// GoRouter configuration for Kaza — includes Splash + 5-Tab Shell
+/// GoRouter configuration for Kaza — KAZA Master Design 5-Tab Shell
+/// Tabs: Mapa, Buscar, Guardados, Comparar, Perfil
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
@@ -26,12 +27,22 @@ final GoRouter appRouter = GoRouter(
         return MainShellScreen(navigationShell: navigationShell);
       },
       branches: [
-        // Tab 1: MAPA
+        // Tab 0: MAPA
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/map',
               builder: (context, state) => const MapScreen(),
+            ),
+          ],
+        ),
+
+        // Tab 1: BUSCAR
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/search',
+              builder: (context, state) => const SearchScreen(),
             ),
           ],
         ),
@@ -46,27 +57,17 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Tab 3: + PUBLICAR
+        // Tab 3: COMPARAR
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/publish',
-              builder: (context, state) => const PublishScreen(),
+              path: '/compare',
+              builder: (context, state) => const CompareTabScreen(),
             ),
           ],
         ),
 
-        // Tab 4: MENSAJES
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/messages',
-              builder: (context, state) => const MessagesScreen(),
-            ),
-          ],
-        ),
-
-        // Tab 5: PERFIL
+        // Tab 4: PERFIL
         StatefulShellBranch(
           routes: [
             GoRoute(

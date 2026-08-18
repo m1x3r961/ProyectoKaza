@@ -5,15 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/utils/responsive_utils.dart';
-import '../../../core/widgets/kaza_badges.dart';
-import '../../../core/widgets/kaza_logo_widget.dart';
 import '../../../core/widgets/kaza_pin_painter.dart';
 import '../providers/map_properties_provider.dart';
-import '../widgets/map_filter_bottom_sheet.dart';
+import '../widgets/floating_filters.dart';
+import '../widgets/layers_selector_sheet.dart';
+import '../widgets/map_empty_states.dart';
+import '../widgets/map_list_toggle.dart';
+import '../widgets/poi_layer_widget.dart';
 import 'property_detail_screen.dart';
 import 'cluster_bottom_sheet.dart';
 
-/// 🗺️ MAPA (Home) - Kaza Map-First Experience & Polygon Drawing Engine
+/// 🗺️ MAPA (Home) — KAZA Map-First Experience
+/// Matches KAZA Master Design v1.0 with all 17 components
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -21,18 +24,40 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   final LatLng _initialCenter = const LatLng(-17.7833, -63.1821); // Santa Cruz, Bolivia
   double _currentZoom = 13.5;
 
   PropertyMapItem? _selectedProperty;
   String _selectedOperation = 'Comprar';
-  String _selectedCategory = 'Todos';
+  int _minRooms = 0;
+  RangeValues _priceRange = const RangeValues(0, 1000000);
 
   // Polygon Drawing Mode State
   bool _isDrawingPolygon = false;
   final List<LatLng> _polygonPoints = [];
+
+  // List toggle
+  bool _showListOverlay = false;
+
+  // Layer visibility
+  bool _showProperties = true;
+  bool _showPoi = false;
+  bool _showTransport = false;
+  bool _showEducation = false;
+  bool _showHealth = false;
+  bool _showCommerce = false;
+  bool _showNeighborhoods = false;
+
+  // POI data
+  late List<PoiItem> _mockPois;
+
+  @override
+  void initState() {
+    super.initState();
+    _mockPois = PoiLayerBuilder.generateMockPois(_initialCenter);
+  }
 
   void _onMapTap(TapPosition tapPosition, LatLng point) {
     if (_isDrawingPolygon) {
@@ -67,68 +92,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (_polygonPoints.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🗺️ Filtro aplicado: Polígono de ${_polygonPoints.length} vértices (PostGIS ST_Contains)'),
-          backgroundColor: KazaTheme.primaryTeal,
+          content: Text('🗺️ Filtro aplicado: Polígono de ${_polygonPoints.length} vértices'),
+          backgroundColor: KazaTheme.azulKaza,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
     setState(() {
       _isDrawingPolygon = false;
     });
-  }
-
-  Widget _buildOperationPill(String title, {required bool isSelected, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? KazaTheme.azulKaza : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? Colors.white : KazaTheme.azulKaza,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _openFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => MapFilterBottomSheet(
-        onApply: () {
-          ref.invalidate(mapPropertiesProvider);
-        },
-        onStartDrawPolygon: () {
-          setState(() {
-            _isDrawingPolygon = true;
-            _polygonPoints.clear();
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✍️ MODO DIBUJO: Toca el mapa para colocar vértices del polígono'),
-              backgroundColor: KazaTheme.accentGold,
-              duration: Duration(seconds: 4),
-            ),
-          );
-        },
-      ),
-    );
   }
 
   void _showClusterBottomSheet(PropertyMapItem clusterItem) {
@@ -143,10 +116,87 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  void _showPriceFilter() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => PriceFilterSheet(
+        initialRange: _priceRange,
+        onApply: (range) {
+          setState(() => _priceRange = range);
+        },
+      ),
+    );
+  }
+
+  void _showRoomsFilter() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => RoomsFilterSheet(
+        initialRooms: _minRooms,
+        onApply: (rooms) {
+          setState(() => _minRooms = rooms);
+        },
+      ),
+    );
+  }
+
+  void _showLayersSelector() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => LayersSelectorSheet(
+        showProperties: _showProperties,
+        showPoi: _showPoi,
+        showTransport: _showTransport,
+        showEducation: _showEducation,
+        showHealth: _showHealth,
+        showCommerce: _showCommerce,
+        showNeighborhoods: _showNeighborhoods,
+        onApply: ({
+          bool showProperties = true,
+          bool showPoi = false,
+          bool showTransport = false,
+          bool showEducation = false,
+          bool showHealth = false,
+          bool showCommerce = false,
+          bool showNeighborhoods = false,
+        }) {
+          setState(() {
+            _showProperties = showProperties;
+            _showPoi = showPoi;
+            _showTransport = showTransport;
+            _showEducation = showEducation;
+            _showHealth = showHealth;
+            _showCommerce = showCommerce;
+            _showNeighborhoods = showNeighborhoods;
+          });
+        },
+      ),
+    );
+  }
+
+  List<PropertyMapItem> _filterProperties(List<PropertyMapItem> properties) {
+    return properties.where((prop) {
+      // 1. Filter by operation
+      final opLower = prop.operation.toLowerCase();
+      if (_selectedOperation == 'Comprar' && !opLower.contains('venta') && !opLower.contains('vender')) return false;
+      if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar')) return false;
+      if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético') && !opLower.contains('anticret')) return false;
+
+      // 2. Filter by min rooms
+      if (_minRooms > 0 && prop.bedrooms < _minRooms) return false;
+
+      return true;
+    }).toList();
+  }
+
   List<PropertyMapItem> _clusterProperties(List<PropertyMapItem> items, double zoom) {
     if (items.isEmpty) return [];
     
-    // Si zoom > 16, usar un grid diminuto para agrupar solo los que tienen coordenadas IDÉNTICAS
+    // At high zoom, use tiny grid to only group identical coordinates
     double gridSize = zoom > 16.0 ? 0.00001 : (0.005 * math.pow(2, 14 - zoom));
     
     Map<String, List<PropertyMapItem>> grid = {};
@@ -196,318 +246,207 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Base Map Viewport
+          // ━━━ 1. BASE MAP VIEWPORT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           propertiesAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: KazaTheme.primaryTealLight),
+            loading: () => Stack(
+              children: [
+                _buildBaseMap([], []),
+                const MapSearchingState(),
+              ],
             ),
-            error: (err, stack) => Center(
-              child: Text('Error al cargar datos del mapa: $err'),
+            error: (err, stack) => Stack(
+              children: [
+                _buildBaseMap([], []),
+                MapNoConnectionState(
+                  onRetry: () => ref.invalidate(mapPropertiesProvider),
+                ),
+              ],
             ),
             data: (properties) {
-              final filteredProperties = properties.where((prop) {
-                // 1. Filtrar por Operación (Comprar/Alquilar/Anticrético)
-                final opLower = prop.operation.toLowerCase();
-                if (_selectedOperation == 'Comprar' && !opLower.contains('venta') && !opLower.contains('vender')) return false;
-                if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar')) return false;
-                if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético') && !opLower.contains('anticret')) return false;
-
-                // 2. Filtrar por Categoría
-                if (_selectedCategory != 'Todos' && _selectedCategory != 'Más') {
-                  final tLower = prop.type.toLowerCase();
-                  if (_selectedCategory == 'Casa' && !tLower.contains('casa')) return false;
-                  if (_selectedCategory == 'Dpto.' && !tLower.contains('departamento') && !tLower.contains('condominio')) return false;
-                  if (_selectedCategory == 'Terreno' && !tLower.contains('terreno') && !tLower.contains('lote')) return false;
-                  if (_selectedCategory == 'Local' && !tLower.contains('comercial') && !tLower.contains('local')) return false;
-                  if (_selectedCategory == 'Oficina' && !tLower.contains('oficina')) return false;
-                }
-                
-                return true;
-              }).toList();
-
+              final filteredProperties = _filterProperties(properties);
               final clusteredProperties = _clusterProperties(filteredProperties, _currentZoom);
 
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: _initialCenter,
-                  initialZoom: 13.5,
-                  onTap: _onMapTap,
-                  onPositionChanged: (camera, hasGesture) {
-                    if ((_currentZoom - camera.zoom).abs() > 0.5) {
-                      setState(() {
-                        _currentZoom = camera.zoom;
-                      });
-                    }
-                  },
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                    subdomains: const ['a', 'b', 'c', 'd'],
-                    userAgentPackageName: 'com.kaza.app',
-                  ),
-
-                  // Polygon Layer
-                  if (_polygonPoints.isNotEmpty)
-                    PolygonLayer(
-                      polygons: [
-                        Polygon(
-                          points: _polygonPoints,
-                          color: KazaTheme.primaryTeal.withValues(alpha: 0.25),
-                          borderColor: KazaTheme.primaryTealLight,
-                          borderStrokeWidth: 3,
-                        ),
-                      ],
+              if (filteredProperties.isEmpty && properties.isNotEmpty) {
+                return Stack(
+                  children: [
+                    _buildBaseMap([], []),
+                    MapNoResultsState(
+                      onModifySearch: () {
+                        setState(() {
+                          _selectedOperation = 'Comprar';
+                          _minRooms = 0;
+                          _priceRange = const RangeValues(0, 1000000);
+                        });
+                      },
                     ),
+                  ],
+                );
+              }
 
-                  // Marker Layer con Pines Distintivos por Tipo (Casa, Departamento, Terreno, Oficina)
-                  // Badge numérico muestra cuántas propiedades hay en cada pin (WM-01 v0.2)
-                  MarkerLayer(
-                    markers: clusteredProperties.map((prop) {
-                      final isSelected = _selectedProperty?.id == prop.id;
-                      final typeIcon = _getIconForType(prop.type);
-                      final hasCluster = prop.propertyCount > 1;
+              // Build POI markers
+              final poiMarkers = (_showPoi || _showEducation || _showHealth || _showCommerce || _showTransport)
+                  ? PoiLayerBuilder.buildMarkers(
+                      pois: _mockPois,
+                      showEducation: _showEducation || _showPoi,
+                      showHealth: _showHealth || _showPoi,
+                      showCommerce: _showCommerce || _showPoi,
+                      showTransport: _showTransport || _showPoi,
+                    )
+                  : <Marker>[];
 
-                      return Marker(
-                        point: prop.location,
-                        width: isSelected ? 135 : (hasCluster ? 56 : 44),
-                        height: isSelected ? 48 : (hasCluster ? 56 : 48),
-                        child: GestureDetector(
-                          onTap: () {
-                            if (hasCluster) {
-                              _showClusterBottomSheet(prop);
-                            } else {
-                              setState(() => _selectedProperty = prop);
-                            }
-                          },
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            child: isSelected
-                                ? Container(
-                                    key: ValueKey('sel_${prop.id}'),
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: KazaTheme.accentGold,
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2.5,
-                                      ),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black54,
-                                          blurRadius: 8,
-                                          offset: Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.black12,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            typeIcon,
-                                            size: 14,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          prop.price,
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : SizedBox(
-                                    key: ValueKey('unsel_${prop.id}'),
-                                    width: hasCluster ? 56 : 38,
-                                    height: hasCluster ? 56 : 48,
-                                    child: CustomPaint(
-                                      painter: KazaPinPainter(
-                                        icon: typeIcon,
-                                        isSelected: false,
-                                        propertyCount: prop.propertyCount,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              );
+              return _buildBaseMap(clusteredProperties, poiMarkers);
             },
           ),
 
-          // 2. Top Floating Bar — Responsive search + filters
+          // ━━━ 2. TOP SEARCH BAR + FLOATING FILTERS ━━━━━━━━━━━━━━━━━━━━━━━
           SafeArea(
-            child: Builder(
-              builder: (ctx) {
-                final hPad = KazaResponsive.horizontalPadding(ctx);
-                final isTablet = KazaResponsive.isTablet(ctx);
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 10.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-              // ── KAZA Logo flotante sobre el mapa ───────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: KazaResponsive.horizontalPadding(context),
+                vertical: 10,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo animado (GIF)
+                  // Search bar
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(27),
                       boxShadow: const [
                         BoxShadow(
                           color: Colors.black12,
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: const KazaAnimatedLogo(width: 54, height: 48, fit: BoxFit.cover),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        const Icon(Icons.search_rounded, color: KazaTheme.grisMedio, size: 22),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: TextField(
+                            style: TextStyle(fontSize: 14, color: KazaTheme.azulKaza),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar barrio, dirección o zona',
+                              hintStyle: TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w400,
+                                fontSize: 14,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                     ),
                   ),
-                  // Tagline pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: KazaTheme.azulKaza.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'Más que un lugar.',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  const SizedBox(height: 10),
+                  // Floating filter pills
+                  FloatingFilters(
+                    selectedOperation: _selectedOperation,
+                    onOperationChanged: (op) {
+                      setState(() => _selectedOperation = op);
+                    },
+                    onPriceTap: _showPriceFilter,
+                    onRoomsTap: _showRoomsFilter,
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              // Row 1: Search Bar
-                      Container(
-                        height: isTablet ? 54 : 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(27),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 16),
-                            const Icon(Icons.search_rounded, color: KazaTheme.azulKaza, size: 22),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextField(
-                                style: TextStyle(fontSize: isTablet ? 15 : 14),
-                                decoration: const InputDecoration(
-                                  hintText: '¿Dónde quieres buscar?',
-                                  hintStyle: TextStyle(
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.tune_rounded, color: KazaTheme.azulKaza, size: 22),
-                              onPressed: _openFilterBottomSheet,
-                            ),
-                            const SizedBox(width: 4),
-                          ],
-                        ),
-                      ),
-
-                      // Se eliminaron las pastillas de filtros rápidos para mantener el diseño "01 MAPA / DESCUBRIMIENTO" limpio
-                    ],
-                  ),
-                );
-              },
             ),
           ),
 
-          // 3. Floating Polygon Drawing Controls (When in drawing mode)
+          // ━━━ 3. POLYGON DRAWING CONTROLS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           if (_isDrawingPolygon)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 140,
+              bottom: 100,
               left: KazaResponsive.horizontalPadding(context),
               right: KazaResponsive.horizontalPadding(context),
-              child: Card(
-                color: KazaTheme.cardSurface.withValues(alpha: 0.95),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.draw, color: KazaTheme.accentGold),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Vértices: ${_polygonPoints.length}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Dibuja el área que\nquieres explorar',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: KazaTheme.azulKaza,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: KazaTheme.azulKaza,
+                              side: const BorderSide(color: KazaTheme.n100),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: _clearPolygon,
+                            child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: _clearPolygon,
-                        child: const Text('Limpiar', style: TextStyle(color: Colors.redAccent)),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: KazaTheme.primaryTeal),
-                        onPressed: _polygonPoints.length >= 3 ? _applyPolygonFilter : null,
-                        child: const Text('Aplicar Área'),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: KazaTheme.azulKaza,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: _polygonPoints.length >= 3 ? _applyPolygonFilter : null,
+                            child: const Text('Buscar aquí', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
 
-          // 4. Floating Action Buttons (Near me & Viewport Refresh)
+          // ━━━ 4. RIGHT-SIDE ACTION BUTTONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           Positioned(
             right: KazaResponsive.horizontalPadding(context),
-            bottom: _selectedProperty != null
-                ? KazaResponsive.mapPropertyCardHeight(context) + 100
-                : 20,
+            bottom: _selectedProperty != null ? 260 : (_showListOverlay ? 320 : 24),
             child: Column(
               children: [
-                FloatingActionButton.small(
+                // Layers button
+                _MapActionButton(
+                  heroTag: 'layers_btn',
+                  icon: Icons.layers_rounded,
+                  onTap: _showLayersSelector,
+                ),
+                const SizedBox(height: 8),
+                // Draw polygon button
+                _MapActionButton(
                   heroTag: 'draw_poly_btn',
-                  backgroundColor: _isDrawingPolygon ? KazaTheme.accentGold : KazaTheme.cardSurface,
-                  child: Icon(Icons.draw, color: _isDrawingPolygon ? Colors.black : KazaTheme.primaryTealLight),
-                  onPressed: () {
+                  icon: Icons.draw_rounded,
+                  isActive: _isDrawingPolygon,
+                  onTap: () {
                     setState(() {
                       _isDrawingPolygon = !_isDrawingPolygon;
                       if (!_isDrawingPolygon) _polygonPoints.clear();
@@ -515,38 +454,78 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                FloatingActionButton.small(
+                // My location button
+                _MapActionButton(
                   heroTag: 'near_me',
-                  backgroundColor: KazaTheme.cardSurface,
-                  child: const Icon(Icons.my_location, color: KazaTheme.primaryTealLight),
-                  onPressed: () {
+                  icon: Icons.my_location_rounded,
+                  onTap: () {
                     _mapController.move(_initialCenter, 14);
-                  },
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'refresh_area',
-                  backgroundColor: KazaTheme.cardSurface,
-                  child: const Icon(Icons.refresh, color: KazaTheme.textPrimary),
-                  onPressed: () {
-                    ref.invalidate(mapPropertiesProvider);
                   },
                 ),
               ],
             ),
           ),
 
-          // 5. Bottom Property Preview Card — adapts width on tablets
+          // ━━━ 5. LIST TOGGLE BUTTON (Left side) ━━━━━━━━━━━━━━━━━━━━━━━━━━
+          if (!_isDrawingPolygon && _selectedProperty == null)
+            Positioned(
+              left: KazaResponsive.horizontalPadding(context),
+              bottom: _showListOverlay ? 320 : 24,
+              child: _MapActionButton(
+                heroTag: 'list_toggle',
+                icon: _showListOverlay ? Icons.map_rounded : Icons.list_rounded,
+                onTap: () {
+                  setState(() => _showListOverlay = !_showListOverlay);
+                },
+              ),
+            ),
+
+          // ━━━ 6. LIST OVERLAY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          if (_showListOverlay)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: MediaQuery.of(context).size.height * 0.4,
+              child: propertiesAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (properties) {
+                  final filtered = _filterProperties(properties);
+                  return MapListOverlay(
+                    properties: filtered,
+                    onClose: () => setState(() => _showListOverlay = false),
+                    onPropertyTap: (prop) {
+                      setState(() {
+                        _selectedProperty = prop;
+                        _showListOverlay = false;
+                      });
+                      _mapController.move(prop.location, 16);
+                    },
+                    onFavoriteTap: (prop) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${prop.title} guardado'),
+                          backgroundColor: KazaTheme.azulKaza,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+
+          // ━━━ 7. PROPERTY PREVIEW CARD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           if (_selectedProperty != null)
             Positioned(
-              left: KazaResponsive.isTablet(context)
-                  ? MediaQuery.of(context).size.width * 0.22
-                  : KazaResponsive.horizontalPadding(context),
-              right: KazaResponsive.isTablet(context)
-                  ? MediaQuery.of(context).size.width * 0.22
-                  : KazaResponsive.horizontalPadding(context),
+              left: KazaResponsive.horizontalPadding(context),
+              right: KazaResponsive.horizontalPadding(context),
               bottom: KazaResponsive.bottomSafeArea(context) + 12,
-              child: GestureDetector(
+              child: _PropertyPreviewCard(
+                property: _selectedProperty!,
+                onClose: () => setState(() => _selectedProperty = null),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -555,121 +534,379 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   );
                 },
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 8,
-                  shadowColor: Colors.black26,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Imagen (Header)
-                      Stack(
-                        children: [
-                          Container(
-                            height: 140,
-                            color: Colors.grey.shade300,
-                            width: double.infinity,
-                            child: Icon(_getIconForType(_selectedProperty!.type), color: Colors.white54, size: 48),
-                          ),
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black54,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _selectedProperty!.operation,
-                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4)]),
-                              onPressed: () => setState(() => _selectedProperty = null),
-                            ),
-                          ),
-                        ],
+                onConsultPrice: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PropertyDetailScreen(property: _selectedProperty!),
+                    ),
+                  );
+                },
+                onFavorite: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${_selectedProperty!.title} guardado'),
+                      backgroundColor: KazaTheme.azulKaza,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the base map with tile layer, polygon, and markers
+  Widget _buildBaseMap(List<PropertyMapItem> clusteredProperties, List<Marker> poiMarkers) {
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: _initialCenter,
+        initialZoom: 13.5,
+        onTap: _onMapTap,
+        onPositionChanged: (camera, hasGesture) {
+          if ((_currentZoom - camera.zoom).abs() > 0.5) {
+            setState(() {
+              _currentZoom = camera.zoom;
+            });
+          }
+        },
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          subdomains: const ['a', 'b', 'c', 'd'],
+          userAgentPackageName: 'com.kaza.app',
+        ),
+
+        // Polygon Layer
+        if (_polygonPoints.isNotEmpty)
+          PolygonLayer(
+            polygons: [
+              Polygon(
+                points: _polygonPoints,
+                color: KazaTheme.azulKaza.withValues(alpha: 0.12),
+                borderColor: KazaTheme.azulKaza.withValues(alpha: 0.6),
+                borderStrokeWidth: 2.5,
+              ),
+            ],
+          ),
+
+        // Property Marker Layer
+        if (_showProperties)
+          MarkerLayer(
+            markers: clusteredProperties.map((prop) {
+              final isSelected = _selectedProperty?.id == prop.id;
+              final typeIcon = _getIconForType(prop.type);
+              final hasCluster = prop.propertyCount > 1;
+
+              return Marker(
+                point: prop.location,
+                width: hasCluster ? 52 : 40,
+                height: hasCluster ? 52 : 48,
+                child: GestureDetector(
+                  onTap: () {
+                    if (hasCluster) {
+                      _showClusterBottomSheet(prop);
+                    } else {
+                      setState(() => _selectedProperty = prop);
+                    }
+                  },
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: SizedBox(
+                      key: ValueKey('${prop.id}_$isSelected'),
+                      width: hasCluster ? 52 : 40,
+                      height: hasCluster ? 52 : 48,
+                      child: CustomPaint(
+                        painter: KazaPinPainter(
+                          icon: typeIcon,
+                          isSelected: isSelected,
+                          propertyCount: prop.propertyCount,
+                        ),
                       ),
-                      // Detalles
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedProperty!.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_selectedProperty!.bedrooms} dorm. · ${_selectedProperty!.surface} · ${_selectedProperty!.type}',
-                              style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _selectedProperty!.address ?? 'Sin dirección específica',
-                              style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _selectedProperty!.price,
-                              style: const TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.w900, fontSize: 16),
-                            ),
-                            const SizedBox(height: 12),
-                            // Botones de acción
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: KazaTheme.azulKaza,
-                                      side: const BorderSide(color: KazaTheme.azulKaza),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => PropertyDetailScreen(property: _selectedProperty!),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('Ver detalle'),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: KazaTheme.azulKaza,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    ),
-                                    onPressed: () {},
-                                    child: const Text('Contactar'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+        // POI Marker Layer
+        if (poiMarkers.isNotEmpty)
+          MarkerLayer(markers: poiMarkers),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROPERTY PREVIEW CARD — "12 CONSULTAR PRECIO" + "16 PREVIEW EN MAPA"
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _PropertyPreviewCard extends StatelessWidget {
+  final PropertyMapItem property;
+  final VoidCallback onClose;
+  final VoidCallback onTap;
+  final VoidCallback onConsultPrice;
+  final VoidCallback onFavorite;
+
+  const _PropertyPreviewCard({
+    required this.property,
+    required this.onClose,
+    required this.onTap,
+    required this.onConsultPrice,
+    required this.onFavorite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 16,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image + Close + Favorite buttons
+            Stack(
+              children: [
+                // Image
+                property.imageUrl != null
+                    ? Image.network(
+                        property.imageUrl!,
+                        height: 140,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                      )
+                    : _imagePlaceholder(),
+                // Close button
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: _CircleButton(
+                    icon: Icons.close,
+                    onTap: onClose,
+                  ),
+                ),
+                // Favorite button
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _CircleButton(
+                    icon: Icons.favorite_border_rounded,
+                    onTap: onFavorite,
+                  ),
+                ),
+              ],
+            ),
+            // Info
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    property.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: KazaTheme.azulKaza,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // Address
+                  Text(
+                    property.address ?? 'Sin dirección específica',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: KazaTheme.grisMedio,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Metrics row
+                  Row(
+                    children: [
+                      _MetricChip(icon: Icons.straighten_rounded, label: property.surface),
+                      const SizedBox(width: 12),
+                      _MetricChip(icon: Icons.king_bed_outlined, label: '${property.bedrooms} amb.'),
+                      const SizedBox(width: 12),
+                      _MetricChip(icon: Icons.bathtub_outlined, label: '${property.bathrooms} baño${property.bathrooms != 1 ? 's' : ''}'),
+                      if (property.floorsTotal > 1) ...[
+                        const SizedBox(width: 12),
+                        _MetricChip(icon: Icons.apartment_rounded, label: '${property.floorsTotal}° piso'),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Consult price button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KazaTheme.azulKaza,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      onPressed: onConsultPrice,
+                      child: const Text(
+                        'Consultar precio',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Save prompt
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.favorite_border_rounded, size: 14, color: KazaTheme.grisMedio),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Guarda esta propiedad para seguirla y recibir novedades',
+                        style: TextStyle(
+                          color: KazaTheme.grisMedio,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder() {
+    return Container(
+      height: 140,
+      color: const Color(0xFFF0F4F8),
+      width: double.infinity,
+      child: const Icon(Icons.home_work_rounded, color: Colors.black12, size: 48),
+    );
+  }
+}
+
+/// Small circular button overlay on image
+class _CircleButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _CircleButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          shape: BoxShape.circle,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 18, color: KazaTheme.azulKaza),
+      ),
+    );
+  }
+}
+
+/// Metric chip (surface, rooms, bathrooms, floor)
+class _MetricChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetricChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: KazaTheme.grisMedio),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: KazaTheme.azulKaza,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Floating action button for map controls
+class _MapActionButton extends StatelessWidget {
+  final String heroTag;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isActive;
+
+  const _MapActionButton({
+    required this.heroTag,
+    required this.icon,
+    required this.onTap,
+    this.isActive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isActive ? KazaTheme.azulKaza : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: isActive ? Colors.white : KazaTheme.azulKaza,
+          size: 22,
+        ),
       ),
     );
   }
