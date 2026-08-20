@@ -110,21 +110,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 16),
           const Text('Cambiar contexto no cambia la identidad de tu cuenta.', style: TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
 
-          if (_selectedCapacity == 'Propietario' || _selectedCapacity == 'Agente') ...[
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () {
-                context.push('/my-listings');
+                checkProgressiveAuth(
+                  context: context,
+                  ref: ref,
+                  actionName: 'Ver tus Guardados',
+                  onAuthenticatedAction: () => context.push('/saved'),
+                );
               },
-              icon: const Icon(Icons.maps_home_work_outlined, color: Colors.redAccent),
-              label: const Text('Gestionar mis publicaciones', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.favorite_border_rounded, color: KazaTheme.azulKaza),
+              label: const Text('Propiedades guardadas', style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.redAccent),
+                side: const BorderSide(color: KazaTheme.azulKaza),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-          ],
+            if (_selectedCapacity == 'Propietario' || _selectedCapacity == 'Agente') ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => context.push('/my-listings'),
+                icon: const Icon(Icons.maps_home_work_outlined, color: Colors.redAccent),
+                label: const Text('Gestionar mis publicaciones', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.redAccent),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
 
           const SizedBox(height: 32),
 

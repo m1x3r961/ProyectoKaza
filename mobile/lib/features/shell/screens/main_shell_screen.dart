@@ -60,22 +60,12 @@ class MainShellScreen extends ConsumerWidget {
                 screenWidth: screenWidth,
                 onTap: () => navigationShell.goBranch(1),
               ),
+              
+              // ── BOTÓN CENTRAL: PUBLICAR ─────────────────────────────
+              _buildPublishItem(context, ref, screenWidth),
+              
               _buildNavItem(
                 index: 2,
-                icon: Icons.favorite_border_rounded,
-                activeIcon: Icons.favorite_rounded,
-                label: 'Guardados',
-                currentIndex: currentIndex,
-                screenWidth: screenWidth,
-                onTap: () => checkProgressiveAuth(
-                  context: context,
-                  ref: ref,
-                  actionName: 'Ver tus Guardados',
-                  onAuthenticatedAction: () => navigationShell.goBranch(2),
-                ),
-              ),
-              _buildNavItem(
-                index: 3,
                 icon: Icons.compare_arrows_rounded,
                 activeIcon: Icons.compare_arrows_rounded,
                 label: 'Comparar',
@@ -85,17 +75,17 @@ class MainShellScreen extends ConsumerWidget {
                   context: context,
                   ref: ref,
                   actionName: 'Comparar propiedades',
-                  onAuthenticatedAction: () => navigationShell.goBranch(3),
+                  onAuthenticatedAction: () => navigationShell.goBranch(2),
                 ),
               ),
               _buildNavItem(
-                index: 4,
+                index: 3,
                 icon: Icons.person_outline_rounded,
                 activeIcon: Icons.person_rounded,
                 label: 'Perfil',
                 currentIndex: currentIndex,
                 screenWidth: screenWidth,
-                onTap: () => navigationShell.goBranch(4),
+                onTap: () => navigationShell.goBranch(3),
               ),
             ],
           ),
@@ -140,6 +130,50 @@ class MainShellScreen extends ConsumerWidget {
                   color: isSelected ? KazaTheme.azulKaza : KazaTheme.grisMedio,
                   fontSize: screenWidth < 380 ? 10 : 11,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildPublishItem(BuildContext context, WidgetRef ref, double screenWidth) {
+    final showLabel = screenWidth >= 340;
+    
+    return GestureDetector(
+      onTap: () {
+        checkProgressiveAuth(
+          context: context,
+          ref: ref,
+          actionName: 'Publicar una propiedad',
+          onAuthenticatedAction: () => context.push('/publish'),
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 32,
+              decoration: BoxDecoration(
+                color: KazaTheme.azulKaza,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+            ),
+            if (showLabel) ...[
+              const SizedBox(height: 3),
+              Text(
+                'Publicar',
+                style: TextStyle(
+                  color: KazaTheme.azulKaza,
+                  fontSize: screenWidth < 380 ? 10 : 11,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],

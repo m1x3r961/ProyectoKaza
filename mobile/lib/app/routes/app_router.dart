@@ -5,6 +5,7 @@ import '../../features/shell/screens/kaza_splash_screen.dart';
 import '../../features/map/screens/map_screen.dart';
 import '../../features/map/screens/search_screen.dart';
 import '../../features/saved/screens/saved_screen.dart';
+import '../../features/publish/screens/publish_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
@@ -47,17 +48,7 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Tab 2: GUARDADOS
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/saved',
-              builder: (context, state) => const SavedScreen(),
-            ),
-          ],
-        ),
-
-        // Tab 3: COMPARAR
+        // Tab 2: COMPARAR
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -81,6 +72,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/my-listings',
       builder: (context, state) => const MyListingsScreen(),
+    ),
+    GoRoute(
+      path: '/saved',
+      builder: (context, state) => const SavedScreen(),
+    ),
+    GoRoute(
+      path: '/publish',
+      builder: (context, state) => const PublishScreen(),
     ),
   ],
 );
