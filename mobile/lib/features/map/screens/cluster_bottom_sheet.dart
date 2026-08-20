@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../providers/map_properties_provider.dart';
-import 'property_detail_screen.dart';
+import 'property_state_wrapper.dart';
 
 /// 🏢 BUILDING STACK BOTTOM SHEET — "09 BUILDING STACK"
 /// Shows building/cluster details with list of units.
@@ -114,7 +114,12 @@ class ClusterBottomSheet extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => PropertyDetailScreen(property: item)),
+                      MaterialPageRoute(
+                        builder: (_) => PropertyStateWrapper(
+                          propertyId: item.id,
+                          preloadedProperty: item,
+                        ),
+                      ),
                     );
                   },
                 );

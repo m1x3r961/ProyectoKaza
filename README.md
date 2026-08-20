@@ -131,3 +131,138 @@ CREATE TABLE public.listings (
 2. **Supabase como Acelerador de Infraestructura:** Elimina la necesidad de programar servidores de autenticación, almacenamiento de imágenes o infraestructura de WebSockets desde cero.
 3. **Flutter como Front Único:** Permite rendimiento táctil cercano al nativo de 60-120 FPS para el renderizado geoespacial del mapa.
 4. **Next.js para el Backoffice:** Framework idóneo para paneles administrativos web con renderizado rápido en servidor (SSR), dashboards con gráficos y gestión de auditoría `AdminCase`.
+
+---
+
+## 🗂️ DEV11-E · Estados Representativos del Sistema
+
+> **Estados representativos del sistema para asegurar claridad, confianza y recuperación.**
+
+| 🎯 Claridad | ✅ Confianza | 🎛️ Control | 🔄 Recuperación | ♿ Accesibilidad |
+|:---|:---|:---|:---|:---|
+| Estados predecibles | Mensajes honestos | Acciones claras | Siempre posible | WCAG 2.2 AA |
+
+---
+
+### Estados de la Interfaz
+
+| # | Estado | Descripción |
+|:--|:---|:---|
+| **01** | ⏳ **Loading** | El sistema está cargando contenido. |
+| **02** | 🔍 **Empty** | No hay resultados para la búsqueda. |
+| **03** | ⚠️ **Error** | Ocurrió un error inesperado. |
+| **04** | 🔒 **Restricted** | El contenido está restringido por políticas o región. |
+| **05** | 📍 **Permission Required** | Se requiere un permiso del dispositivo. |
+| **06** | ⭐ **Entitlement Required** | Se requiere un plan o permiso (no es tu rol). |
+| **07** | 📡 **Offline** | No hay conexión a internet. |
+| **08** | 📋 **Partial Data** | La información está incompleta. |
+| **09** | ❓ **Unknown** | La información no está disponible. |
+| **10** | ✅ **Confirmation Required** | Acción sensible que requiere confirmación. |
+| **11** | 🎉 **Backend Success** | Acción completada correctamente. |
+| **12** | 🔗 **Deep Link Reauthorization** | El enlace requiere revalidación. |
+
+---
+
+### 📱 Detalle de cada Estado
+
+#### 01 · Loading
+**Cargando KAZA** — Preparando el mapa…
+
+#### 02 · Empty
+> *No encontramos propiedades — Intenta ajustar los filtros o ampliar la búsqueda.*
+
+Acciones: **Ajustar filtros** · Iniciar búsqueda
+
+#### 03 · Error
+> *Algo salió mal — No pudimos cargar la información. Inténtalo nuevamente.*
+
+Acciones: **Solucionar** · Si el sitio…
+
+#### 04 · Restricted
+> *Contenido no disponible — Este contenido no está disponible en tu zona o región.*
+
+Acciones: **Explorar otras zonas** · Más información
+
+#### 05 · Permission Required
+> *Necesitamos tu ubicación — Para mostrarte propiedades cercanas activa el permiso de ubicación.*
+
+Acciones: **Ir a Configuración** · Ahora no
+
+#### 06 · Entitlement Required
+> *Función exclusiva — Esta función está disponible para usuarios Plus, Pro o Business.*
+
+Acciones: **Ver planes** · Más información
+
+#### 07 · Offline
+> *Sin conexión — Verifica tu conexión a internet e intenta nuevamente.*
+
+Acciones: **Solucionar** · Ver contenido guardado
+
+#### 08 · Partial Data
+> *Información parcial — Mostramos información con datos incompletos.*
+>
+> ⚠️ *Actualizado hace 7 días — Algunos números pueden variar.*
+
+Acciones: **Actualizar datos**
+
+#### 09 · Unknown
+> *Información no disponible — Aún no tenemos datos para esta propiedad o zona.*
+
+Acciones: **Explorar otras zonas**
+
+#### 10 · Confirmation Required
+> **Departamento de Budapest** — *¿Estás seguro? Vas a eliminar esta publicación. Esta acción no se puede deshacer.*
+
+Acciones: **Sí, eliminar** · Cancelar
+
+#### 11 · Backend Success
+> *¡Listo! — Tu publicación fue publicada correctamente.*
+
+Acciones: **Ver publicación** · Compartir
+
+#### 12 · Deep Link Reauthorization
+> *Revalidando acceso — Estamos verificando tu acceso a este contenido.*
+
+---
+
+### 🔣 Iconografía de Estados
+
+| Ícono | Tipo |
+|:---:|:---|
+| ℹ️ | Información |
+| ✅ | Éxito |
+| ⚠️ | Advertencia |
+| ❌ | Error |
+| 🔒 | Bloqueo |
+| ❓ | Desconocido |
+
+---
+
+### 🗣️ Tono de Mensajes
+
+- ✅ Honesto y transparente
+- ✅ Sin culpa, sin alarmismo
+- ✅ Informa el problema y la solución
+- ✅ Respeta el tiempo del usuario
+- ✅ Siempre orientado a la acción
+
+---
+
+### 📏 Reglas Clave
+
+- ❌ Nunca ocultar errores
+- ❌ Nunca dejar pantallas en blanco
+- ❌ Nunca confundir *Loading* con *Rol*
+- ❌ Los estados no deben parecer promociones
+- ❌ No usar dark patterns
+
+---
+
+### ⚠️ Nota Importante
+
+> Los estados son parte del **producto**, no excepciones ni experiencias.
+> Diseñados para generar **confianza** en cada situación.
+
+---
+
+*DEV11-E · Representative States · v0.1 — Parte del Prototipo KAZA · P03*

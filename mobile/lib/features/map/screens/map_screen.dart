@@ -12,7 +12,7 @@ import '../widgets/layers_selector_sheet.dart';
 import '../widgets/map_empty_states.dart';
 import '../widgets/map_list_toggle.dart';
 import '../widgets/poi_layer_widget.dart';
-import 'property_detail_screen.dart';
+import 'property_state_wrapper.dart';
 import 'cluster_bottom_sheet.dart';
 
 /// 🗺️ MAPA (Home) — KAZA Map-First Experience
@@ -530,7 +530,10 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => PropertyDetailScreen(property: _selectedProperty!),
+                      builder: (_) => PropertyStateWrapper(
+                        propertyId: _selectedProperty!.id,
+                        preloadedProperty: _selectedProperty,
+                      ),
                     ),
                   );
                 },
@@ -538,7 +541,10 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => PropertyDetailScreen(property: _selectedProperty!),
+                      builder: (_) => PropertyStateWrapper(
+                        propertyId: _selectedProperty!.id,
+                        preloadedProperty: _selectedProperty,
+                      ),
                     ),
                   );
                 },
