@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
@@ -286,6 +287,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               child: PropertyDetailsSection(property: widget.property),
             ),
 
+            // ── 03a · Financiamiento Disponible ────────────────────────────
+            SliverToBoxAdapter(
+              child: _buildFinancingBanner(context),
+            ),
+
             // ── 03b · Plano 2D Interactivo ─────────────────────────────────
             SliverToBoxAdapter(
               child: _buildFloorPlanCard(),
@@ -439,6 +445,65 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
           Text(
             label,
             style: const TextStyle(fontSize: 10, color: KazaTheme.textSecondary, height: 1.3),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── FINANCING BANNER ───────────────────────────────────────────────────────
+  Widget _buildFinancingBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KazaTheme.azulKaza.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KazaTheme.azulKaza.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: KazaTheme.glassBorder)),
+                child: const Icon(Icons.account_balance_outlined, color: KazaTheme.azulKaza, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Financiamiento disponible', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
+                    Text('Conecta con entidades financieras', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                context.push('/financing');
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: KazaTheme.azulKaza),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Ver opciones de financiamiento', style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold)),
+                  SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded, color: KazaTheme.azulKaza, size: 18),
+                ],
+              ),
+            ),
           ),
         ],
       ),

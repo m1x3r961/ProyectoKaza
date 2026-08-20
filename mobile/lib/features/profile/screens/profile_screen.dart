@@ -128,6 +128,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                checkProgressiveAuth(
+                  context: context,
+                  ref: ref,
+                  actionName: 'Ver tus solicitudes de financiamiento',
+                  onAuthenticatedAction: () => context.push('/financing-requests'),
+                );
+              },
+              icon: const Icon(Icons.account_balance_outlined, color: KazaTheme.azulKaza),
+              label: const Text('Solicitudes de financiamiento', style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: KazaTheme.azulKaza),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
             if (_selectedCapacity == 'Propietario' || _selectedCapacity == 'Agente') ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(

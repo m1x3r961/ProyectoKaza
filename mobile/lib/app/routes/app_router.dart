@@ -6,6 +6,8 @@ import '../../features/map/screens/map_screen.dart';
 import '../../features/map/screens/search_screen.dart';
 import '../../features/saved/screens/saved_screen.dart';
 import '../../features/publish/screens/publish_screen.dart';
+import '../../features/financing/screens/financing_screen.dart';
+import '../../features/financing/screens/financing_requests_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
@@ -80,6 +82,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/publish',
       builder: (context, state) => const PublishScreen(),
+    ),
+    GoRoute(
+      path: '/financing',
+      builder: (context, state) => const FinancingScreen(),
+    ),
+    GoRoute(
+      path: '/financing-requests',
+      builder: (context, state) => const FinancingRequestsScreen(),
     ),
   ],
 );
