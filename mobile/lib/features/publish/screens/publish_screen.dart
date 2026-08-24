@@ -174,8 +174,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
       ref.invalidate(mapPropertiesProvider);
       
-      // Go to success step (12)
-      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      // Redirigir directamente al mapa después de publicar exitosamente
+      if (mounted) context.go('/map');
     } catch (e) {
       _showError('Error al publicar: $e');
     } finally {
