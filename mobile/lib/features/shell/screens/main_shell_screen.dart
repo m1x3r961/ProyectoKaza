@@ -25,6 +25,24 @@ class MainShellScreen extends ConsumerWidget {
 
     return Scaffold(
       body: navigationShell,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 8.0), // Un pequeño padding sobre el nav
+        child: FloatingActionButton(
+          onPressed: () => context.push('/ai-hub'),
+          backgroundColor: KazaTheme.azulKaza,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: KazaTheme.coralKaza, width: 2), // Toque naranja/coral
+          ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
       bottomNavigationBar: Container(
         height: navHeight + bottomSafe,
         decoration: const BoxDecoration(

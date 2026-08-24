@@ -8,6 +8,8 @@ import '../../features/saved/screens/saved_screen.dart';
 import '../../features/publish/screens/publish_screen.dart';
 import '../../features/financing/screens/financing_screen.dart';
 import '../../features/financing/screens/financing_requests_screen.dart';
+import '../../features/ai_assistant/screens/ai_hub_screen.dart';
+import '../../features/ai_assistant/screens/ai_chat_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
@@ -90,6 +92,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/financing-requests',
       builder: (context, state) => const FinancingRequestsScreen(),
+    ),
+    GoRoute(
+      path: '/ai-hub',
+      builder: (context, state) => const AiHubScreen(),
+    ),
+    GoRoute(
+      path: '/ai-chat',
+      builder: (context, state) => const AiChatScreen(),
     ),
   ],
 );
