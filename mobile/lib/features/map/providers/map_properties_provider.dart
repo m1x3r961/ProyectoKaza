@@ -198,8 +198,8 @@ final mapPropertiesProvider = StreamProvider<List<PropertyMapItem>>((ref) async*
       for (final row in response) {
         try {
           final item = _rowToItem(row);
-          final key = '${item.location.latitude.toStringAsFixed(4)}_${item.location.longitude.toStringAsFixed(4)}_${item.title.trim().toLowerCase()}';
-          if (!seenKeys.contains(key)) {
+          final key = item.id;
+          if (!seenKeys.contains(key) && key.isNotEmpty) {
             seenKeys.add(key);
             items.add(item);
           }
@@ -208,8 +208,8 @@ final mapPropertiesProvider = StreamProvider<List<PropertyMapItem>>((ref) async*
     } catch (_) {}
 
     for (final loc in localItems) {
-      final key = '${loc.location.latitude.toStringAsFixed(4)}_${loc.location.longitude.toStringAsFixed(4)}_${loc.title.trim().toLowerCase()}';
-      if (!seenKeys.contains(key)) {
+      final key = loc.id;
+      if (!seenKeys.contains(key) && key.isNotEmpty) {
         seenKeys.add(key);
         items.add(loc);
       }
