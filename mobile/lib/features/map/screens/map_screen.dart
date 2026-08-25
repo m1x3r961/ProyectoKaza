@@ -183,7 +183,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
       // 1. Filter by operation
       final opLower = prop.operation.toLowerCase();
       if (_selectedOperation == 'Comprar' && !opLower.contains('venta') && !opLower.contains('vender')) return false;
-      if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar')) return false;
+      if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar') && !opLower.contains('temporal')) return false;
       if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético') && !opLower.contains('anticret')) return false;
 
       // 2. Filter by min rooms
