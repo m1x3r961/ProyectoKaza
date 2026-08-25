@@ -434,6 +434,28 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
             bottom: _selectedProperty != null ? 260 : (_showListOverlay ? 320 : 24),
             child: Column(
               children: [
+                // Zoom In button
+                _MapActionButton(
+                  heroTag: 'zoom_in_btn',
+                  icon: Icons.add_rounded,
+                  onTap: () {
+                    final center = _mapController.camera.center;
+                    final zoom = (_currentZoom + 1.0).clamp(1.0, 18.0);
+                    _mapController.move(center, zoom);
+                  },
+                ),
+                const SizedBox(height: 8),
+                // Zoom Out button
+                _MapActionButton(
+                  heroTag: 'zoom_out_btn',
+                  icon: Icons.remove_rounded,
+                  onTap: () {
+                    final center = _mapController.camera.center;
+                    final zoom = (_currentZoom - 1.0).clamp(1.0, 18.0);
+                    _mapController.move(center, zoom);
+                  },
+                ),
+                const SizedBox(height: 8),
                 // Layers button
                 _MapActionButton(
                   heroTag: 'layers_btn',
