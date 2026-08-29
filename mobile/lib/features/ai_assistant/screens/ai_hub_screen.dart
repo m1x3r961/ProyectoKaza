@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../widgets/ai_disclaimer_sheet.dart';
+import '../screens/ai_chat_screen.dart';
 
 /// 01 HUB IMAGINA (Pantalla principal del asistente)
 class AiHubScreen extends StatelessWidget {
@@ -115,42 +116,82 @@ class AiHubScreen extends StatelessWidget {
                     icon: Icons.analytics_outlined,
                     title: 'Analizar una propiedad',
                     subtitle: 'Resumen técnico y de contexto',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AiChatScreen(
+                          initialMessage: '¿Puedes darme un análisis completo del mercado inmobiliario en Bolivia? Incluye tendencias de precios, oferta y demanda, y las propiedades disponibles actualmente en KAZA.',
+                        ),
+                      ),
+                    ),
                   ),
                   _buildMenuOption(
                     context,
                     icon: Icons.compare_arrows_rounded,
                     title: 'Comparar propiedades',
                     subtitle: 'Pros y contras lado a lado',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AiChatScreen(
+                          initialMessage: 'Quiero comparar las propiedades disponibles en KAZA. ¿Cuáles son las mejores opciones según precio, ubicación y características? Dame una comparación detallada.',
+                        ),
+                      ),
+                    ),
                   ),
                   _buildMenuOption(
                     context,
                     icon: Icons.location_city_rounded,
                     title: 'Entender el entorno',
                     subtitle: 'Servicios, conectividad y más',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AiChatScreen(
+                          initialMessage: 'Quiero entender el entorno urbano de las zonas donde KAZA tiene propiedades en Bolivia. ¿Qué barrios tienen mejor infraestructura, servicios, conectividad y calidad de vida?',
+                        ),
+                      ),
+                    ),
                   ),
                   _buildMenuOption(
                     context,
                     icon: Icons.trending_up_rounded,
                     title: 'Estimaciones de valor',
                     subtitle: 'Rango y metodología',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AiChatScreen(
+                          initialMessage: '¿Cuál es el rango de precios del mercado inmobiliario boliviano actualmente? Dame estimaciones de valor por zona, tipo de propiedad y tendencias de apreciación esperadas.',
+                        ),
+                      ),
+                    ),
                   ),
                   _buildMenuOption(
                     context,
                     icon: Icons.calendar_month_outlined,
                     title: 'Planificar una visita',
                     subtitle: 'Itinerarios y tiempo estimado',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AiChatScreen(
+                          initialMessage: 'Quiero planificar visitas a propiedades en Bolivia. ¿Qué propiedades de KAZA me recomiendas visitar primero? Dame consejos sobre qué evaluar durante la visita y cómo organizarme.',
+                        ),
+                      ),
+                    ),
                   ),
                   _buildMenuOption(
                     context,
                     icon: Icons.chat_bubble_outline_rounded,
                     title: 'Otras preguntas',
                     subtitle: 'Asistente general de Kaza',
-                    onTap: () => context.push('/ai-chat'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AiChatScreen(),
+                      ),
+                    ),
                   ),
                   
                   const SizedBox(height: 24),

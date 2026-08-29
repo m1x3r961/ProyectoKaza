@@ -605,7 +605,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${const String.fromEnvironment('CARTO_API_KEY', defaultValue: '')}',
           subdomains: const ['a', 'b', 'c', 'd'],
           userAgentPackageName: 'com.kaza.app',
         ),

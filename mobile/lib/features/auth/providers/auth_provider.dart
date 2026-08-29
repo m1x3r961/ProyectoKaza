@@ -42,8 +42,14 @@ class KazaAuthState {
 }
 
 class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
+  bool _pendingIsAgent = false;
+
   KazaAuthNotifier() : super(KazaAuthState()) {
     _initSupabaseAuth();
+  }
+
+  void setPendingRole({required String role}) {
+    _pendingIsAgent = role == 'AGENT';
   }
 
   void _initSupabaseAuth() {
@@ -57,13 +63,16 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
         if (sessionUser != null) {
           _setUser(sessionUser);
         } else if (data.event == AuthChangeEvent.signedOut) {
-          logout();
+          if (mounted) {
+            state = KazaAuthState();
+          }
         }
       });
     } catch (_) {}
   }
 
-  Future<void> _setUser(User user) async {
+  Future<void> _setUser(User user, {bool? isAgent}) async {
+    final finalIsAgent = isAgent ?? _pendingIsAgent;
     final name = user.userMetadata?['full_name'] ??
         user.userMetadata?['name'] ??
         user.email?.split('@').first ??
@@ -82,20 +91,22 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
         'p_email': email,
         'p_full_name': name,
-        'p_role': 'USER',
+        'p_system_role': 'USER',
+        'p_is_agent': finalIsAgent,
       });
     } catch (_) {
       try {
         await SupabaseConfig.client.from('profiles').upsert({
           'email': email,
           'full_name': name,
-          'role': 'USER',
+          'system_role': 'USER',
+          'is_agent': finalIsAgent,
         });
       } catch (_) {}
     }
   }
 
-  Future<void> loginDemoUser({required String email, String? name}) async {
+  Future<void> loginDemoUser({required String email, String? name, bool isAgent = false}) async {
     final fullName = name ?? email.split('@').first;
     state = state.copyWith(
       isAuthenticated: true,
@@ -124,14 +135,16 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
         'p_email': email,
         'p_full_name': fullName,
-        'p_role': 'USER',
+        'p_system_role': 'USER',
+        'p_is_agent': isAgent,
       });
     } catch (_) {
       try {
         await SupabaseConfig.client.from('profiles').upsert({
           'email': email,
           'full_name': fullName,
-          'role': 'USER',
+          'system_role': 'USER',
+          'is_agent': isAgent,
         });
       } catch (_) {}
     }
@@ -144,11 +157,14 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     );
   }
 
-  void logout() {
+  Future<void> logout() async {
+    if (!state.isAuthenticated) return;
     try {
-      SupabaseConfig.client.auth.signOut();
+      await SupabaseConfig.client.auth.signOut();
     } catch (_) {}
-    state = KazaAuthState();
+    if (mounted) {
+      state = KazaAuthState();
+    }
   }
 }
 

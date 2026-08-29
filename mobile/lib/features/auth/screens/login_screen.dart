@@ -5,8 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../providers/auth_provider.dart';
+import '../../onboarding/screens/onboarding_screen.dart';
 
-/// 🔐 LOGIN & REGISTRO PROGRESIVO - Screen oficial de Autenticación con Google y Perfiles
+/// 🔐 U02 CREACIÓN DE CUENTA - Secuencia Wizard sin roles ni contraseña.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -14,53 +15,30 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  // Rol seleccionado para registro: 'USER' (Buscador) vs 'AGENT' (Agente / Inmobiliaria)
-  String _selectedRole = 'USER';
-
-  // Controladores Usuario
-  final TextEditingController _loginEmailController = TextEditingController();
-  final TextEditingController _userEmailController = TextEditingController();
-
-  // Controladores Agente Profesional
-  final TextEditingController _agentNameController = TextEditingController();
-  final TextEditingController _agentEmailController = TextEditingController();
-  final TextEditingController _agentPhoneController = TextEditingController();
-  final TextEditingController _agentLicenseController = TextEditingController();
-  final TextEditingController _agentOrgController = TextEditingController();
-  final TextEditingController _agentZoneController = TextEditingController();
-  bool _requestTrustVerification = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final PageController _pageController = PageController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _loginEmailController.dispose();
-    _userEmailController.dispose();
-    _agentNameController.dispose();
-    _agentEmailController.dispose();
-    _agentPhoneController.dispose();
-    _agentLicenseController.dispose();
-    _agentOrgController.dispose();
-    _agentZoneController.dispose();
+    _pageController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleGoogleAuth({bool isRegister = true}) async {
+  Future<void> _handleGoogleAuth() async {
+    setState(() => _isLoading = true);
     try {
-      // Autenticación real con Google OAuth
       final redirectUrl = kIsWeb ? Uri.base.origin : null;
       await SupabaseConfig.client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectUrl,
       );
+      // Tras la redirección, el stream de authStateChange de Supabase (en auth_provider)
+      // detectará la sesión, actualizará el estado y disparará el ref.listen de abajo.
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -70,168 +48,225 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // 1. VISTA DE INICIO DE SESIÓN DIRECTO
-  Widget _buildDirectLoginView() {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: KazaTheme.cardSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KazaTheme.glassBorder),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: KazaTheme.grisClaro,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.g_mobiledata, size: 56, color: Color(0xFF4285F4)),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Bienvenido de nuevo a Kaza',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Inicia sesión con tu cuenta de Google en 1 solo clic.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
-          ),
-          const SizedBox(height: 28),
-
-          // Botón Oficial de Google
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: KazaTheme.azulKaza,
-                foregroundColor: Colors.white,
-                elevation: 2,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: () => _handleGoogleAuth(isRegister: false),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.g_mobiledata, size: 32, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text(
-                    'Iniciar Sesión con Google',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _saveBasicDataAndContinue() async {
+    setState(() => _isLoading = true);
+    final authState = ref.read(kazaAuthProvider);
+    try {
+      // Actualizamos el perfil usando el RPC existente pero le pasamos el teléfono adicional
+      await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+        'p_email': authState.email ?? '',
+        'p_full_name': _nameController.text.trim(),
+        'p_system_role': 'USER',
+        'p_is_agent': false,
+        'p_phone': _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+      });
+      _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar datos: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Escuchar cambios de autenticación para avanzar al paso 2 (Datos Básicos)
+    ref.listen<KazaAuthState>(kazaAuthProvider, (previous, next) {
+      if (next.isAuthenticated && (previous?.isAuthenticated != true)) {
+        // Pre-llenar el nombre si lo tenemos de Google
+        if (_nameController.text.isEmpty && next.fullName != null) {
+          _nameController.text = next.fullName!;
+        }
+        // Avanzar a la pantalla de datos básicos
+        if (_pageController.hasClients && _pageController.page == 0) {
+          _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        }
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Autenticación Kaza'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: KazaTheme.primaryTealLight,
-          labelColor: KazaTheme.primaryTealLight,
-          unselectedLabelColor: KazaTheme.textMuted,
-          tabs: const [
-            Tab(text: 'Iniciar Sesión'),
-            Tab(text: 'Crear Cuenta'),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(), // Evitar swipe manual
         children: [
-          // TAB 1: INICIAR SESIÓN (Para usuarios registrados)
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+          _buildStep1Welcome(),
+          _buildStep2BasicData(),
+          _buildStep3Success(),
+        ],
+      ),
+    );
+  }
+
+  // PASO 01: BIENVENIDA Y ELEGIR MÉTODO
+  Widget _buildStep1Welcome() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          Center(
+            child: Image.asset(
+              'assets/images/logo.png',
+              height: 80,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.home, size: 80, color: KazaTheme.primaryTeal),
+            ),
+          ),
+          const SizedBox(height: 30),
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: KazaTheme.cardSurface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: KazaTheme.glassBorder),
+            ),
             child: Column(
               children: [
-                Center(
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    height: 80,
-                    fit: BoxFit.contain,
-                  ),
+                const Text(
+                  '¿Cómo quieres crear tu cuenta?',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
-                _buildDirectLoginView(),
+                const SizedBox(height: 12),
+                const Text(
+                  'KAZA utiliza identidad digital única y segura.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 30),
+                if (_isLoading)
+                  const CircularProgressIndicator()
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        elevation: 2,
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _handleGoogleAuth,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.g_mobiledata, size: 32, color: Color(0xFF4285F4)),
+                          SizedBox(width: 10),
+                          Text(
+                            'Continuar con Google',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                const Text(
+                  'El método de registro será tu identificador principal. No se solicitarán contraseñas.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: KazaTheme.textMuted, fontSize: 11),
+                ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // TAB 2: CREAR CUENTA (Con opciones de Usuario vs Agente)
-          SingleChildScrollView(
+  // PASO 03: DATOS BÁSICOS
+  Widget _buildStep2BasicData() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          Container(
             padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: KazaTheme.cardSurface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: KazaTheme.glassBorder),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    height: 70,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Selecciona tu Tipo de Perfil',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Regístrate con tu cuenta de Google elegiendo tu rol:',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-                ),
-                const SizedBox(height: 20),
-
-                // 👥 SELECTOR DE ROL: USUARIO vs AGENTE
-                Row(
+                const Row(
                   children: [
+                    Icon(Icons.person_outline, color: KazaTheme.primaryTealLight),
+                    SizedBox(width: 10),
                     Expanded(
-                      child: _buildRoleCard(
-                        roleKey: 'USER',
-                        icon: Icons.person_pin,
-                        title: 'Usuario / Buscador',
-                        subtitle: 'Registro 1-clic con Google.',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildRoleCard(
-                        roleKey: 'AGENT',
-                        icon: Icons.business_center,
-                        title: 'Agente / Inmobiliaria',
-                        subtitle: 'Perfil profesional verificado.',
+                      child: Text(
+                        'Datos Básicos',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
-
+                const SizedBox(height: 12),
+                const Text(
+                  'Confirma tu información para completar tu Cuenta KAZA.',
+                  style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+                ),
                 const SizedBox(height: 24),
-
-                // FORMULARIO DINÁMICO SEGÚN ROL SELECCIONADO
-                if (_selectedRole == 'USER') _buildUserForm() else _buildAgentForm(),
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre y Apellidos *',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Teléfono de Contacto (Opcional)',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KazaTheme.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _saveBasicDataAndContinue,
+                      child: const Text('Confirmar y Continuar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -240,233 +275,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildRoleCard({
-    required String roleKey,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final isSelected = _selectedRole == roleKey;
-    return InkWell(
-      onTap: () => setState(() => _selectedRole = roleKey),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? KazaTheme.primaryTeal.withOpacity(0.15) : KazaTheme.cardSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? KazaTheme.primaryTealLight : KazaTheme.glassBorder,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 36, color: isSelected ? KazaTheme.primaryTealLight : KazaTheme.textMuted),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: isSelected ? Colors.white : KazaTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: KazaTheme.textMuted, fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 1. VISTA DE REGISTRO RÁPIDO PARA USUARIO / BUSCADOR (SOLO BOTÓN GOOGLE)
-  Widget _buildUserForm() {
+  // PASO 07: CUENTA CREADA
+  Widget _buildStep3Success() {
     return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: KazaTheme.cardSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KazaTheme.glassBorder),
-      ),
+      padding: const EdgeInsets.all(32),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
+              color: KazaTheme.primaryTealLight.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.g_mobiledata, size: 56, color: KazaTheme.primaryTealLight),
+            child: const Icon(Icons.check_circle_outline, size: 80, color: KazaTheme.primaryTealLight),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           const Text(
-            'Registro 1-Clic con Google',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            '¡Cuenta Creada!',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           const Text(
-            'Inicia sesión al instante con tu cuenta de Google sin necesidad de escribir ningún correo ni contraseña.',
+            'Tu identidad digital única está lista. Ya puedes usar KAZA.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+            style: TextStyle(color: KazaTheme.textMuted, fontSize: 14, height: 1.4),
           ),
-          const SizedBox(height: 28),
-
-          // Botón Oficial de Google
+          const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black87,
-                elevation: 2,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                backgroundColor: KazaTheme.primaryTeal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: _handleGoogleAuth,
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.g_mobiledata, size: 32, color: Color(0xFF4285F4)),
-                  SizedBox(width: 10),
-                  Text(
-                    'Continuar con Google',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
+              onPressed: () {
+                // Navega al flujo de Onboarding en lugar de simplemente cerrar la ventana
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                );
+              },
+              child: const Text('Comenzar a explorar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 2. FORMULARIO PROFESIONAL PARA AGENTE E INMOBILIARIA
-  Widget _buildAgentForm() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: KazaTheme.cardSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: KazaTheme.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.verified_user, color: KazaTheme.accentGold, size: 24),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Formulario de Acreditación Profesional de Agente',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: KazaTheme.accentGold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Ingresa tus datos profesionales para solicitar tu insignia Trust Score y publicar propiedades verified.',
-            style: TextStyle(color: KazaTheme.textMuted, fontSize: 12),
-          ),
-          const SizedBox(height: 20),
-
-          // Nombre Completo o Razón Social
-          TextField(
-            controller: _agentNameController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre Completo o Razón Social *',
-              hintText: 'Ej. Carlos Mendoza / Inmobiliaria Kaza Pro',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // WhatsApp / Teléfono Profesional
-          TextField(
-            controller: _agentPhoneController,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              labelText: 'WhatsApp Profesional de Contacto *',
-              hintText: '+591 70012345',
-              prefixIcon: Icon(Icons.phone_android),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Matrícula Profesional CACC / Registro NIT
-          TextField(
-            controller: _agentLicenseController,
-            decoration: const InputDecoration(
-              labelText: 'Matrícula Profesional / Registro CACC o NIT *',
-              hintText: 'Ej. CACC-BOL-89240 / NIT 348291001',
-              prefixIcon: Icon(Icons.badge_outlined),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Inmobiliaria u Organización
-          TextField(
-            controller: _agentOrgController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre de Inmobiliaria u Organización (Opcional)',
-              hintText: 'Ej. Constructora El Bosque / Remax Pro',
-              prefixIcon: Icon(Icons.business_outlined),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Zona o Ciudad de Especialización
-          TextField(
-            controller: _agentZoneController,
-            decoration: const InputDecoration(
-              labelText: 'Zona o Ciudad de Especialización',
-              hintText: 'Ej. Equipetrol, Urubó, Santa Cruz',
-              prefixIcon: Icon(Icons.map_outlined),
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Switch Verificación Trust Score
-          SwitchListTile(
-            value: _requestTrustVerification,
-            activeColor: KazaTheme.primaryTealLight,
-            title: const Text('Solicitar Insignia Trust Badge Verificada', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-            subtitle: const Text('Permite auditar mi perfil en el panel de administración Kaza para insignia de veracidad.', style: TextStyle(fontSize: 11, color: KazaTheme.textMuted)),
-            onChanged: (val) => setState(() => _requestTrustVerification = val),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Botón Completar Registro con Google
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: KazaTheme.primaryTeal,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: const Icon(Icons.g_mobiledata, size: 30),
-            label: const Text('Registrar Perfil Profesional con Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            onPressed: _handleGoogleAuth,
           ),
         ],
       ),
