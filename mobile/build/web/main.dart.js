@@ -102036,7 +102036,7 @@ k=A.bj(a,o,t.w).w
 j=p.z
 j.toString
 i.push(A.eq(k.r.d+12,new A.a1Z(j,new A.aGm(p),new A.aGn(p,a),new A.aGo(p,a),new A.aGp(p,a),o),o,o,m,l,o,o))}return A.fv(o,o,A.e1(B.aJ,i,B.z,B.aF,o),o,o,o)},
-B7(a,b){var s,r=this,q=A.aZC(B.tL,13.5,new A.aFO(r),r.gaqG()),p=A.a([A.b0s(19,"https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=kH7SL58Tn5KSkOXovIjh","com.kaza.app")],t.p),o=r.ay
+B7(a,b){var s,r=this,q=A.aZC(B.tL,13.5,new A.aFO(r),r.gaqG()),p=A.a([A.b0s(19,"https://api.maptiler.com/maps/openstreetmap/{z}/{x}/{y}.png?key=kH7SL58Tn5KSkOXovIjh","com.kaza.app")],t.p),o=r.ay
 if(o.length!==0){s=B.l.aS(0.12)
 p.push(new A.uq(A.a([A.bct(B.l.aS(0.6),2.5,s,o,t.K)],t.RK),0.3,null,t.yY))}if(r.CW){o=A.W(a).i("U<1,m4>")
 p.push(A.aTA(A.V(new A.U(a,new A.aFP(r),o),!0,o.i("am.E"))))}if(b.length!==0)p.push(A.aTA(b))
