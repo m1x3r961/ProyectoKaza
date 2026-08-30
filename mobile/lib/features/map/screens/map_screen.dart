@@ -605,8 +605,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-          subdomains: const ['a', 'b', 'c'],
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.kaza.app',
           maxNativeZoom: 19,
         ),
