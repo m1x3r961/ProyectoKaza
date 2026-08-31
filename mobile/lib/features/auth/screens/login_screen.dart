@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../providers/auth_provider.dart';
-import '../../onboarding/screens/onboarding_screen.dart';
 
 /// 🔐 U02 CREACIÓN DE CUENTA - Secuencia Wizard sin roles ni contraseña.
 class LoginScreen extends ConsumerStatefulWidget {
@@ -312,11 +312,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
-                // Navega al flujo de Onboarding en lugar de simplemente cerrar la ventana
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-                );
+                // Navega al flujo de Onboarding U03 usando GoRouter
+                context.go('/onboarding');
               },
               child: const Text('Comenzar a explorar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),

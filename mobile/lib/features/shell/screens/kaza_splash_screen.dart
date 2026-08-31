@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_logo_widget.dart';
 
@@ -78,12 +79,53 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
     await Future.delayed(const Duration(milliseconds: 600));
     _pillsController.forward();
 
-    // Navegar al mapa después de que el GIF completa su primer ciclo (~2.5s)
+    // Esperar que el GIF completa su primer ciclo (~2.5s)
     await Future.delayed(const Duration(milliseconds: 2200));
-    if (mounted) {
-      context.go('/map');
+    if (!mounted) return;
+
+    await _navigateAfterSplash();
+  }
+
+  /// Determina a dónde navegar después del splash:
+  /// - Usuario autenticado SIN onboarding → /login (flujo U02 + U03)
+  /// - Usuario autenticado CON onboarding completo → /map
+  /// - Sin sesión (invitado) → /map
+  Future<void> _navigateAfterSplash() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final session = supabase.auth.currentSession;
+
+      if (session == null) {
+        // No hay sesión — modo invitado, ir al mapa
+        if (mounted) context.go('/map');
+        return;
+      }
+
+      // Hay sesión — verificar si completó onboarding en user_profiles
+      final userId = session.user.id;
+      final response = await supabase
+          .from('user_profiles')
+          .select('onboarding_status')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      final status = response?['onboarding_status'] as String?;
+
+      // COMPLETED o SKIPPED = ya pasó por el flujo, ir al mapa
+      if (status == 'COMPLETED' || status == 'SKIPPED') {
+        context.go('/map');
+      } else {
+        // Cuenta nueva o onboarding incompleto → flujo U02 → U03
+        context.go('/login');
+      }
+    } catch (_) {
+      // Si hay cualquier error de red, ir al mapa de todas formas
+      if (mounted) context.go('/map');
     }
   }
+
 
   @override
   void dispose() {

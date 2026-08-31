@@ -15,6 +15,8 @@ import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
 import '../../features/organizations/screens/organizations_hub_screen.dart';
 import '../../features/kaza_trust/screens/kaza_trust_screen.dart';
+import '../../features/auth/screens/login_screen.dart';
+import '../../features/onboarding/screens/onboarding_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -110,6 +112,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/kaza-trust',
       builder: (context, state) => const KazaTrustScreen(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) => const OnboardingScreen(),
     ),
   ],
 );
