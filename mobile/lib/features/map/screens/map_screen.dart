@@ -628,13 +628,14 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
           MarkerLayer(
             markers: clusteredProperties.map((prop) {
               final isSelected = _selectedProperty?.id == prop.id;
-              final typeIcon = _getIconForType(prop.type);
               final hasCluster = prop.propertyCount > 1;
 
               return Marker(
                 point: prop.location,
-                width: hasCluster ? 52 : 40,
-                height: hasCluster ? 52 : 48,
+                // Cluster: mismo tamaño circular de siempre
+                // Pin precio: ancho dinámico según longitud del texto
+                width: hasCluster ? 52 : _priceLabel(prop.price).length > 5 ? 68 : 60,
+                height: hasCluster ? 52 : 36,
                 child: GestureDetector(
                   onTap: () {
                     if (hasCluster) {
@@ -644,19 +645,27 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     }
                   },
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: SizedBox(
-                      key: ValueKey('${prop.id}_$isSelected'),
-                      width: hasCluster ? 52 : 40,
-                      height: hasCluster ? 52 : 48,
-                      child: CustomPaint(
-                        painter: KazaPinPainter(
-                          icon: typeIcon,
-                          isSelected: isSelected,
-                          propertyCount: prop.propertyCount,
-                        ),
-                      ),
-                    ),
+                    duration: const Duration(milliseconds: 200),
+                    child: hasCluster
+                        // ── CLUSTER: círculo navy con número (sin cambios) ──
+                        ? SizedBox(
+                            key: ValueKey('cluster_${prop.id}'),
+                            width: 52,
+                            height: 52,
+                            child: CustomPaint(
+                              painter: KazaPinPainter(
+                                icon: Icons.home,
+                                isSelected: false,
+                                propertyCount: prop.propertyCount,
+                              ),
+                            ),
+                          )
+                        // ── PIN PRECIO: pill minimalista con el precio ──
+                        : _PricePinWidget(
+                            key: ValueKey('pin_${prop.id}_$isSelected'),
+                            priceLabel: _priceLabel(prop.price),
+                            isSelected: isSelected,
+                          ),
                   ),
                 ),
               );
@@ -667,6 +676,76 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
         if (poiMarkers.isNotEmpty)
           MarkerLayer(markers: poiMarkers),
       ],
+    );
+  }
+
+  /// Formatea el precio de forma compacta para el pin del mapa.
+  /// Ej: "85000" → "$85K" | "1200000" → "$1.2M" | "Consultar" → "Consultar"
+  String _priceLabel(String rawPrice) {
+    final cleaned = rawPrice.replaceAll(RegExp(r'[^\d.]'), '');
+    final num? value = num.tryParse(cleaned);
+    if (value == null || value == 0) {
+      return rawPrice.length > 10 ? 'Consultar' : rawPrice;
+    }
+    if (value >= 1000000) {
+      final m = value / 1000000;
+      return '\$${m % 1 == 0 ? m.toInt() : m.toStringAsFixed(1)}M';
+    } else if (value >= 1000) {
+      final k = value / 1000;
+      return '\$${k % 1 == 0 ? k.toInt() : k.toStringAsFixed(0)}K';
+    } else {
+      return '\$$value';
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICE PIN WIDGET — Pill label minimalista con precio en el mapa
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PricePinWidget extends StatelessWidget {
+  final String priceLabel;
+  final bool isSelected;
+
+  const _PricePinWidget({
+    super.key,
+    required this.priceLabel,
+    required this.isSelected,
+  });
+
+  static const Color _navy = Color(0xFF0F1F2E);
+  static const Color _coral = Color(0xFFFF5A3C);
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isSelected ? _coral : _navy;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withValues(alpha: 0.40),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: Colors.white, width: 1.5),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      child: Text(
+        priceLabel,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+          height: 1.0,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }
