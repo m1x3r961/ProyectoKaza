@@ -117,12 +117,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
     try {
       final authState = ref.read(kazaAuthProvider);
-      await SupabaseConfig.client.from('profiles').upsert({
-        'id': SupabaseConfig.client.auth.currentUser?.id,
-        'email': authState.email ?? '',
-        'pref_goals': _selectedIds.toList(),
-        'onboarding_status': 'COMPLETED',
-        'updated_at': DateTime.now().toIso8601String(),
+      await SupabaseConfig.client.rpc('fn_complete_onboarding', params: {
+        'p_email': authState.email ?? '',
+        'p_status': 'COMPLETED',
+        'p_goals': _selectedIds.toList(),
       });
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) _goTo(4); // ¡Listo!
@@ -141,10 +139,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   Future<void> _skipAndFinish() async {
     try {
-      await SupabaseConfig.client.from('profiles').upsert({
-        'id': SupabaseConfig.client.auth.currentUser?.id,
-        'pref_goals': <String>[],
-        'onboarding_status': 'SKIPPED',
+      final authState = ref.read(kazaAuthProvider);
+      await SupabaseConfig.client.rpc('fn_complete_onboarding', params: {
+        'p_email': authState.email ?? '',
+        'p_status': 'SKIPPED',
+        'p_goals': <String>[],
       });
     } catch (_) {}
     if (mounted) context.go('/map');
