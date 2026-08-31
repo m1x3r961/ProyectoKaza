@@ -101,10 +101,10 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
         return;
       }
 
-      // Hay sesión — verificar si completó onboarding en user_profiles
+      // Hay sesión — verificar si completó onboarding en profiles
       final userId = session.user.id;
       final response = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('onboarding_status')
           .eq('id', userId)
           .maybeSingle();

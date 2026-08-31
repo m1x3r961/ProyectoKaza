@@ -117,12 +117,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
     try {
       final authState = ref.read(kazaAuthProvider);
-      await SupabaseConfig.client.from('user_profiles').upsert({
+      await SupabaseConfig.client.from('profiles').upsert({
         'id': SupabaseConfig.client.auth.currentUser?.id,
         'email': authState.email ?? '',
-        'usage_modes': _selectedIds.toList(),
+        'pref_goals': _selectedIds.toList(),
         'onboarding_status': 'COMPLETED',
-        'onboarding_completed_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       });
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) _goTo(4); // ¡Listo!
@@ -141,9 +141,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   Future<void> _skipAndFinish() async {
     try {
-      await SupabaseConfig.client.from('user_profiles').upsert({
+      await SupabaseConfig.client.from('profiles').upsert({
         'id': SupabaseConfig.client.auth.currentUser?.id,
-        'usage_modes': <String>[],
+        'pref_goals': <String>[],
         'onboarding_status': 'SKIPPED',
       });
     } catch (_) {}

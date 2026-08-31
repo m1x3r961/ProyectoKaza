@@ -22,6 +22,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = ref.read(kazaAuthProvider);
+      if (authState.isAuthenticated) {
+        if (_nameController.text.isEmpty && authState.fullName != null) {
+          _nameController.text = authState.fullName!;
+        }
+        if (_pageController.hasClients && _pageController.page == 0) {
+          _pageController.jumpToPage(1);
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     _nameController.dispose();
