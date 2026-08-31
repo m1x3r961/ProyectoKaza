@@ -193,6 +193,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Mis Organizaciones',
             onTap: () => context.push('/organizations'),
           ),
+          _buildCleanListTile(
+            title: 'Verificación KAZA Trust',
+            onTap: () => context.push('/kaza-trust'),
+          ),
 
           const SizedBox(height: 48),
 
