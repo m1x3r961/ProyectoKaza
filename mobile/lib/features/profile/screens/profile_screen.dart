@@ -189,6 +189,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _buildCleanListTile(title: 'Privacidad', onTap: () {}),
           _buildCleanListTile(title: 'Notificaciones', onTap: () {}),
           _buildCleanListTile(title: 'Plan y suscripción', onTap: () {}),
+          _buildCleanListTile(
+            title: 'Mis Organizaciones',
+            onTap: () => context.push('/organizations'),
+          ),
 
           const SizedBox(height: 48),
 

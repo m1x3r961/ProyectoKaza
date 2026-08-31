@@ -13,6 +13,7 @@ import '../../features/ai_assistant/screens/ai_chat_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
+import '../../features/organizations/screens/organizations_hub_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -100,6 +101,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/ai-chat',
       builder: (context, state) => const AiChatScreen(),
+    ),
+    GoRoute(
+      path: '/organizations',
+      builder: (context, state) => const OrganizationsHubScreen(),
     ),
   ],
 );
