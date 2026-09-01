@@ -46,12 +46,12 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Tab 1: BUSCAR
+        // Tab 1: GUARDADOS
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/search',
-              builder: (context, state) => const SearchScreen(),
+              path: '/saved-tab',
+              builder: (context, state) => const SavedScreen(),
             ),
           ],
         ),

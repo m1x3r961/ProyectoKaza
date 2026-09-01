@@ -64,16 +64,45 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   bool _showContact = true;
   
   bool _isPublishing = false;
+  
+  // Límites Free
+  bool _isLoadingLimits = true;
+  bool _hasReachedLimit = false;
+  int _activeListingsCount = 0;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill user data if available
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = ref.read(kazaAuthProvider);
       if (auth.fullName != null) _contactNameCtrl.text = auth.fullName!;
       if (auth.userId != null) _contactPhoneCtrl.text = '+591 70000000'; // Mock phone for now
     });
+    _checkLimits();
+  }
+
+  Future<void> _checkLimits() async {
+    try {
+      final auth = ref.read(kazaAuthProvider);
+      final userId = auth.userId;
+      if (userId == null) {
+        if (mounted) setState(() => _isLoadingLimits = false);
+        return;
+      }
+      
+      final response = await SupabaseConfig.client
+          .from('properties')
+          .select('id')
+          .eq('owner_id', userId)
+          .eq('status', 'PUBLISHED');
+          
+      _activeListingsCount = (response as List).length;
+      _hasReachedLimit = _activeListingsCount >= 2;
+    } catch (e) {
+      debugPrint('Error checking limits: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingLimits = false);
+    }
   }
 
   @override
@@ -185,6 +214,17 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingLimits) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: KazaTheme.azulKaza)),
+      );
+    }
+
+    if (_hasReachedLimit) {
+      return _buildLimitReachedScreen();
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -215,6 +255,63 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
             ),
             if (_currentPage < 11) _buildBottomNav(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLimitReachedScreen() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: KazaTheme.azulKaza),
+          onPressed: () => context.go('/map'),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 80, color: KazaTheme.semanticError),
+              const SizedBox(height: 24),
+              const Text(
+                'Límite Free Alcanzado',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Has alcanzado el límite de 2 publicaciones activas de tu plan gratuito. Mejora a Plus para publicar ilimitadamente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: KazaTheme.textSecondary, fontSize: 16, height: 1.4),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: KazaTheme.accentGold,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Suscripciones próximamente...')));
+                  },
+                  child: const Text('Mejorar a Plus', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => context.go('/map'),
+                child: const Text('Volver al mapa', style: TextStyle(color: KazaTheme.textSecondary, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
         ),
       ),
     );

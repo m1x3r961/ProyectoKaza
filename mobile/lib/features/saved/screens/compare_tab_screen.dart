@@ -63,6 +63,25 @@ class CompareTabScreen extends ConsumerWidget {
                   height: 1.4,
                 ),
               ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: KazaTheme.n100,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: KazaTheme.textMuted),
+                    SizedBox(width: 6),
+                    Text(
+                      'Límite Plan Free: Máx. 3 propiedades',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: KazaTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,

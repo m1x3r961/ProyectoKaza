@@ -56,23 +56,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       authState.isAuthenticated ? (authState.fullName ?? 'Carlos Méndez') : 'Modo Exploración',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: KazaTheme.textPrimary, letterSpacing: -0.5),
                     ),
-                    const SizedBox(height: 2),
                     Text(
-                      authState.isAuthenticated ? 'Agente independiente' : 'Sin cuenta',
-                      style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 14),
+                      authState.isAuthenticated ? 'Cuenta FREE' : 'Sin cuenta',
+                      style: const TextStyle(
+                        color: KazaTheme.accentGold, 
+                        fontSize: 14, 
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    if (authState.isAuthenticated)
+                    if (authState.isAuthenticated) ...[
                       const Row(
                         children: [
                           Icon(Icons.verified, color: KazaTheme.verifiedGreen, size: 16),
                           SizedBox(width: 4),
                           Text('Identidad verificada', style: TextStyle(color: KazaTheme.verifiedGreen, fontSize: 12, fontWeight: FontWeight.w600)),
-                          SizedBox(width: 12),
-                          Text('Desarrollador contextual', style: TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
                         ],
-                      )
-                    else
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Suscripciones Plus próximamente...')),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: KazaTheme.accentGold.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: KazaTheme.accentGold.withValues(alpha: 0.5)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.stars_rounded, color: KazaTheme.accentGold, size: 16),
+                              SizedBox(width: 6),
+                              Text(
+                                'Mejorar a Plus',
+                                style: TextStyle(color: KazaTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else
                       GestureDetector(
                         onTap: () {
                           checkProgressiveAuth(context: context, ref: ref, actionName: 'iniciar sesión', onAuthenticatedAction: () {});
@@ -91,7 +119,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           const Divider(color: KazaTheme.glassBorder),
           const SizedBox(height: 24),
 

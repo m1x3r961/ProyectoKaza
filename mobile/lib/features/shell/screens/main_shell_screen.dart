@@ -71,9 +71,9 @@ class MainShellScreen extends ConsumerWidget {
               ),
               _buildNavItem(
                 index: 1,
-                icon: Icons.search_rounded,
-                activeIcon: Icons.search_rounded,
-                label: 'Buscar',
+                icon: Icons.bookmark_border_rounded,
+                activeIcon: Icons.bookmark_rounded,
+                label: 'Guardados',
                 currentIndex: currentIndex,
                 screenWidth: screenWidth,
                 onTap: () => navigationShell.goBranch(1),
