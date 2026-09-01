@@ -89,7 +89,23 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         if (mounted) setState(() => _isLoadingLimits = false);
         return;
       }
+
+      // 1. Obtener tier del usuario
+      final profileResp = await SupabaseConfig.client
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', userId)
+          .maybeSingle();
       
+      final tier = profileResp?['subscription_tier'] as String? ?? 'FREE';
+
+      // 2. Si NO es FREE, no hay límites
+      if (tier != 'FREE') {
+        _hasReachedLimit = false;
+        return;
+      }
+      
+      // 3. Si es FREE, verificar el límite (2 activas)
       final response = await SupabaseConfig.client
           .from('properties')
           .select('id')

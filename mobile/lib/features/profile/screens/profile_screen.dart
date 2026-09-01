@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/network/supabase_config.dart';
 
 /// 👤 PERFIL v0.3 FINAL (Perfil público y Cuenta privada)
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -15,6 +16,30 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _selectedCapacity = 'Agente'; // Propietario, Agente, Miembro de inmobiliaria
+  String _tier = 'FREE';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTier();
+  }
+
+  Future<void> _loadTier() async {
+    final auth = ref.read(kazaAuthProvider);
+    if (auth.userId == null) return;
+    try {
+      final resp = await SupabaseConfig.client
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', auth.userId!)
+          .maybeSingle();
+      if (resp != null && mounted) {
+        setState(() => _tier = resp['subscription_tier'] ?? 'FREE');
+      }
+    } catch (e) {
+      debugPrint('Error al cargar tier: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,9 +82,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: KazaTheme.textPrimary, letterSpacing: -0.5),
                     ),
                     Text(
-                      authState.isAuthenticated ? 'Cuenta FREE' : 'Sin cuenta',
-                      style: const TextStyle(
-                        color: KazaTheme.accentGold, 
+                      authState.isAuthenticated ? 'Cuenta $_tier' : 'Sin cuenta',
+                      style: TextStyle(
+                        color: _tier == 'FREE' ? KazaTheme.textMuted : (_tier == 'PRO' ? KazaTheme.primaryCoral : KazaTheme.accentGold), 
                         fontSize: 14, 
                         fontWeight: FontWeight.bold,
                       ),
@@ -75,10 +100,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Suscripciones Plus próximamente...')),
-                          );
+                        onTap: () async {
+                          final result = await context.push('/subscription-plans');
+                          if (result == true) {
+                            _loadTier();
+                          }
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -87,14 +113,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: KazaTheme.accentGold.withValues(alpha: 0.5)),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.stars_rounded, color: KazaTheme.accentGold, size: 16),
-                              SizedBox(width: 6),
+                              const Icon(Icons.stars_rounded, color: KazaTheme.accentGold, size: 16),
+                              const SizedBox(width: 6),
                               Text(
-                                'Mejorar a Plus',
-                                style: TextStyle(color: KazaTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
+                                _tier == 'FREE' ? 'Mejorar a Plus' : 'Cambiar Plan',
+                                style: const TextStyle(color: KazaTheme.accentGold, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -212,6 +238,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const Text('Cuenta privada', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.textPrimary)),
           const SizedBox(height: 16),
           
+          if (_tier == 'PLUS' || _tier == 'PRO')
+            _buildCleanListTile(
+              title: 'Rendimiento / Estadísticas',
+              onTap: () => context.push('/basic-stats'),
+            ),
+            
+          if (_tier == 'PRO' || _tier == 'BUSINESS')
+            _buildCleanListTile(
+              title: 'Centro de Control PRO',
+              onTap: () => context.push('/pro-dashboard'),
+            ),
+            
           _buildCleanListTile(title: 'Cuentas vinculadas', onTap: () {}),
           _buildCleanListTile(title: 'Seguridad', onTap: () {}),
           _buildCleanListTile(title: 'Privacidad', onTap: () {}),

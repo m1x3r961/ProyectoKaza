@@ -17,6 +17,11 @@ import '../../features/organizations/screens/organizations_hub_screen.dart';
 import '../../features/kaza_trust/screens/kaza_trust_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
+import '../../features/profile/screens/subscription_plans_screen.dart';
+import '../../features/profile/screens/basic_stats_screen.dart';
+import '../../features/crm/screens/pro_dashboard_screen.dart';
+import '../../features/crm/screens/crm_contacts_screen.dart';
+import '../../features/crm/screens/crm_opportunities_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -120,6 +125,26 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/subscription-plans',
+      builder: (context, state) => const SubscriptionPlansScreen(),
+    ),
+    GoRoute(
+      path: '/basic-stats',
+      builder: (context, state) => const BasicStatsScreen(),
+    ),
+    GoRoute(
+      path: '/pro-dashboard',
+      builder: (context, state) => const ProDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/crm-contacts',
+      builder: (context, state) => const CrmContactsScreen(),
+    ),
+    GoRoute(
+      path: '/crm-opportunities',
+      builder: (context, state) => const CrmOpportunitiesScreen(),
     ),
   ],
 );
