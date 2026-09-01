@@ -56,8 +56,8 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
             backgroundColor: KazaTheme.semanticSuccess,
           ),
         );
-        // Regresar y forzar un redibujo si es necesario
-        context.pop(true);
+        // Regresar el nuevo tier
+        context.pop(newTier);
       }
     } catch (e) {
       if (mounted) {

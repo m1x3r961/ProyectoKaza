@@ -102,7 +102,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       GestureDetector(
                         onTap: () async {
                           final result = await context.push('/subscription-plans');
-                          if (result == true) {
+                          if (result is String) {
+                            setState(() => _tier = result);
+                          } else {
                             _loadTier();
                           }
                         },
