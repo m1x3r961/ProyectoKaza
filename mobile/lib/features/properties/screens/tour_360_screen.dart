@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
@@ -23,17 +24,28 @@ class _Tour360ScreenState extends State<Tour360Screen> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (String url) {
-            if (mounted) setState(() => _isLoading = false);
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
+    _controller = WebViewController();
+    
+    // Sólo aplicamos configs si no estamos en Web (porque en Web tiran UnimplementedError)
+    if (!kIsWeb) {
+      _controller
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setBackgroundColor(Colors.black)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageFinished: (String url) {
+              if (mounted) setState(() => _isLoading = false);
+            },
+          ),
+        );
+    } else {
+      // En Web asumimos que carga casi inmediato o no podemos escuchar el iframe cross-origin
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _isLoading = false);
+      });
+    }
+
+    _controller.loadRequest(Uri.parse(widget.url));
   }
 
   @override
