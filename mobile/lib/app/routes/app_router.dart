@@ -22,6 +22,10 @@ import '../../features/profile/screens/basic_stats_screen.dart';
 import '../../features/crm/screens/pro_dashboard_screen.dart';
 import '../../features/crm/screens/crm_contacts_screen.dart';
 import '../../features/crm/screens/crm_opportunities_screen.dart';
+import '../../features/organizations/screens/business_dashboard_screen.dart';
+import '../../features/organizations/screens/org_members_screen.dart';
+import '../../features/organizations/screens/org_properties_screen.dart';
+import '../../features/organizations/screens/org_opportunities_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -145,6 +149,22 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/crm-opportunities',
       builder: (context, state) => const CrmOpportunitiesScreen(),
+    ),
+    GoRoute(
+      path: '/org-dashboard',
+      builder: (context, state) => const BusinessDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/org-members',
+      builder: (context, state) => const OrgMembersScreen(),
+    ),
+    GoRoute(
+      path: '/org-properties',
+      builder: (context, state) => const OrgPropertiesScreen(),
+    ),
+    GoRoute(
+      path: '/org-opportunities',
+      builder: (context, state) => const OrgOpportunitiesScreen(),
     ),
   ],
 );

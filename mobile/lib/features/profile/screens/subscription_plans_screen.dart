@@ -133,23 +133,41 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                   ),
                   const SizedBox(height: 16),
                   
-                  // PLAN PRO
-                  _buildPlanCard(
-                    title: 'PRO',
-                    price: 'Bs 300 / mes',
-                    description: 'CRM y herramientas para agentes profesionales.',
-                    isActive: _currentTier == 'PRO',
-                    features: [
-                      'Todo lo de Plus',
-                      'CRM Inmobiliario Profesional',
-                      'Embudo de oportunidades y ventas',
-                      'Seguimiento y tareas inteligentes',
-                      'Reportes avanzados y analítica',
-                    ],
-                    onSelect: () => _upgradePlan('PRO'),
-                    color: KazaTheme.primaryCoral,
-                  ),
-                  const SizedBox(height: 32),
+                    // PLAN PRO
+                    _buildPlanCard(
+                      title: 'PRO',
+                      price: 'Bs 300 / mes',
+                      description: 'CRM y herramientas para agentes profesionales.',
+                      isActive: _currentTier == 'PRO',
+                      features: [
+                        'Todo lo de Plus',
+                        'CRM Inmobiliario Profesional',
+                        'Embudo de oportunidades y ventas',
+                        'Seguimiento y tareas inteligentes',
+                        'Reportes avanzados y analítica',
+                      ],
+                      onSelect: () => _upgradePlan('PRO'),
+                      color: KazaTheme.primaryCoral,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // PLAN BUSINESS
+                    _buildPlanCard(
+                      title: 'BUSINESS',
+                      price: 'Bs 800 / mes',
+                      description: 'Para inmobiliarias y empresas organizadas.',
+                      isActive: _currentTier == 'BUSINESS',
+                      features: [
+                        'Todo lo de Pro',
+                        'Crear una Organización (Inmobiliaria)',
+                        'Gestión de equipo y permisos',
+                        'Inventario centralizado',
+                        'Pipeline consolidado de todos tus agentes',
+                      ],
+                      onSelect: () => _upgradePlan('BUSINESS'),
+                      color: const Color(0xFF7C4DFF), // Purple theme for business
+                    ),
+                    const SizedBox(height: 32),
                 ],
               ),
             ),

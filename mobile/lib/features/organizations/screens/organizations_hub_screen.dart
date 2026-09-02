@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../models/organization_models.dart';
 import '../providers/organizations_provider.dart';
@@ -253,7 +254,6 @@ class _OrganizationsHubScreenState
   Widget _buildOrgCard(KazaOrganization org) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -263,35 +263,48 @@ class _OrganizationsHubScreenState
               color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: KazaTheme.azulKaza.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.business_rounded,
-                color: KazaTheme.azulKaza, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            // Navegar al Panel Organizacional (Business Dashboard)
+            context.push('/org-dashboard');
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Text(org.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: KazaTheme.textPrimary)),
-                const SizedBox(height: 3),
-                _buildRoleBadge(org.myRole),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: KazaTheme.azulKaza.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.business_rounded,
+                      color: KazaTheme.azulKaza, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(org.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: KazaTheme.textPrimary)),
+                      const SizedBox(height: 3),
+                      _buildRoleBadge(org.myRole),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded,
+                    color: KazaTheme.textMuted),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              color: KazaTheme.textMuted),
-        ],
+        ),
       ),
     );
   }
