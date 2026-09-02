@@ -252,6 +252,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onTap: () => context.push('/pro-dashboard'),
             ),
             
+          const SizedBox(height: 16),
+          const Text('Herramientas Premium (Demos)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.textPrimary)),
+          const SizedBox(height: 16),
+          _buildCleanListTile(
+            title: 'Ver Tour 360° (Ejemplo)',
+            onTap: () => context.push('/tour-360-demo'),
+          ),
+
+          const SizedBox(height: 32),
+          // 5. Configuración y Soporte
+          const Text('Configuración y soporte', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.textPrimary)),
           _buildCleanListTile(title: 'Cuentas vinculadas', onTap: () {}),
           _buildCleanListTile(title: 'Seguridad', onTap: () {}),
           _buildCleanListTile(title: 'Privacidad', onTap: () {}),

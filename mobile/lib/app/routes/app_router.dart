@@ -26,6 +26,7 @@ import '../../features/organizations/screens/business_dashboard_screen.dart';
 import '../../features/organizations/screens/org_members_screen.dart';
 import '../../features/organizations/screens/org_properties_screen.dart';
 import '../../features/organizations/screens/org_opportunities_screen.dart';
+import '../../features/properties/screens/tour_360_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -165,6 +166,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/org-opportunities',
       builder: (context, state) => const OrgOpportunitiesScreen(),
+    ),
+    GoRoute(
+      path: '/tour-360-demo',
+      builder: (context, state) => const Tour360Screen(
+        url: 'https://my.matterport.com/show/?m=Jd2JBfwCQPT', // Demo Matterport link
+        title: 'Penthouse - Tour 360°',
+      ),
     ),
   ],
 );
