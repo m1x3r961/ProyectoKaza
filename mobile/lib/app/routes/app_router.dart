@@ -28,6 +28,15 @@ import '../../features/organizations/screens/org_properties_screen.dart';
 import '../../features/organizations/screens/org_opportunities_screen.dart';
 import '../../features/properties/screens/tour_360_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
+import '../../features/profile/screens/personal_info_screen.dart';
+import '../../features/profile/screens/security_screen.dart';
+import '../../features/profile/screens/notifications_screen.dart';
+import '../../features/profile/screens/preferences_screen.dart';
+import '../../features/profile/screens/privacy_screen.dart';
+import '../../features/profile/screens/identity_verification_screen.dart';
+import '../../features/profile/screens/reputation_screen.dart';
+import '../../features/profile/screens/delete_account_screen.dart';
+import '../../features/profile/screens/help_center_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -179,5 +188,14 @@ final GoRouter appRouter = GoRouter(
       path: '/settings',
       builder: (context, state) => const SettingsScreen(),
     ),
+    GoRoute(path: '/personal-info', builder: (context, state) => const PersonalInfoScreen()),
+    GoRoute(path: '/security', builder: (context, state) => const SecurityScreen()),
+    GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+    GoRoute(path: '/preferences', builder: (context, state) => const PreferencesScreen()),
+    GoRoute(path: '/privacy', builder: (context, state) => const PrivacyScreen()),
+    GoRoute(path: '/identity-verification', builder: (context, state) => const IdentityVerificationScreen()),
+    GoRoute(path: '/reputation', builder: (context, state) => const ReputationScreen()),
+    GoRoute(path: '/delete-account', builder: (context, state) => const DeleteAccountScreen()),
+    GoRoute(path: '/help-center', builder: (context, state) => const HelpCenterScreen()),
   ],
 );

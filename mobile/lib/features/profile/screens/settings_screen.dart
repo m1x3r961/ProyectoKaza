@@ -23,33 +23,56 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         children: [
           _buildSectionHeader('01 Mi perfil'),
-          _buildListTile(Icons.person_outline, 'Información personal', onTap: () {}),
-          _buildListTile(Icons.lock_outline, 'Seguridad y acceso', onTap: () {}),
-          _buildListTile(Icons.notifications_none, 'Notificaciones', onTap: () {}),
-          _buildListTile(Icons.tune, 'Preferencias', onTap: () {}),
+          _buildListTile(Icons.person_outline, 'Información personal', onTap: () => context.push('/personal-info')),
+          _buildListTile(Icons.lock_outline, 'Seguridad y acceso', onTap: () => context.push('/security')),
+          _buildListTile(Icons.notifications_none, 'Notificaciones', onTap: () => context.push('/notifications')),
+          _buildListTile(Icons.tune, 'Preferencias', onTap: () => context.push('/preferences')),
           _buildListTile(Icons.stars_outlined, 'Cuenta y plan', onTap: () => context.push('/subscription-plans')),
           
           const SizedBox(height: 24),
           _buildSectionHeader('Permisos y seguridad'),
-          _buildListTile(Icons.shield_outlined, 'Permisos y privacidad', onTap: () {}),
-          _buildListTile(Icons.verified_outlined, 'Verificación de identidad', onTap: () => context.push('/kaza-trust')),
-          _buildListTile(Icons.workspace_premium_outlined, 'Mis logros y reputación', onTap: () {}),
-          _buildListTile(Icons.no_accounts_outlined, 'Eliminar o desactivar cuenta', onTap: () {}, isDestructive: true),
+          _buildListTile(Icons.shield_outlined, 'Permisos y privacidad', onTap: () => context.push('/privacy')),
+          _buildListTile(Icons.verified_outlined, 'Verificación de identidad', onTap: () => context.push('/identity-verification')),
+          _buildListTile(Icons.workspace_premium_outlined, 'Mis logros y reputación', onTap: () => context.push('/reputation')),
+          _buildListTile(Icons.no_accounts_outlined, 'Eliminar o desactivar cuenta', onTap: () => context.push('/delete-account'), isDestructive: true),
           
           const SizedBox(height: 24),
           _buildSectionHeader('Soporte'),
-          _buildListTile(Icons.help_outline, 'Centro de ayuda', onTap: () {}),
+          _buildListTile(Icons.help_outline, 'Centro de ayuda', onTap: () => context.push('/help-center')),
           _buildListTile(
             Icons.logout, 
             'Cerrar sesión', 
-            onTap: () {
-              ref.read(kazaAuthProvider.notifier).logout();
-              context.pop();
-            }, 
+            onTap: () => _showLogoutDialog(context, ref), 
             isDestructive: true
           ),
           
           const SizedBox(height: 48),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text('¿Segura que quieres cerrar sesión?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: KazaTheme.textPrimary)),
+        content: const Text('Podrás iniciar sesión nuevamente cuando quieras.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: KazaTheme.textPrimary, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(kazaAuthProvider.notifier).logout();
+              Navigator.pop(ctx);
+              context.pop(); // Go back from settings
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Cerrar sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
