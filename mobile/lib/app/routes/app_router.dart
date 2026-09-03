@@ -27,6 +27,7 @@ import '../../features/organizations/screens/org_members_screen.dart';
 import '../../features/organizations/screens/org_properties_screen.dart';
 import '../../features/organizations/screens/org_opportunities_screen.dart';
 import '../../features/properties/screens/tour_360_screen.dart';
+import '../../features/profile/screens/settings_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -173,6 +174,10 @@ final GoRouter appRouter = GoRouter(
         url: 'https://my.matterport.com/show/?m=Jd2JBfwCQPT', // Demo Matterport link
         title: 'Penthouse - Tour 360°',
       ),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );
