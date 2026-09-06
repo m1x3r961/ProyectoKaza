@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/network/supabase_config.dart';
+import '../../developer/providers/developer_provider.dart';
 
 /// 👤 PERFIL U18-A v0.6 FINAL
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -14,8 +15,14 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  String _selectedContext = 'Personal'; // Personal, Profesional, Organización
+  String _selectedContext = 'Personal';
   String _tier = 'FREE';
+  String? _role;
+  String? _bio;
+  double _rating = 0;
+  int _totalReviews = 0;
+  int _publicationsCount = 0;
+  int _visitsCount = 0;
 
   @override
   void initState() {
@@ -27,6 +34,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final auth = ref.read(kazaAuthProvider);
     if (auth.userId == null) return;
     try {
+      // 1. Tier de suscripción
       final resp = await SupabaseConfig.client
           .from('profiles')
           .select('subscription_tier')
@@ -35,6 +43,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (resp != null && mounted) {
         setState(() => _tier = resp['subscription_tier'] ?? 'FREE');
       }
+
+      // 2. Perfil profesional (datos reales)
+      final profResp = await SupabaseConfig.client
+          .from('professional_profiles')
+          .select()
+          .eq('id', auth.userId!)
+          .maybeSingle();
+      if (profResp != null && mounted) {
+        setState(() {
+          _role = profResp['role'];
+          _bio = profResp['bio'];
+          _rating = (profResp['rating'] ?? 0).toDouble();
+          _totalReviews = profResp['total_reviews'] ?? 0;
+        });
+      }
+
+      // 3. Contadores reales de publicaciones
+      try {
+        final pubResp = await SupabaseConfig.client
+            .from('properties')
+            .select('id')
+            .eq('owner_id', auth.userId!);
+        if (mounted) {
+          setState(() => _publicationsCount = (pubResp as List).length);
+        }
+      } catch (_) {}
     } catch (e) {
       debugPrint('Error al cargar tier: $e');
     }
@@ -230,33 +264,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Divider(color: KazaTheme.glassBorder, height: 1),
                 ),
 
-                // 4. NAVEGACIÓN PRINCIPAL (Mocks temporales)
+                // 4. NAVEGACIÓN PRINCIPAL (Datos reales de BD)
                 _buildMainNavItem(
                   icon: Icons.home_work_outlined, 
-                  title: 'Mis publicaciones (U17)', 
-                  subtitle: '12 activas • 3 borradores',
-                  onTap: () {},
+                  title: 'Mis publicaciones', 
+                  subtitle: '$_publicationsCount activas',
+                  onTap: () => context.push('/my-listings'),
                 ),
                 _buildMainNavItem(
                   icon: Icons.remove_red_eye_outlined, 
                   title: 'Mis visitas', 
-                  subtitle: '5 confirmadas',
+                  subtitle: '$_visitsCount confirmadas',
                   onTap: () {},
                 ),
                 _buildMainNavItem(
                   icon: Icons.show_chart_rounded, 
-                  title: 'Actividad relevante (U13)', 
+                  title: 'Actividad relevante', 
                   subtitle: 'Visitas, contactos y mensajes',
-                  onTap: () {},
+                  onTap: () => context.push('/basic-stats'),
                 ),
-                _buildMainNavItem(
-                  icon: Icons.work_outline, 
-                  title: 'Perfil profesional (si aplica)', 
-                  subtitle: 'Accede a herramientas profesionales',
-                  onTap: () {},
-                ),
-                
-                // TODO: Reemplazar los datos mockeados en los subtítulos por contadores reales de la base de datos más adelante.
+                if (_tier == 'PRO' || _tier == 'BUSINESS')
+                  _buildMainNavItem(
+                    icon: Icons.work_outline, 
+                    title: 'CRM Profesional', 
+                    subtitle: 'Contactos y oportunidades',
+                    onTap: () => context.push('/pro-dashboard'),
+                  ),
+                if (_tier == 'BUSINESS')
+                  _buildMainNavItem(
+                    icon: Icons.construction, 
+                    title: 'Panel Desarrolladora', 
+                    subtitle: 'Gestiona tus proyectos inmobiliarios',
+                    onTap: () => context.push('/developer-dashboard'),
+                  ),
 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),

@@ -37,6 +37,9 @@ import '../../features/profile/screens/identity_verification_screen.dart';
 import '../../features/profile/screens/reputation_screen.dart';
 import '../../features/profile/screens/delete_account_screen.dart';
 import '../../features/profile/screens/help_center_screen.dart';
+import '../../features/developer/screens/developer_dashboard_screen.dart';
+import '../../features/developer/screens/project_detail_screen.dart';
+import '../../features/developer/models/developer_models.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -197,5 +200,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/reputation', builder: (context, state) => const ReputationScreen()),
     GoRoute(path: '/delete-account', builder: (context, state) => const DeleteAccountScreen()),
     GoRoute(path: '/help-center', builder: (context, state) => const HelpCenterScreen()),
+    GoRoute(path: '/developer-dashboard', builder: (context, state) => const DeveloperDashboardScreen()),
+    GoRoute(path: '/project-detail', builder: (context, state) => ProjectDetailScreen(project: state.extra as DevProject)),
   ],
 );
