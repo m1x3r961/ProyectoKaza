@@ -89,6 +89,7 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     // Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
     try {
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+        'p_id': user.id,
         'p_email': email,
         'p_full_name': name,
         'p_system_role': 'USER',
@@ -97,6 +98,7 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     } catch (_) {
       try {
         await SupabaseConfig.client.from('profiles').upsert({
+          'id': user.id,
           'email': email,
           'full_name': name,
           'system_role': 'USER',
@@ -110,7 +112,7 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     final fullName = name ?? email.split('@').first;
     state = state.copyWith(
       isAuthenticated: true,
-      userId: 'usr-${DateTime.now().millisecondsSinceEpoch}',
+      userId: SupabaseConfig.client.auth.currentUser?.id ?? 'usr-${DateTime.now().millisecondsSinceEpoch}',
       email: email,
       fullName: fullName,
     );
@@ -133,6 +135,7 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     // 2. Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
     try {
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+        'p_id': state.userId,
         'p_email': email,
         'p_full_name': fullName,
         'p_system_role': 'USER',
@@ -141,6 +144,7 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
     } catch (_) {
       try {
         await SupabaseConfig.client.from('profiles').upsert({
+          'id': state.userId,
           'email': email,
           'full_name': fullName,
           'system_role': 'USER',

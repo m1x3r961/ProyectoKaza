@@ -104658,47 +104658,48 @@ if(s!=null)this.un(s)
 r=r.b.gfD().ay
 new A.ks(r,r.$ti.i("ks<1>")).eY(new A.akn(this))}catch(p){}},
 un(a){return this.ayc(a)},
-ayc(a){var s=0,r=A.z(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d
-var $async$un=A.v(function(b,c){if(b===1){p=c
-s=q}while(true)switch(s){case 0:i=!1
-h=a.c
-g=h==null
-f=g?null:h.h(0,"full_name")
-if(f==null)h=g?null:h.h(0,"name")
-else h=f
-if(h==null){h=a.z
-h=h==null?null:B.b.gX(h.split("@"))
-l=h}else l=h
+ayc(a){var s=0,r=A.z(t.H),q=1,p,o=this,n,m,l,k,j,i,h,g,f,e,d,c
+var $async$un=A.v(function(b,a0){if(b===1){p=a0
+s=q}while(true)switch(s){case 0:h=!1
+g=a.c
+f=g==null
+e=f?null:g.h(0,"full_name")
+if(e==null)g=f?null:g.h(0,"name")
+else g=e
+if(g==null){g=a.z
+g=g==null?null:B.b.gX(g.split("@"))
+l=g}else l=g
 n=l==null?"Usuario Verificado":l
 k=a.z
 m=k==null?"usuario@kaza.bo":k
-h=o.f
-g=m
-f=n
-if(g==null)g=h.c
-if(f==null)f=h.d
-o.sfA(new A.k1(!0,a.a,g,f,h.e,!1))
+g=o.f
+f=a.a
+e=m
+j=n
+if(e==null)e=g.c
+if(j==null)j=g.d
+o.sfA(new A.k1(!0,f,e,j,g.e,!1))
 q=3
-h=$.cc().b
-h===$&&A.b()
-g=t.z
+g=$.cc().b
+g===$&&A.b()
+e=t.z
 s=6
-return A.n(h.pE("fn_upsert_profile",A.a3(["p_email",m,"p_full_name",n,"p_system_role","USER","p_is_agent",i],t.N,g),g),$async$un)
+return A.n(g.pE("fn_upsert_profile",A.a3(["p_id",f,"p_email",m,"p_full_name",n,"p_system_role","USER","p_is_agent",h],t.N,e),e),$async$un)
 case 6:q=1
 s=5
 break
 case 3:q=2
-e=p
+d=p
 q=8
-h=$.cc().b
-h===$&&A.b()
+g=$.cc().b
+g===$&&A.b()
 s=11
-return A.n(h.cY("profiles").a9B(A.a3(["email",m,"full_name",n,"system_role","USER","is_agent",i],t.N,t.z)),$async$un)
+return A.n(g.cY("profiles").a9B(A.a3(["id",f,"email",m,"full_name",n,"system_role","USER","is_agent",h],t.N,t.z)),$async$un)
 case 11:q=2
 s=10
 break
 case 8:q=7
-d=p
+c=p
 s=10
 break
 case 7:s=2
