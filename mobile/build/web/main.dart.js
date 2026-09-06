@@ -109211,7 +109211,7 @@ q=n.VT(B.aR,"M\xe1s capacidad para publicar. M\xe1s alcance.",A.a(["Publicacione
 p=n.x
 p=n.Kc(B.y,"CRM y herramientas para agentes profesionales.",A.a(["Todo lo de Plus","CRM Inmobiliario Profesional","Embudo de oportunidades y ventas","Seguimiento y tareas inteligentes","Reportes avanzados y anal\xedtica"],r),p==="PRO",new A.aRV(n),"Bs 300 / mes","PRO")
 o=n.x
-o=A.eT(A.a5(A.a([B.ajk,B.Z,B.ahB,B.aG,s,B.B,q,B.B,p,B.B,n.Kc(B.bX,"Para inmobiliarias y empresas organizadas.",A.a(["Todo lo de Pro","Crear una Organizaci\xf3n (Inmobiliaria)","Gesti\xf3n de equipo y permisos","Inventario centralizado","Pipeline consolidado de todos tus agentes"],r),o==="BUSINESS",new A.aRW(n),"Bs 800 / mes","BUSINESS"),B.aG],t.p),B.eH,B.e,B.f),m,B.z,B.dG,m,B.W)
+o=A.eT(A.a5(A.a([B.ajk,B.Z,B.ahB,B.aG,s,B.B,q,B.B,p,B.B,n.Kc(B.bX,"Para inmobiliarias y empresas organizadas.",A.a(["Todo lo de Pro","Crear una Organizaci\xf3n (Inmobiliaria)","Gesti\xf3n de equipo y permisos","Inventario centralizado","Pipeline consolidado de todos tus agentes","M\xf3dulo Desarrolladora (U08) \u2014 Proyectos inmobiliarios"],r),o==="BUSINESS",new A.aRW(n),"Bs 800 / mes","BUSINESS"),B.aG],t.p),B.eH,B.e,B.f),m,B.z,B.dG,m,B.W)
 s=o}return A.cm(l,B.b8,s,m,m,m)},
 VT(a,b,c,d,e,f,g,h){var s,r,q,p,o,n,m=null,l=A.K(16),k=d?a:B.F
 k=A.aW(k,B.p,d?2:1)

@@ -163,6 +163,7 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                         'Gestión de equipo y permisos',
                         'Inventario centralizado',
                         'Pipeline consolidado de todos tus agentes',
+                        'Módulo Desarrolladora (U08) — Proyectos inmobiliarios',
                       ],
                       onSelect: () => _upgradePlan('BUSINESS'),
                       color: const Color(0xFF7C4DFF), // Purple theme for business
