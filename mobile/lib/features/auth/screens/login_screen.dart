@@ -101,8 +101,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final fullName = '${_nameController.text.trim()} ${_lastNameController.text.trim()}';
+      final user = SupabaseConfig.client.auth.currentUser;
+      if (user == null) throw Exception('No hay usuario autenticado');
       
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
+        'p_id': user.id,
         'p_email': _emailController.text.trim(),
         'p_full_name': fullName,
         'p_system_role': 'USER',
