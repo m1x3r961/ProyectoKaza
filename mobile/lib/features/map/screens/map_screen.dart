@@ -797,7 +797,7 @@ class _PropertyPreviewCard extends StatelessWidget {
                 property.imageUrl != null
                     ? Image.network(
                         property.imageUrl!,
-                        height: 140,
+                        height: 220,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => _imagePlaceholder(),
@@ -912,7 +912,7 @@ class _PropertyPreviewCard extends StatelessWidget {
 
   Widget _imagePlaceholder() {
     return Container(
-      height: 140,
+      height: 220,
       color: const Color(0xFFF0F4F8),
       width: double.infinity,
       child: const Icon(Icons.home_work_rounded, color: Colors.black12, size: 48),
