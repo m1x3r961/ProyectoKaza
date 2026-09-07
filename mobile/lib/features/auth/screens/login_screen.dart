@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../providers/auth_provider.dart';
@@ -221,23 +223,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Mock de mapa
-                    Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage('assets/images/map_placeholder.png'),
-                          fit: BoxFit.cover,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      FlutterMap(
+                        options: const MapOptions(
+                          initialCenter: LatLng(-17.7833, -63.1821), // Santa Cruz default
+                          initialZoom: 13,
                         ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                            subdomains: const ['a', 'b', 'c', 'd'],
+                          ),
+                        ],
                       ),
-                      child: Container(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    // Pin central
-                    const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 48),
-                  ],
+                      const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 48),
+                    ],
+                  ),
                 ),
               ),
               Padding(
