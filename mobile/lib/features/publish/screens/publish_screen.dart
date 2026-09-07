@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +33,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   double _selectedLat = -17.7833;
   double _selectedLng = -63.1821;
   final _addressCtrl = TextEditingController();
+  final MapController _mapController = MapController();
+  bool _isSearchingLocation = false;
   
   // Características
   final _terrainCtrl = TextEditingController();
@@ -79,6 +83,37 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       if (auth.userId != null) _contactPhoneCtrl.text = '+591 70000000'; // Mock phone for now
     });
     _checkLimits();
+  }
+
+  Future<void> _searchLocation(String query) async {
+    if (query.trim().isEmpty) return;
+    setState(() => _isSearchingLocation = true);
+    try {
+      final response = await http.get(Uri.parse(
+          'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&limit=1'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as List;
+        if (data.isNotEmpty) {
+          final lat = double.parse(data[0]['lat']);
+          final lon = double.parse(data[0]['lon']);
+          setState(() {
+            _selectedLat = lat;
+            _selectedLng = lon;
+          });
+          _mapController.move(LatLng(lat, lon), 15.0);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ubicación no encontrada')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error buscando ubicación: $e');
+    } finally {
+      if (mounted) setState(() => _isSearchingLocation = false);
+    }
   }
 
   Future<void> _checkLimits() async {
@@ -500,41 +535,48 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                 controller: _addressCtrl,
                 decoration: const InputDecoration(hintText: 'Buscar dirección o lugar', border: InputBorder.none, isDense: true),
                 style: const TextStyle(fontSize: 14),
+                onSubmitted: _searchLocation,
               ),
             ),
+            if (_isSearchingLocation)
+              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
           ],
         ),
       ),
       const SizedBox(height: 16),
       Container(
-        height: 200,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: KazaTheme.grisClaro),
-        child: Stack(
-          children: [
-            FlutterMap(
-              options: MapOptions(
-                initialCenter: LatLng(_selectedLat, _selectedLng),
-                initialZoom: 14,
-                onTap: (tapPosition, point) {
-                  setState(() {
-                    _selectedLat = point.latitude;
-                    _selectedLng = point.longitude;
-                  });
-                },
-              ),
-              children: [
-                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.kaza.app'),
-                MarkerLayer(markers: [
-                  Marker(
-                    point: LatLng(_selectedLat, _selectedLng),
-                    width: 44,
-                    height: 56,
-                    child: CustomPaint(painter: KazaPinPainter(icon: Icons.location_on, isSelected: true)),
-                  ),
-                ]),
-              ],
+        height: 350,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16), 
+          color: KazaTheme.grisClaro,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: LatLng(_selectedLat, _selectedLng),
+              initialZoom: 14,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _selectedLat = point.latitude;
+                  _selectedLng = point.longitude;
+                });
+              },
             ),
-          ],
+            children: [
+              TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.kaza.app'),
+              MarkerLayer(markers: [
+                Marker(
+                  point: LatLng(_selectedLat, _selectedLng),
+                  width: 44,
+                  height: 56,
+                  child: CustomPaint(painter: KazaPinPainter(icon: Icons.location_on, isSelected: true)),
+                ),
+              ]),
+            ],
+          ),
         ),
       ),
     ]);
