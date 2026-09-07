@@ -364,6 +364,76 @@ class PropertyGallerySection extends StatefulWidget {
 
 class _PropertyGallerySectionState extends State<PropertyGallerySection> {
   int _selectedTab = 0; // 0=Fotos, 1=Video, 2=Tour360
+  int _currentImageIndex = 0;
+
+  void _openFullScreenGallery() {
+    final photos = widget.property.photos.isNotEmpty 
+        ? widget.property.photos 
+        : (widget.property.imageUrl != null ? [widget.property.imageUrl!] : []);
+    
+    if (photos.isEmpty) return;
+
+    showGeneralDialog(
+      context: context,
+      barrierColor: Colors.black, // Background color
+      barrierDismissible: false,
+      barrierLabel: 'Gallery',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              PageView.builder(
+                itemCount: photos.length,
+                controller: PageController(initialPage: _currentImageIndex),
+                onPageChanged: (index) {
+                  setState(() => _currentImageIndex = index);
+                },
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    minScale: 1.0,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      photos[index],
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white, size: 50)),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 16,
+                right: 16,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              Positioned(
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_currentImageIndex + 1} / ${photos.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -387,48 +457,58 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
           const SizedBox(height: 14),
 
           // Main image display
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                widget.property.imageUrl != null
-                    ? Image.network(
-                        widget.property.imageUrl!,
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _galleryPlaceholder(),
-                      )
-                    : _galleryPlaceholder(),
-                // Close / expand icon
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
-                  ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '1 / ${widget.property.photos.isEmpty ? 1 : widget.property.photos.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+          GestureDetector(
+            onTap: _openFullScreenGallery,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  Builder(builder: (context) {
+                    final photos = widget.property.photos.isNotEmpty 
+                        ? widget.property.photos 
+                        : (widget.property.imageUrl != null ? [widget.property.imageUrl!] : []);
+                    final currentUrl = photos.isNotEmpty ? photos[_currentImageIndex] : null;
+
+                    return currentUrl != null
+                        ? Image.network(
+                            currentUrl,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _galleryPlaceholder(),
+                          )
+                        : _galleryPlaceholder();
+                  }),
+                  // Close / expand icon
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
                     ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_currentImageIndex + 1} / ${widget.property.photos.isEmpty ? 1 : widget.property.photos.length}',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -441,27 +521,30 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
               itemCount: widget.property.photos.isEmpty ? 1 : widget.property.photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
-                final isSelected = i == 0;
+                final isSelected = i == _currentImageIndex;
                 final photoUrl = widget.property.photos.isNotEmpty ? widget.property.photos[i] : widget.property.imageUrl;
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 64,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isSelected ? KazaTheme.primaryCoral : Colors.transparent,
-                        width: 2,
+                return GestureDetector(
+                  onTap: () => setState(() => _currentImageIndex = i),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 64,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isSelected ? KazaTheme.primaryCoral : Colors.transparent,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        color: KazaTheme.grisClaro,
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                      color: KazaTheme.grisClaro,
+                      child: photoUrl != null
+                          ? Image.network(
+                              photoUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.photo, color: KazaTheme.grisMedio),
+                            )
+                          : const Icon(Icons.photo, color: KazaTheme.grisMedio),
                     ),
-                    child: photoUrl != null
-                        ? Image.network(
-                            photoUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.photo, color: KazaTheme.grisMedio),
-                          )
-                        : const Icon(Icons.photo, color: KazaTheme.grisMedio),
                   ),
                 );
               },
