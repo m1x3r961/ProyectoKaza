@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_map/flutter_map.dart';
@@ -223,8 +224,45 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       if (_operationType == 'Anticrético') dbOperation = 'ANTICRETICO';
       if (_operationType == 'Alquiler temporal') dbOperation = 'TEMPORAL';
 
-      final photosList = _mediaItems.map((m) => m.path).toList(); // En un caso real subiríamos a Storage primero
-
+      // Subir fotos a Storage
+      List<String> photosList = [];
+      
+      if (_mediaItems.isNotEmpty) {
+        for (var i = 0; i < _mediaItems.length; i++) {
+          final item = _mediaItems[i];
+          if (item.bytes != null) {
+            final fileExt = item.fileName?.split('.').last ?? 'jpg';
+            final fileName = 'prop_${DateTime.now().millisecondsSinceEpoch}_$i.$fileExt';
+            
+            try {
+              String contentType = 'image/jpeg';
+              if (fileExt.toLowerCase() == 'png') contentType = 'image/png';
+              if (fileExt.toLowerCase() == 'webp') contentType = 'image/webp';
+              
+              // Subir a bucket property-photos
+              await SupabaseConfig.client.storage
+                  .from('property-photos')
+                  .uploadBinary(
+                    fileName,
+                    item.bytes!,
+                    fileOptions: FileOptions(contentType: contentType),
+                  );
+                  
+              // Obtener URL pública
+              final String publicUrl = SupabaseConfig.client.storage
+                  .from('property-photos')
+                  .getPublicUrl(fileName);
+                  
+              photosList.add(publicUrl);
+            } catch (e) {
+              debugPrint('Error subiendo foto $fileName: $e');
+            }
+          } else if (item.url.isNotEmpty) {
+            // Si ya es una URL válida (ej: datos demo), la conservamos
+            photosList.add(item.url);
+          }
+        }
+      }
       final propertyData = {
         'title': finalTitle,
         'address_canonical': _addressCtrl.text,
