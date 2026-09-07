@@ -14,6 +14,8 @@ import '../widgets/map_list_toggle.dart';
 import '../widgets/poi_layer_widget.dart';
 import 'property_state_wrapper.dart';
 import 'cluster_bottom_sheet.dart';
+import '../../../core/network/supabase_config.dart';
+import '../../saved/screens/saved_screen.dart';
 
 /// 🗺️ MAPA (Home) — KAZA Map-First Experience
 /// Matches KAZA Master Design v1.0 with all 17 components
@@ -524,15 +526,31 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                       });
                       _mapController.move(prop.location, 16);
                     },
-                    onFavoriteTap: (prop) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${prop.title} guardado'),
-                          backgroundColor: KazaTheme.azulKaza,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      );
+                    onFavoriteTap: (prop) async {
+                      try {
+                        final userId = SupabaseConfig.client.auth.currentUser?.id;
+                        final payload = {'property_id': prop.id};
+                        if (userId != null) payload['user_id'] = userId;
+                        await SupabaseConfig.client.from('saved_properties').insert(payload);
+                        ref.invalidate(savedPropertiesProvider);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${prop.title} guardado en favoritos'),
+                            backgroundColor: KazaTheme.azulKaza,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Error al guardar propiedad'),
+                            backgroundColor: Colors.red.shade400,
+                          ),
+                        );
+                      }
                     },
                   );
                 },
@@ -570,15 +588,31 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     ),
                   );
                 },
-                onFavorite: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${_selectedProperty!.title} guardado'),
-                      backgroundColor: KazaTheme.azulKaza,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  );
+                onFavorite: () async {
+                  try {
+                    final userId = SupabaseConfig.client.auth.currentUser?.id;
+                    final payload = {'property_id': _selectedProperty!.id};
+                    if (userId != null) payload['user_id'] = userId;
+                    await SupabaseConfig.client.from('saved_properties').insert(payload);
+                    ref.invalidate(savedPropertiesProvider);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${_selectedProperty!.title} guardado en favoritos'),
+                        backgroundColor: KazaTheme.azulKaza,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Error al guardar propiedad'),
+                        backgroundColor: Colors.red.shade400,
+                      ),
+                    );
+                  }
                 },
               ),
             ),
