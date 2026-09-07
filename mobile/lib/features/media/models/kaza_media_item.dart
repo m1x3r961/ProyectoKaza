@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Categorías de veracidad exigidas por Kaza Master v0.2
 enum KazaMediaType {
   realPhoto,
@@ -68,6 +70,8 @@ class KazaMediaItem {
   final String id;
   final String url;
   final String? path;
+  final String? fileName;
+  final Uint8List? bytes;
   final KazaMediaType mediaType;
   final bool isThumbnail;
 
@@ -75,6 +79,8 @@ class KazaMediaItem {
     required this.id,
     required this.url,
     this.path,
+    this.fileName,
+    this.bytes,
     this.mediaType = KazaMediaType.realPhoto,
     this.isThumbnail = false,
   });
@@ -83,6 +89,8 @@ class KazaMediaItem {
     String? id,
     String? url,
     String? path,
+    String? fileName,
+    Uint8List? bytes,
     KazaMediaType? mediaType,
     bool? isThumbnail,
   }) {
@@ -90,6 +98,8 @@ class KazaMediaItem {
       id: id ?? this.id,
       url: url ?? this.url,
       path: path ?? this.path,
+      fileName: fileName ?? this.fileName,
+      bytes: bytes ?? this.bytes,
       mediaType: mediaType ?? this.mediaType,
       isThumbnail: isThumbnail ?? this.isThumbnail,
     );
