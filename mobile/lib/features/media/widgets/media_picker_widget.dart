@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../models/kaza_media_item.dart';
 
 /// 📸 KAZA MEDIA PICKER WIDGET - Carga real de fotos con galería y miniaturas
+/// Usa file_picker para Web + Mobile (galería) e image_picker para cámara (mobile)
 class MediaPickerWidget extends StatefulWidget {
   final List<KazaMediaItem> initialItems;
   final ValueChanged<List<KazaMediaItem>> onChanged;
@@ -29,32 +31,33 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
     _items = List.from(widget.initialItems);
   }
 
+  /// Seleccionar imágenes desde galería/archivos (funciona en Web y Mobile)
   Future<void> _pickImagesFromGallery() async {
     if (_isPickingImages) return;
     setState(() => _isPickingImages = true);
 
     try {
-      final picker = ImagePicker();
-      final pickedFiles = await picker.pickMultiImage(
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: true,
+        withData: true, // Necesario para obtener los bytes en Web
       );
 
-      if (pickedFiles.isNotEmpty) {
-        for (final file in pickedFiles) {
-          final bytes = await file.readAsBytes();
-          final newItem = KazaMediaItem(
-            id: 'img-${DateTime.now().millisecondsSinceEpoch}-${_items.length}',
-            url: '', // Se llenará al subir a Supabase Storage
-            fileName: file.name,
-            bytes: bytes,
-            mediaType: KazaMediaType.realPhoto,
-            isThumbnail: _items.isEmpty,
-          );
-          setState(() {
-            _items.add(newItem);
-          });
+      if (result != null && result.files.isNotEmpty) {
+        for (final file in result.files) {
+          if (file.bytes != null) {
+            final newItem = KazaMediaItem(
+              id: 'img-${DateTime.now().millisecondsSinceEpoch}-${_items.length}',
+              url: '',
+              fileName: file.name,
+              bytes: file.bytes,
+              mediaType: KazaMediaType.realPhoto,
+              isThumbnail: _items.isEmpty,
+            );
+            setState(() {
+              _items.add(newItem);
+            });
+          }
         }
         widget.onChanged(_items);
       }
@@ -69,6 +72,7 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
     }
   }
 
+  /// Tomar foto con cámara (solo Mobile, en Web no aplica)
   Future<void> _takePhoto() async {
     if (_isPickingImages) return;
     setState(() => _isPickingImages = true);
@@ -139,20 +143,23 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                 _pickImagesFromGallery();
               },
             ),
-            const SizedBox(height: 4),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: KazaTheme.primaryTeal.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.camera_alt, color: KazaTheme.primaryTeal),
+            // Solo mostrar opción de cámara en Mobile
+            if (!kIsWeb) ...[
+              const SizedBox(height: 4),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: KazaTheme.primaryTeal.withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.camera_alt, color: KazaTheme.primaryTeal),
+                ),
+                title: const Text('Tomar foto', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('Usar la cámara del dispositivo', style: TextStyle(fontSize: 12, color: KazaTheme.textMuted)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _takePhoto();
+                },
               ),
-              title: const Text('Tomar foto', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Usar la cámara del dispositivo', style: TextStyle(fontSize: 12, color: KazaTheme.textMuted)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _takePhoto();
-              },
-            ),
+            ],
             const SizedBox(height: 16),
           ],
         ),
@@ -179,7 +186,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
   void _removeItem(int index) {
     setState(() {
       _items.removeAt(index);
-      // Si eliminamos el thumbnail, marcar el primero
       if (_items.isNotEmpty && !_items.any((e) => e.isThumbnail)) {
         _items[0] = _items[0].copyWith(isThumbnail: true);
       }
@@ -246,7 +252,7 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                   const SizedBox(height: 12),
                   const Text('Toca para agregar fotos', style: TextStyle(color: KazaTheme.textMuted, fontSize: 14, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
-                  const Text('Galería o Cámara', style: TextStyle(color: KazaTheme.textMuted, fontSize: 11)),
+                  Text(kIsWeb ? 'Seleccionar archivos' : 'Galería o Cámara', style: const TextStyle(color: KazaTheme.textMuted, fontSize: 11)),
                 ],
               ),
             ),
@@ -264,17 +270,16 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                   mainAxisSpacing: 8,
                   childAspectRatio: 1,
                 ),
-                itemCount: _items.length + 1, // +1 for add button
+                itemCount: _items.length + 1,
                 itemBuilder: (context, index) {
                   if (index == _items.length) {
-                    // Add more button
                     return GestureDetector(
                       onTap: _showPickerOptions,
                       child: Container(
                         decoration: BoxDecoration(
                           color: KazaTheme.cardSurface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: KazaTheme.glassBorder, style: BorderStyle.solid),
+                          border: Border.all(color: KazaTheme.glassBorder),
                         ),
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -291,7 +296,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                   final item = _items[index];
                   return Stack(
                     children: [
-                      // Thumbnail image
                       GestureDetector(
                         onTap: () => _showItemOptions(index),
                         child: Container(
@@ -307,7 +311,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                           ),
                         ),
                       ),
-                      // Thumbnail badge
                       if (item.isThumbnail)
                         Positioned(
                           bottom: 4,
@@ -321,7 +324,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                             child: const Text('Portada', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                           ),
                         ),
-                      // Media type badge
                       Positioned(
                         top: 4,
                         left: 4,
@@ -337,7 +339,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                           ),
                         ),
                       ),
-                      // Delete button
                       Positioned(
                         top: 4,
                         right: 4,
@@ -358,7 +359,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
                 },
               ),
               const SizedBox(height: 12),
-              // Counter
               Text(
                 '${_items.length} ${_items.length == 1 ? 'imagen' : 'imágenes'} agregadas',
                 style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
@@ -398,26 +398,16 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
 
   String _shortLabel(KazaMediaType type) {
     switch (type) {
-      case KazaMediaType.realPhoto:
-        return 'REAL';
-      case KazaMediaType.editedPhoto:
-        return 'EDITADA';
-      case KazaMediaType.render:
-        return 'RENDER';
-      case KazaMediaType.aiConcept:
-        return 'IA';
-      case KazaMediaType.virtualStaging:
-        return 'VIRTUAL';
-      case KazaMediaType.video:
-        return 'VIDEO';
-      case KazaMediaType.drone:
-        return 'DRON';
-      case KazaMediaType.tour360:
-        return '360°';
-      case KazaMediaType.plan:
-        return 'PLANO';
-      case KazaMediaType.constructionProgress:
-        return 'OBRA';
+      case KazaMediaType.realPhoto: return 'REAL';
+      case KazaMediaType.editedPhoto: return 'EDITADA';
+      case KazaMediaType.render: return 'RENDER';
+      case KazaMediaType.aiConcept: return 'IA';
+      case KazaMediaType.virtualStaging: return 'VIRTUAL';
+      case KazaMediaType.video: return 'VIDEO';
+      case KazaMediaType.drone: return 'DRON';
+      case KazaMediaType.tour360: return '360°';
+      case KazaMediaType.plan: return 'PLANO';
+      case KazaMediaType.constructionProgress: return 'OBRA';
     }
   }
 
@@ -436,7 +426,6 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Preview
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
