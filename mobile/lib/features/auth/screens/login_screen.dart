@@ -125,8 +125,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _pickAvatar() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Seleccionar foto de perfil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: KazaTheme.textPrimary)),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: KazaTheme.primaryTeal.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.camera_alt, color: KazaTheme.primaryTeal),
+              ),
+              title: const Text('Tomar foto con la cámara', style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _processImagePick(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: KazaTheme.azulKaza.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.photo_library, color: KazaTheme.azulKaza),
+              ),
+              title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _processImagePick(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _processImagePick(ImageSource source) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 800);
+    final pickedFile = await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800);
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -134,6 +182,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _avatarName = pickedFile.name;
       });
     }
+  }
+
+  void _showLocationPicker() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, color: KazaTheme.primaryTeal, size: 28),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Selecciona tu ubicación', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: KazaTheme.textMuted),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Text('Mueve el mapa para ajustar tu ubicación pública principal. Esto nos ayudará a mostrarte resultados relevantes.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Mock de mapa
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/map_placeholder.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      child: Container(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    // Pin central
+                    const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 48),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: KazaTheme.primaryTeal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _locationController.text = 'Av. Equipetrol, Santa Cruz';
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Confirmar Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _saveProfileSettings() async {
@@ -476,9 +608,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: const InputDecoration(labelText: 'Biografía (opcional)', prefixIcon: Icon(Icons.edit_note), border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _locationController,
-                  decoration: const InputDecoration(labelText: 'Ubicación (opcional)', prefixIcon: Icon(Icons.location_on_outlined), border: OutlineInputBorder()),
+                GestureDetector(
+                  onTap: _showLocationPicker,
+                  child: AbsorbPointer(
+                    child: TextField(
+                      controller: _locationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Ubicación (opcional)', 
+                        prefixIcon: Icon(Icons.location_on_outlined), 
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.map, color: KazaTheme.primaryTeal),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 28),
                 if (_isLoading)
