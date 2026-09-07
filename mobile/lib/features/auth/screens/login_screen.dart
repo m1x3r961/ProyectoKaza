@@ -187,86 +187,95 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showLocationPicker() {
+    LatLng currentCenter = const LatLng(-17.7833, -63.1821);
+    
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Container(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on, color: KazaTheme.primaryTeal, size: 28),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text('Selecciona tu ubicación', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: KazaTheme.textMuted),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Text('Mueve el mapa para ajustar tu ubicación pública principal. Esto nos ayudará a mostrarte resultados relevantes.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-                  child: Stack(
-                    alignment: Alignment.center,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            width: double.infinity,
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Row(
                     children: [
-                      FlutterMap(
-                        options: const MapOptions(
-                          initialCenter: LatLng(-17.7833, -63.1821), // Santa Cruz default
-                          initialZoom: 13,
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.kaza.app',
-                          ),
-                        ],
+                      const Icon(Icons.location_on, color: KazaTheme.primaryTeal, size: 28),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text('Selecciona tu ubicación', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
                       ),
-                      const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 48),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: KazaTheme.textMuted),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: KazaTheme.primaryTeal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Text('Mueve el mapa para ajustar tu ubicación pública principal. Esto nos ayudará a mostrarte resultados relevantes.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        FlutterMap(
+                          options: MapOptions(
+                            initialCenter: currentCenter,
+                            initialZoom: 13,
+                            onPositionChanged: (position, hasGesture) {
+                              if (position.center != null) {
+                                currentCenter = position.center!;
+                              }
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.kaza.app',
+                            ),
+                          ],
+                        ),
+                        const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 48),
+                      ],
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _locationController.text = 'Av. Equipetrol, Santa Cruz';
-                      });
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Confirmar Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KazaTheme.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _locationController.text = '${currentCenter.latitude.toStringAsFixed(4)}, ${currentCenter.longitude.toStringAsFixed(4)}';
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: const Text('Confirmar Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
