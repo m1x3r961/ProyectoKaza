@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -186,6 +188,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<String> _getAddressFromCoordinates(double lat, double lng) async {
+    try {
+      final response = await http.get(Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final address = data['address'] as Map<String, dynamic>?;
+        if (address != null) {
+          final road = address['road'] ?? address['pedestrian'] ?? address['suburb'] ?? address['neighbourhood'] ?? address['city_district'];
+          final city = address['city'] ?? address['town'] ?? address['village'] ?? address['county'];
+          if (road != null && city != null) {
+            return '$road, $city';
+          } else if (road != null) {
+            return road.toString();
+          }
+        }
+        return data['display_name'] ?? '$lat, $lng';
+      }
+    } catch (_) {}
+    return '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+  }
+
   void _showLocationPicker() {
     LatLng currentCenter = const LatLng(-17.7833, -63.1821);
     
@@ -264,11 +288,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
+                        // Opcionalmente se podría mostrar un loader aquí, pero Nominatim es rápido
+                        final address = await _getAddressFromCoordinates(currentCenter.latitude, currentCenter.longitude);
                         setState(() {
-                          _locationController.text = '${currentCenter.latitude.toStringAsFixed(4)}, ${currentCenter.longitude.toStringAsFixed(4)}';
+                          _locationController.text = address;
                         });
-                        Navigator.pop(ctx);
+                        if (context.mounted) Navigator.pop(ctx);
                       },
                       child: const Text('Confirmar Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
