@@ -380,56 +380,62 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
       barrierLabel: 'Gallery',
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return Scaffold(
-          backgroundColor: Colors.black,
-          body: Stack(
-            children: [
-              PageView.builder(
-                itemCount: photos.length,
-                controller: PageController(initialPage: _currentImageIndex),
-                onPageChanged: (index) {
-                  setState(() => _currentImageIndex = index);
-                },
-                itemBuilder: (context, index) {
-                  return InteractiveViewer(
-                    minScale: 1.0,
-                    maxScale: 4.0,
-                    child: Image.network(
-                      photos[index],
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white, size: 50)),
-                    ),
-                  );
-                },
-              ),
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 16,
-                right: 16,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              Positioned(
-                bottom: MediaQuery.of(context).padding.bottom + 20,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_currentImageIndex + 1} / ${photos.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        int localIndex = _currentImageIndex;
+        return StatefulBuilder(
+          builder: (context, setStateLocal) {
+            return Scaffold(
+              backgroundColor: Colors.black,
+              body: Stack(
+                children: [
+                  PageView.builder(
+                    itemCount: photos.length,
+                    controller: PageController(initialPage: _currentImageIndex),
+                    onPageChanged: (index) {
+                      setStateLocal(() => localIndex = index);
+                      setState(() => _currentImageIndex = index);
+                    },
+                    itemBuilder: (context, index) {
+                      return InteractiveViewer(
+                        minScale: 1.0,
+                        maxScale: 4.0,
+                        child: Image.network(
+                          photos[index],
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white, size: 50)),
+                        ),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 16,
+                    right: 16,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
-                ),
+                  Positioned(
+                    bottom: MediaQuery.of(context).padding.bottom + 20,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${localIndex + 1} / ${photos.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          }
         );
       },
     );
