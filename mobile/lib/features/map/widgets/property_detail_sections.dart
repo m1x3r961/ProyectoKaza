@@ -1079,8 +1079,9 @@ class PropertyLocationSection extends StatelessWidget {
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                        subdomains: const ['a', 'b', 'c', 'd'],
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.kaza.app',
+                        maxNativeZoom: 19,
                       ),
                       MarkerLayer(
                         markers: [
