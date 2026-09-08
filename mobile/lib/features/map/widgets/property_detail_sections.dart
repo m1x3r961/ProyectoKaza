@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
+import '../../../core/widgets/kaza_pin_painter.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED HELPERS
@@ -1021,7 +1024,9 @@ class PropertyAvailabilitySection extends StatelessWidget {
 // 07 · UBICACIÓN Y ENTORNO
 // ─────────────────────────────────────────────────────────────────────────────
 class PropertyLocationSection extends StatelessWidget {
-  const PropertyLocationSection({super.key});
+  final PropertyMapItem property;
+  
+  const PropertyLocationSection({super.key, required this.property});
 
   static const _distances = [
     {'place': 'Mall Ventura', 'dist': '< 5 min', 'km': '1.2 km', 'icon': Icons.local_mall_outlined},
@@ -1048,74 +1053,71 @@ class PropertyLocationSection extends StatelessWidget {
             children: [
               const Icon(Icons.location_pin, size: 16, color: KazaTheme.primaryCoral),
               const SizedBox(width: 6),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Calle 5 Norte, Equipetrol Norte, Santa Cruz, Bolivia',
-                  style: TextStyle(fontSize: 13, color: KazaTheme.textSecondary),
+                  property.address ?? 'Ubicación exacta no especificada',
+                  style: const TextStyle(fontSize: 13, color: KazaTheme.textSecondary),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          // Mini mapa placeholder
+          // Real Map
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Container(
+            child: SizedBox(
               height: 160,
               width: double.infinity,
-              color: const Color(0xFFE8F0E9),
               child: Stack(
-                alignment: Alignment.center,
                 children: [
-                  // Simulated map grid
-                  CustomPaint(
-                    size: const Size(double.infinity, 160),
-                    painter: _MapGridPainter(),
-                  ),
-                  // Pin
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+                  FlutterMap(
+                    options: MapOptions(
+                      initialCenter: property.location,
+                      initialZoom: 15,
+                      interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                    ),
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: KazaTheme.primaryCoral,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [BoxShadow(color: KazaTheme.primaryCoral.withValues(alpha: 0.4), blurRadius: 8)],
-                        ),
-                        child: const Text('Equipetrol Norte', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      TileLayer(
+                        urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                        subdomains: const ['a', 'b', 'c', 'd'],
                       ),
-                      CustomPaint(
-                        size: const Size(16, 8),
-                        painter: _TrianglePainter(),
-                      ),
-                    ],
-                  ),
-                  // Map/Satellite toggle
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _mapToggle('Mapa', true),
-                          _mapToggle('Satélite', false),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: property.location,
+                            width: 140,
+                            height: 60,
+                            alignment: Alignment.topCenter,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: KazaTheme.primaryCoral,
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [BoxShadow(color: KazaTheme.primaryCoral.withValues(alpha: 0.4), blurRadius: 8)],
+                                  ),
+                                  child: const Text('Ubicación de la propiedad', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
+                                CustomPaint(
+                                  size: const Size(16, 8),
+                                  painter: _TrianglePainter(),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                    ),
+                    ],
                   ),
                   // Ver en mapa
                   Positioned(
                     bottom: 10,
                     right: 10,
                     child: GestureDetector(
+                      onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(

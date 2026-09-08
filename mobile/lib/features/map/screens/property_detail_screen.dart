@@ -313,8 +313,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
             ),
 
             // ── 07 · Ubicación y entorno ───────────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyLocationSection(),
+            SliverToBoxAdapter(
+              child: PropertyLocationSection(property: widget.property),
             ),
 
             // ── 08 · Anunciante / Publicador ──────────────────────────────
