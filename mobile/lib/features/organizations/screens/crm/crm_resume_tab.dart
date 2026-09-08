@@ -1,31 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/kaza_theme.dart';
+import '../../providers/crm_stats_provider.dart';
 
-class CrmResumeTab extends StatelessWidget {
+class CrmResumeTab extends ConsumerWidget {
   const CrmResumeTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(crmStatsProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 24),
-          _buildMainMetrics(),
-          const SizedBox(height: 32),
-          _buildPipelineOportunidades(),
-          const SizedBox(height: 32),
-          _buildCrecimiento(),
-          const SizedBox(height: 32),
-          _buildEntorno(),
-        ],
+      child: statsAsync.when(
+        data: (stats) {
+          if (stats == null) {
+            return const Center(child: Text('No se encontró información de la organización.'));
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(stats.orgName),
+              const SizedBox(height: 24),
+              _buildMainMetrics(stats.propertiesCount.toString(), stats.totalViews.toString(), '0'), // Programadas no están mapeadas aún
+              const SizedBox(height: 32),
+              _buildPipelineOportunidades(),
+              const SizedBox(height: 32),
+              _buildCrecimiento(stats.totalViews.toString()),
+              const SizedBox(height: 32),
+              _buildEntorno(stats.membersCount.toString()),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(String orgName) {
     return Row(
       children: [
         Container(
@@ -39,15 +52,15 @@ class CrmResumeTab extends StatelessWidget {
           child: const Icon(Icons.architecture, color: Colors.white),
         ),
         const SizedBox(width: 16),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'HIGA Arquitectura Estratégica',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
+                orgName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
               ),
-              Row(
+              const Row(
                 children: [
                   Text('Business ', style: TextStyle(color: KazaTheme.textMuted, fontSize: 12)),
                   Icon(Icons.circle, color: Colors.green, size: 8),
@@ -61,14 +74,14 @@ class CrmResumeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMainMetrics() {
+  Widget _buildMainMetrics(String props, String views, String programadas) {
     return Row(
       children: [
-        Expanded(child: _buildMetricItem('128', 'Propiedades')),
+        Expanded(child: _buildMetricItem(props, 'Propiedades')),
         Container(width: 1, height: 40, color: Colors.grey.shade200),
-        Expanded(child: _buildMetricItem('256', 'Vistas (30d)')),
+        Expanded(child: _buildMetricItem(views, 'Vistas (30d)')),
         Container(width: 1, height: 40, color: Colors.grey.shade200),
-        Expanded(child: _buildMetricItem('48', 'Programadas')),
+        Expanded(child: _buildMetricItem(programadas, 'Programadas')),
       ],
     );
   }
@@ -128,61 +141,61 @@ class CrmResumeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCrecimiento() {
+  Widget _buildCrecimiento(String views) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Crecimiento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+            const Text('Crecimiento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
             Text('Últimos 30 días >', style: TextStyle(fontSize: 12, color: KazaTheme.textMuted, fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _growthCard('Impresiones', '24.6K', '+12%')),
+            Expanded(child: _buildCrecimientoCard('Impresiones', '24.6K', '+12%', true)),
             const SizedBox(width: 12),
-            Expanded(child: _growthCard('Leads', '8.4K', '+5%')),
+            Expanded(child: _buildCrecimientoCard('Leads', '8.4K', '+5%', true)),
             const SizedBox(width: 12),
-            Expanded(child: _growthCard('Vistas', '298', '+15%')),
+            Expanded(child: _buildCrecimientoCard('Vistas', views, '+15%', true)),
             const SizedBox(width: 12),
-            Expanded(child: _growthCard('Tasa Conversión', '3.1%', '+0.4 pp')),
+            Expanded(child: _buildCrecimientoCard('Tasa Conversión', '3.1%', '+0.4 pp', true)),
           ],
-        ),
+        )
       ],
     );
   }
 
-  Widget _growthCard(String title, String val, String grow) {
+  Widget _buildCrecimientoCard(String label, String val, String varPct, bool positive) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: KazaTheme.glassBorder),
       ),
       child: Column(
         children: [
-          Text(title, style: const TextStyle(fontSize: 9, color: KazaTheme.textMuted), textAlign: TextAlign.center, maxLines: 1),
+          Text(label, style: const TextStyle(fontSize: 10, color: KazaTheme.textMuted, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
           const SizedBox(height: 4),
-          Text(val, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+          Text(val, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
           const SizedBox(height: 2),
-          Text(grow, style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
+          Text(varPct, style: TextStyle(fontSize: 10, color: positive ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildEntorno() {
+  Widget _buildEntorno(String membersCount) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Entorno', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+            const Text('Entorno', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
             Text('Evaluación >', style: TextStyle(fontSize: 12, color: KazaTheme.textMuted, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -190,17 +203,17 @@ class CrmResumeTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _entornoStat('14', 'Miembros'),
-            _entornoStat('4', 'Equipos'),
-            _entornoStat('2', 'Sucursales'),
-            _entornoStat('2', 'Invitaciones'),
+            _buildEntornoItem(membersCount, 'Miembros'),
+            _buildEntornoItem('4', 'Equipos'),
+            _buildEntornoItem('2', 'Sucursales'),
+            _buildEntornoItem('2', 'Invitaciones'),
           ],
-        ),
+        )
       ],
     );
   }
 
-  Widget _entornoStat(String val, String label) {
+  Widget _buildEntornoItem(String val, String label) {
     return Column(
       children: [
         Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: KazaTheme.azulKaza)),
