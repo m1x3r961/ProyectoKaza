@@ -11,6 +11,7 @@ import '../../features/financing/screens/financing_requests_screen.dart';
 import '../../features/ai_assistant/screens/ai_hub_screen.dart';
 import '../../features/ai_assistant/screens/ai_chat_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
+import '../../features/achievements/screens/achievements_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
 import '../../features/organizations/screens/organizations_hub_screen.dart';
@@ -163,6 +164,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/crm-opportunities',
       builder: (context, state) => const CrmOpportunitiesScreen(),
+    ),
+    GoRoute(
+      path: '/achievements',
+      builder: (context, state) => const AchievementsScreen(),
     ),
     GoRoute(
       path: '/org-dashboard',

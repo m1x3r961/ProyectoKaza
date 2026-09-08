@@ -252,21 +252,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Expanded(child: _buildTrustSignal(Icons.check_circle_outline, 'Verification', 'Hechos verificados', KazaTheme.azulKaza)),
                     Expanded(child: _buildTrustSignal(Icons.star_outline, 'Reputation', 'Trayectoria', KazaTheme.accentGold)),
                     Expanded(
-                      child: Column(
-                        children: [
-                          const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.workspace_premium, size: 16, color: KazaTheme.primaryCoral),
-                              Icon(Icons.workspace_premium, size: 16, color: KazaTheme.primaryCoral),
-                              Icon(Icons.workspace_premium, size: 16, color: KazaTheme.primaryCoral),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text('Logros destacados\nMáx. 3', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          const Text('Ver todos >', style: TextStyle(color: KazaTheme.azulKaza, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
+                      child: GestureDetector(
+                        onTap: () => context.push('/achievements'),
+                        child: Column(
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.workspace_premium, size: 16, color: KazaTheme.primaryCoral),
+                                Icon(Icons.workspace_premium, size: 16, color: KazaTheme.primaryCoral),
+                                Icon(Icons.workspace_premium, size: 16, color: KazaTheme.primaryCoral),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Text('Logros destacados\nMáx. 3', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            const Text('Ver todos >', style: TextStyle(color: KazaTheme.azulKaza, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
                     ),
                   ],
