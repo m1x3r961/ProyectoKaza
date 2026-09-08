@@ -184,38 +184,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
 
                 // 2. CONTEXTO ACTUAL
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Contexto actual', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Row(
+                Builder(
+                  builder: (context) {
+                    bool isOrg = _tier == 'BUSINESS';
+                    bool isPro = _tier == 'PRO';
+                    bool isPersonal = !isOrg && !isPro;
+
+                    String contextTitle = isOrg ? 'Organización' : (isPro ? 'Profesional' : 'Personal');
+                    String contextSubtitle = isOrg 
+                        ? 'Administración de la inmobiliaria' 
+                        : (isPro ? 'Herramientas de agente independiente' : 'Uso individual de KAZA');
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CircleAvatar(radius: 16, backgroundColor: KazaTheme.n100, child: Icon(Icons.person, size: 16, color: KazaTheme.textSecondary)),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Personal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.textPrimary)),
-                              Text('Uso individual de KAZA', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
-                            ],
-                          ),
+                        const Text('Contexto actual', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            const CircleAvatar(radius: 16, backgroundColor: KazaTheme.n100, child: Icon(Icons.person, size: 16, color: KazaTheme.textSecondary)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(contextTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.textPrimary)),
+                                  Text(contextSubtitle, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.expand_more, color: KazaTheme.textSecondary),
+                          ],
                         ),
-                        const Icon(Icons.expand_more, color: KazaTheme.textSecondary),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _buildContextPill('Personal', isSelected: isPersonal)),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildContextPill('Profesional', isSelected: isPro)),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildContextPill('Organización', isSelected: isOrg)),
+                          ],
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: _buildContextPill('Personal', isSelected: true)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildContextPill('Profesional', isSelected: false)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildContextPill('Organización', isSelected: false)),
-                      ],
-                    ),
-                  ],
+                    );
+                  }
                 ),
                 
                 const Padding(
