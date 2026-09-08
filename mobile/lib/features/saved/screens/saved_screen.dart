@@ -163,19 +163,32 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                     final surface = prop['total_surface_m2'] ?? 0;
                     final priceM2Str = _getPricePerM2(prop);
                     
+                    String? imageUrl;
+                    if (prop['photos'] != null && prop['photos'] is List && (prop['photos'] as List).isNotEmpty) {
+                      imageUrl = prop['photos'][0].toString();
+                    }
+                    
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Image Placeholder
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
+                        // Image Thumbnail
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 80,
+                            height: 80,
                             color: const Color(0xFFF0F4F8),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.image, color: Colors.black12, size: 28),
+                            child: imageUrl != null
+                                ? Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Icon(Icons.image, color: Colors.black12, size: 28),
+                                    ),
+                                  )
+                                : const Center(
+                                    child: Icon(Icons.image, color: Colors.black12, size: 28),
+                                  ),
                           ),
                         ),
                         const SizedBox(width: 16),
