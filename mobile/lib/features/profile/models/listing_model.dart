@@ -6,6 +6,7 @@ class ListingModel {
   final String? currencyOriginal;
   final String status;
   final DateTime? freshnessConfirmedAt;
+  final int viewsCount;
 
   ListingModel({
     required this.id,
@@ -15,6 +16,7 @@ class ListingModel {
     this.currencyOriginal,
     required this.status,
     this.freshnessConfirmedAt,
+    this.viewsCount = 0,
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class ListingModel {
       currencyOriginal: 'USD',
       status: json['status'] as String? ?? 'DRAFT',
       freshnessConfirmedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      viewsCount: json['views_count'] as int? ?? 0,
     );
   }
 

@@ -87,6 +87,22 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
         setState(() => _showStickyHeader = show);
       }
     });
+    
+    // Solo contar la visualización una vez al abrir
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _incrementViewCount();
+    });
+  }
+
+  Future<void> _incrementViewCount() async {
+    try {
+      await SupabaseConfig.client.rpc(
+        'increment_property_view',
+        params: {'p_property_id': widget.property.id},
+      );
+    } catch (e) {
+      debugPrint('Error incrementing view: $e');
+    }
   }
 
   @override

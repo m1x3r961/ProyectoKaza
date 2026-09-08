@@ -87,6 +87,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       data: (listings) => listings.where((l) => l.status == 'AVAILABLE' || l.status == 'PUBLISHED').length,
       orElse: () => 0,
     );
+    final totalViewsCount = listingsState.maybeWhen(
+      data: (listings) => listings.fold<int>(0, (sum, listing) => sum + listing.viewsCount),
+      orElse: () => 0,
+    );
 
     // Generar un username temporal a partir del email para mockear el diseño
     final userHandle = isAuthenticated && authState.email != null 
@@ -299,7 +303,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildMainNavItem(
                   icon: Icons.remove_red_eye_outlined, 
                   title: 'Mis visitas', 
-                  subtitle: '$_visitsCount confirmadas',
+                  subtitle: '${totalViewsCount} visualizaciones',
                   onTap: () {},
                 ),
                 _buildMainNavItem(
