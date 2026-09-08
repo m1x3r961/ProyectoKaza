@@ -17,3 +17,37 @@ ALTER TABLE public.organizations
 -- Create indexes for performance on these fields if they might be searched
 CREATE INDEX IF NOT EXISTS idx_organizations_type ON public.organizations(org_type);
 CREATE INDEX IF NOT EXISTS idx_organizations_city ON public.organizations(city);
+
+-- =============================================================================
+-- FIX PERMISSIONS FOR ORGANIZATIONS
+-- =============================================================================
+
+-- 1. Grant base privileges
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.organizations TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.organization_memberships TO authenticated;
+
+-- 2. Enable RLS
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organization_memberships ENABLE ROW LEVEL SECURITY;
+
+-- 3. Create RLS Policies for Organizations
+-- Permitir leer a todos por ahora
+CREATE POLICY "Public Read Organizations" ON public.organizations FOR SELECT USING (true);
+-- Permitir a usuarios autenticados crear organizaciones
+CREATE POLICY "Users can create organizations" ON public.organizations FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- Permitir actualizar organizaciones a sus miembros (Simplificado: owner/admin en memberships)
+CREATE POLICY "Members can update their organization" ON public.organizations FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM public.organization_memberships
+        WHERE organization_id = public.organizations.id
+        AND user_id = auth.uid()
+    )
+);
+
+-- 4. Create RLS Policies for Organization Memberships
+CREATE POLICY "Public Read Memberships" ON public.organization_memberships FOR SELECT USING (true);
+-- Permitir insert (ej: creador de org se asigna owner)
+CREATE POLICY "Users can insert memberships" ON public.organization_memberships FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Permitir update/delete a los admins
+CREATE POLICY "Users can update memberships" ON public.organization_memberships FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete memberships" ON public.organization_memberships FOR DELETE USING (auth.uid() = user_id);
