@@ -19,16 +19,24 @@ CREATE INDEX IF NOT EXISTS idx_organizations_type ON public.organizations(org_ty
 CREATE INDEX IF NOT EXISTS idx_organizations_city ON public.organizations(city);
 
 -- =============================================================================
--- FIX PERMISSIONS FOR ORGANIZATIONS
+-- FIX PERMISSIONS FOR WORKSPACES & ORGANIZATIONS
 -- =============================================================================
 
 -- 1. Grant base privileges
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.workspaces TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.organizations TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.organization_memberships TO authenticated;
 
 -- 2. Enable RLS
+ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_memberships ENABLE ROW LEVEL SECURITY;
+
+-- 2.5 Create RLS Policies for Workspaces
+CREATE POLICY "Public Read Workspaces" ON public.workspaces FOR SELECT USING (true);
+CREATE POLICY "Users can create workspaces" ON public.workspaces FOR INSERT WITH CHECK (auth.uid() = owner_user_id);
+CREATE POLICY "Users can update own workspaces" ON public.workspaces FOR UPDATE USING (auth.uid() = owner_user_id);
+CREATE POLICY "Users can delete own workspaces" ON public.workspaces FOR DELETE USING (auth.uid() = owner_user_id);
 
 -- 3. Create RLS Policies for Organizations
 -- Permitir leer a todos por ahora

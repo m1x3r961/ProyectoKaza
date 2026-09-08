@@ -121,9 +121,18 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
       final userId = SupabaseConfig.client.auth.currentUser?.id;
       if (userId == null) return 'No estás autenticado.';
 
-      // Hay que crear primero un workspace si la tabla organizations lo requiere?
-      // En 00001 dice: workspace_id UUID NOT NULL
-      // Si falla, es porque falta workspace. Por ahora asumimos que no falla o que hay trigger.
+      // Crear un workspace primero porque la tabla organizations requiere un workspace_id
+      final workspaceResult = await SupabaseConfig.client
+          .from('workspaces')
+          .insert({
+            'name': 'Workspace de $name',
+            'workspace_type': orgType == 'PRO_AGENT' ? 'PERSONAL' : 'BUSINESS',
+            'owner_user_id': userId,
+          })
+          .select('id')
+          .single();
+      
+      final workspaceId = workspaceResult['id'] as String;
       
       final insertData = {
         'legal_name': name,
@@ -135,12 +144,10 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
         'city': city,
         'address': address,
         'org_type': orgType,
-        // Mock de workspace temporal hasta que el backend asigne bien
-        // 'workspace_id': ...
+        'workspace_id': workspaceId,
       };
 
-      // Si falla por workspace_id missing, es un error del schema backend que debe resolverse.
-      // Insertamos...
+      // Insertamos la organización
       final result = await SupabaseConfig.client
           .from('organizations')
           .insert(insertData)
