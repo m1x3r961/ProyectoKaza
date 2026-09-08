@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../models/listing_model.dart';
 import '../providers/my_listings_provider.dart';
@@ -122,7 +123,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
       case 'PUBLISHED':
         displayStatus = 'ACTIVO';
         statusColor = KazaTheme.statusAvailable;
-        actions = ['Actualizar disponibilidad', 'Pausar', 'Editar', 'Retirar'];
+        actions = ['Actualizar disponibilidad', 'Invitar a colaborar', 'Pausar', 'Editar', 'Retirar'];
         break;
       case 'PAUSED':
         displayStatus = 'PAUSADO';
@@ -242,6 +243,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
     switch (action) {
       case 'Actualizar disponibilidad':
         notifier.refreshAvailability(listing.id);
+        break;
+      case 'Invitar a colaborar':
+        context.push('/invite-collaboration');
         break;
       case 'Pausar':
         notifier.updateStatus(listing.id, 'PAUSED');

@@ -12,6 +12,7 @@ import '../../features/ai_assistant/screens/ai_hub_screen.dart';
 import '../../features/ai_assistant/screens/ai_chat_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
 import '../../features/achievements/screens/achievements_screen.dart';
+import '../../features/collaborations/screens/collaboration_flow_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/my_listings_screen.dart';
 import '../../features/organizations/screens/organizations_hub_screen.dart';
@@ -168,6 +169,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/achievements',
       builder: (context, state) => const AchievementsScreen(),
+    ),
+    GoRoute(
+      path: '/invite-collaboration',
+      builder: (context, state) => const CollaborationFlowScreen(),
     ),
     GoRoute(
       path: '/org-dashboard',
