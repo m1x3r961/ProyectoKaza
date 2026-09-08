@@ -5,6 +5,7 @@ import '../../../app/theme/kaza_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/network/supabase_config.dart';
 import '../../developer/providers/developer_provider.dart';
+import '../providers/my_listings_provider.dart';
 
 /// 👤 PERFIL U18-A v0.6 FINAL
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -17,9 +18,9 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _selectedContext = 'Personal';
   String _tier = 'FREE';
-  String? _role;
+  String _role = 'USER';
   String? _bio;
-  double _rating = 0;
+  double _rating = 0.0;
   int _totalReviews = 0;
   int _publicationsCount = 0;
   int _visitsCount = 0;
@@ -52,7 +53,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .maybeSingle();
       if (profResp != null && mounted) {
         setState(() {
-          _role = profResp['role'];
+          _role = profResp['role'] ?? 'USER';
           _bio = profResp['bio'];
           _rating = (profResp['rating'] ?? 0).toDouble();
           _totalReviews = profResp['total_reviews'] ?? 0;
@@ -79,6 +80,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authState = ref.watch(kazaAuthProvider);
     final isAuthenticated = authState.isAuthenticated;
     final userName = isAuthenticated ? (authState.fullName ?? 'Usuario KAZA') : 'Modo Explorador';
+    
+    // Calcular el conteo de propiedades activas usando el provider
+    final listingsState = ref.watch(myListingsProvider);
+    final activeListingsCount = listingsState.maybeWhen(
+      data: (listings) => listings.where((l) => l.status == 'AVAILABLE' || l.status == 'PUBLISHED').length,
+      orElse: () => 0,
+    );
+
     // Generar un username temporal a partir del email para mockear el diseño
     final userHandle = isAuthenticated && authState.email != null 
         ? '@${authState.email!.split('@')[0].toLowerCase()}' 
@@ -284,7 +293,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildMainNavItem(
                   icon: Icons.home_work_outlined, 
                   title: 'Mis publicaciones', 
-                  subtitle: '$_publicationsCount activas',
+                  subtitle: '$activeListingsCount activas',
                   onTap: () => context.push('/my-listings'),
                 ),
                 _buildMainNavItem(
