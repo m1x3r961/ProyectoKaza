@@ -288,7 +288,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     icon: Icons.work_outline, 
                     title: 'CRM Profesional', 
                     subtitle: 'Contactos y oportunidades',
-                    onTap: () => context.push('/pro-dashboard'),
+                    onTap: () => context.push('/org-dashboard'),
                   ),
                 if (_tier == 'BUSINESS')
                   _buildMainNavItem(
@@ -313,7 +313,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildAccessIcon(Icons.work, 'Perfil\nprofesional'),
-                    _buildAccessIcon(Icons.business, 'Organizaciones\ny membresías'),
+                    _buildAccessIcon(Icons.business, 'Organizaciones\ny membresías', onTap: () => context.push('/org-dashboard')),
                     _buildAccessIcon(Icons.swap_horiz, 'Cambiar\ncontexto'),
                   ],
                 ),
@@ -391,20 +391,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildAccessIcon(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: KazaTheme.n100,
-            shape: BoxShape.circle,
+  Widget _buildAccessIcon(IconData icon, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: KazaTheme.n100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: KazaTheme.primaryCoral),
           ),
-          child: Icon(icon, color: KazaTheme.primaryCoral),
-        ),
-        const SizedBox(height: 8),
-        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary, fontWeight: FontWeight.w600)),
-      ],
+          const SizedBox(height: 8),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }
