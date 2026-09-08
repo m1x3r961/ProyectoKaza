@@ -176,7 +176,10 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/org-dashboard',
-      builder: (context, state) => const BusinessDashboardScreen(),
+      builder: (context, state) {
+        final mode = state.uri.queryParameters['mode'] ?? 'business';
+        return BusinessDashboardScreen(mode: mode);
+      },
     ),
     GoRoute(
       path: '/org-members',

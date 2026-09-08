@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../providers/organizations_provider.dart';
 import 'crm/crm_resume_tab.dart';
 import 'crm/crm_pipeline_tab.dart';
 import 'crm/crm_activity_tab.dart';
 import 'crm/crm_more_tab.dart';
+import 'organization_registration_screen.dart';
 
 /// 🏢 PANEL ORGANIZACIONAL (U07 BUSINESS / CRM B15)
 /// Host screen that contains the 5 bottom tabs for the CRM.
-class BusinessDashboardScreen extends StatefulWidget {
-  const BusinessDashboardScreen({super.key});
+class BusinessDashboardScreen extends ConsumerStatefulWidget {
+  final String mode; // 'business' or 'pro'
+
+  const BusinessDashboardScreen({super.key, this.mode = 'business'});
 
   @override
-  State<BusinessDashboardScreen> createState() => _BusinessDashboardScreenState();
+  ConsumerState<BusinessDashboardScreen> createState() => _BusinessDashboardScreenState();
 }
 
-class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
+class _BusinessDashboardScreenState extends ConsumerState<BusinessDashboardScreen> {
   int _currentIndex = 0;
+  bool _isCreatingProOrg = false;
 
   final List<Widget> _tabs = [
     const CrmResumeTab(),
@@ -27,7 +34,63 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _checkProOnboarding();
+  }
+
+  void _checkProOnboarding() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final orgsState = ref.read(organizationsProvider);
+      // Si el usuario entra como PRO y no tiene org, le creamos una automáticamente
+      if (orgsState.myOrgs.isEmpty && widget.mode == 'pro' && !_isCreatingProOrg) {
+        setState(() => _isCreatingProOrg = true);
+        
+        final authState = ref.read(kazaAuthProvider);
+        final displayName = authState.fullName ?? 'Agente';
+        
+        await ref.read(organizationsProvider.notifier).createOrganization(
+          name: '$displayName (Pro)',
+          orgType: 'PRO_AGENT',
+        );
+        
+        if (mounted) {
+          setState(() => _isCreatingProOrg = false);
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final orgsState = ref.watch(organizationsProvider);
+
+    if (orgsState.isLoading || _isCreatingProOrg) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (orgsState.myOrgs.isEmpty) {
+      if (widget.mode == 'business') {
+        return const OrganizationRegistrationScreen();
+      } else {
+        // En caso de que falle la auto-creación pro, mostramos botón de reintento
+        return Scaffold(
+          appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () {
+                _checkProOnboarding();
+              },
+              child: const Text('Configurar mi espacio Pro'),
+            ),
+          ),
+        );
+      }
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -41,11 +104,11 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
         ),
         title: Row(
           children: [
-            const Icon(Icons.business_rounded, color: KazaTheme.coralKaza, size: 24),
+            Icon(widget.mode == 'pro' ? Icons.person_pin_rounded : Icons.business_rounded, color: KazaTheme.coralKaza, size: 24),
             const SizedBox(width: 8),
-            const Text(
-              'Business',
-              style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              widget.mode == 'pro' ? 'Pro' : 'Business',
+              style: const TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(width: 4),
             Container(

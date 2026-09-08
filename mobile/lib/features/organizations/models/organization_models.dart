@@ -51,10 +51,15 @@ extension InvitationStatusX on InvitationStatus {
 
 class KazaOrganization {
   final String id;
-  final String name;
+  final String name; // maps to legal_name in UI/DB mostly
   final String? description;
   final String? logoUrl;
   final String? website;
+  final String? contactEmail;
+  final String? contactPhone;
+  final String? city;
+  final String? address;
+  final String? orgType;
   final OrgMemberRole myRole;
   final int membersCount;
   final DateTime createdAt;
@@ -65,6 +70,11 @@ class KazaOrganization {
     this.description,
     this.logoUrl,
     this.website,
+    this.contactEmail,
+    this.contactPhone,
+    this.city,
+    this.address,
+    this.orgType,
     required this.myRole,
     required this.membersCount,
     required this.createdAt,
@@ -73,10 +83,15 @@ class KazaOrganization {
   factory KazaOrganization.fromJson(Map<String, dynamic> json) {
     return KazaOrganization(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: (json['name'] ?? json['legal_name'] ?? 'Organización sin nombre') as String,
       description: json['description'] as String?,
       logoUrl: json['logo_url'] as String?,
       website: json['website'] as String?,
+      contactEmail: json['contact_email'] as String?,
+      contactPhone: json['contact_phone'] as String?,
+      city: json['city'] as String?,
+      address: json['address'] as String?,
+      orgType: json['org_type'] as String?,
       myRole: parseOrgRole(json['my_role'] as String? ?? 'member'),
       membersCount: (json['members_count'] as num?)?.toInt() ?? 0,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??

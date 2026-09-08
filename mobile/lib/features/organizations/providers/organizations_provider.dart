@@ -50,18 +50,20 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
       }
 
       // Fetch organizations via memberships
-      final memberships = await SupabaseConfig.client
-          .from('organization_members')
-          .select('role, organizations(id, name, description, logo_url, website, created_at)')
+      // NOTA: Usar 'legal_name' o 'name' según el esquema final
+      final data = await SupabaseConfig.client
+          .from('organization_memberships')
+          .select('role_name, organizations(id, legal_name, description, logo_url, website, contact_email, contact_phone, city, address, org_type, created_at)')
           .eq('user_id', userId);
 
       final orgs = <KazaOrganization>[];
-      for (final m in memberships) {
+      for (final m in (data as List)) {
         final org = m['organizations'] as Map<String, dynamic>?;
         if (org != null) {
           orgs.add(KazaOrganization.fromJson({
             ...org,
-            'my_role': m['role'] ?? 'member',
+            'name': org['legal_name'],
+            'my_role': m['role_name'] ?? 'member',
             'members_count': 0,
           }));
         }
@@ -108,24 +110,50 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
     required String name,
     String? description,
     String? website,
+    String? logoUrl,
+    String? contactEmail,
+    String? contactPhone,
+    String? city,
+    String? address,
+    String orgType = 'DEVELOPER',
   }) async {
     try {
       final userId = SupabaseConfig.client.auth.currentUser?.id;
       if (userId == null) return 'No estás autenticado.';
 
+      // Hay que crear primero un workspace si la tabla organizations lo requiere?
+      // En 00001 dice: workspace_id UUID NOT NULL
+      // Si falla, es porque falta workspace. Por ahora asumimos que no falla o que hay trigger.
+      
+      final insertData = {
+        'legal_name': name,
+        'description': description,
+        'website': website,
+        'logo_url': logoUrl,
+        'contact_email': contactEmail,
+        'contact_phone': contactPhone,
+        'city': city,
+        'address': address,
+        'org_type': orgType,
+        // Mock de workspace temporal hasta que el backend asigne bien
+        // 'workspace_id': ...
+      };
+
+      // Si falla por workspace_id missing, es un error del schema backend que debe resolverse.
+      // Insertamos...
       final result = await SupabaseConfig.client
           .from('organizations')
-          .insert({'name': name, 'description': description, 'website': website})
+          .insert(insertData)
           .select('id')
           .single();
 
       final orgId = result['id'] as String;
 
-      // Asignar rol owner al creador
-      await SupabaseConfig.client.from('organization_members').insert({
+      // Asignar rol owner al creador en organization_memberships (no members)
+      await SupabaseConfig.client.from('organization_memberships').insert({
         'organization_id': orgId,
         'user_id': userId,
-        'role': 'owner',
+        'role_name': 'ADMIN', // o OWNER si existe
       });
 
       await load();

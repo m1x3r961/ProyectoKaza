@@ -317,7 +317,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     icon: Icons.work_outline, 
                     title: 'CRM Profesional', 
                     subtitle: 'Contactos y oportunidades',
-                    onTap: () => context.push('/org-dashboard'),
+                    onTap: () {
+                      final mode = _selectedContext == 'Plus' ? 'pro' : 'business';
+                      context.push('/org-dashboard?mode=$mode');
+                    },
                   ),
                 if (_tier == 'BUSINESS')
                   _buildMainNavItem(
@@ -342,7 +345,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildAccessIcon(Icons.work, 'Perfil\nprofesional'),
-                    _buildAccessIcon(Icons.business, 'Organizaciones\ny membresías', onTap: () => context.push('/org-dashboard')),
+                    _buildAccessIcon(Icons.business, 'Organizaciones\ny membresías', onTap: () {
+                      final mode = _selectedContext == 'Plus' ? 'pro' : 'business';
+                      context.push('/org-dashboard?mode=$mode');
+                    }),
                     _buildAccessIcon(Icons.swap_horiz, 'Cambiar\ncontexto'),
                   ],
                 ),
