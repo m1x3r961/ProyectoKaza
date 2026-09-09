@@ -36,11 +36,13 @@ class _BusinessDashboardScreenState extends ConsumerState<BusinessDashboardScree
   @override
   void initState() {
     super.initState();
-    _checkProOnboarding();
+    _initDashboard();
   }
 
-  void _checkProOnboarding() {
+  void _initDashboard() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(organizationsProvider.notifier).load();
+      
       final orgsState = ref.read(organizationsProvider);
       // Si el usuario entra como PRO y no tiene org, le creamos una automáticamente
       if (orgsState.myOrgs.isEmpty && widget.mode == 'pro' && !_isCreatingProOrg) {
@@ -82,7 +84,7 @@ class _BusinessDashboardScreenState extends ConsumerState<BusinessDashboardScree
           body: Center(
             child: ElevatedButton(
               onPressed: () {
-                _checkProOnboarding();
+                _initDashboard();
               },
               child: const Text('Configurar mi espacio Pro'),
             ),
