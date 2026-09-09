@@ -8,6 +8,7 @@ import 'crm/crm_resume_tab.dart';
 import 'crm/crm_pipeline_tab.dart';
 import 'crm/crm_activity_tab.dart';
 import 'crm/crm_more_tab.dart';
+import 'crm/crm_properties_tab.dart';
 import 'organization_registration_screen.dart';
 
 /// 🏢 PANEL ORGANIZACIONAL (U07 BUSINESS / CRM B15)
@@ -27,7 +28,7 @@ class _BusinessDashboardScreenState extends ConsumerState<BusinessDashboardScree
 
   final List<Widget> _tabs = [
     const CrmResumeTab(),
-    const Center(child: Text('Propiedades (En construcción)', style: TextStyle(color: KazaTheme.textPrimary))),
+    const CrmPropertiesTab(),
     const CrmPipelineTab(),
     const CrmActivityTab(),
     const CrmMoreTab(),
