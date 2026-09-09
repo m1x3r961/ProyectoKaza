@@ -885,6 +885,42 @@ class _PropertyPreviewCard extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: KazaTheme.azulKaza.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          property.operation.toUpperCase(),
+                          style: const TextStyle(
+                            color: KazaTheme.azulKaza,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: KazaTheme.grisMedio.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          property.type.toUpperCase(),
+                          style: const TextStyle(
+                            color: KazaTheme.grisMedio,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   // Metrics row
                   Row(
