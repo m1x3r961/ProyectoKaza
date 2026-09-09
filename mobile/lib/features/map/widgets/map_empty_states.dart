@@ -105,7 +105,7 @@ class MapSearchingState extends StatelessWidget {
               width: 50,
               height: 50,
               child: Image.asset(
-                'assets/images/kaza_app_icon_256.png',
+                'assets/images/kaza_logo_final.png',
                 fit: BoxFit.contain,
               ),
             ),
