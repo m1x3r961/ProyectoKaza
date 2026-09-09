@@ -96,10 +96,16 @@ class KazaSplashLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/kaza_app_icon_1024.png',
+      'assets/images/kaza_app_icon_256.png',
       width: 120,
       height: 120,
       fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: 120,
+        height: 120,
+        color: Colors.red,
+        child: const Center(child: Text('Logo Error', style: TextStyle(color: Colors.white))),
+      ),
     );
   }
 }
