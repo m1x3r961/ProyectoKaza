@@ -98,7 +98,7 @@ class MapSearchingState extends StatelessWidget {
             ),
           ],
         ),
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
@@ -109,8 +109,8 @@ class MapSearchingState extends StatelessWidget {
                 fit: BoxFit.contain,
               ),
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'Buscando\npropiedades...',
               textAlign: TextAlign.center,
               style: TextStyle(
