@@ -225,6 +225,42 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: KazaTheme.azulKaza.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      prop['operation']?.toString().toUpperCase() ?? 'VENTA',
+                                      style: const TextStyle(
+                                        color: KazaTheme.azulKaza,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: KazaTheme.grisMedio.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      prop['property_type']?.toString().toUpperCase() ?? 'INMUEBLE',
+                                      style: const TextStyle(
+                                        color: KazaTheme.grisMedio,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
