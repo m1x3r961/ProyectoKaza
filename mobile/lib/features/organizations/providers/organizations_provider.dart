@@ -69,7 +69,8 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
         }
       }
 
-      // Fetch pending invitations
+      // Fetch pending invitations (Comentado temporalmente porque la tabla no existe aún en la base de datos)
+      /*
       final invites = await SupabaseConfig.client
           .from('organization_invitations')
           .select('id, role, status, created_at, expires_at, organizations(name), invited_by_profiles:invited_by(display_name)')
@@ -94,6 +95,8 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
               : null,
         ));
       }
+      */
+      final pendingInvites = <OrgInvitation>[];
 
       state = state.copyWith(
         myOrgs: orgs,
