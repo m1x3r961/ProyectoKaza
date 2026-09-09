@@ -88,45 +88,9 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // Mismo fondo que el resto del CRM
       body: Stack(
         children: [
-          // Fondo degradado moderno
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0D1B2A), Color(0xFF1B263B), Color(0xFF415A77)],
-              ),
-            ),
-          ),
-          
-          // Elementos decorativos (círculos desenfocados)
-          Positioned(
-            top: -100,
-            right: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: KazaTheme.coralKaza.withOpacity(0.3),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -100,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: KazaTheme.azulKaza.withOpacity(0.4),
-              ),
-            ),
-          ),
-
           SafeArea(
             child: Column(
               children: [
@@ -170,12 +134,12 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
       child: Row(
         children: [
-          const Icon(Icons.business, color: Colors.white, size: 32),
+          const Icon(Icons.business, color: KazaTheme.azulKaza, size: 32),
           const SizedBox(width: 16),
           const Expanded(
             child: Text(
               'Registrar Desarrolladora',
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              style: TextStyle(color: KazaTheme.textPrimary, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5),
             ),
           ),
         ],
@@ -194,7 +158,7 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
               margin: const EdgeInsets.symmetric(horizontal: 4),
               height: 6,
               decoration: BoxDecoration(
-                color: isActive ? KazaTheme.coralKaza : Colors.white.withOpacity(0.2),
+                color: isActive ? KazaTheme.coralKaza : KazaTheme.grisClaro,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -212,12 +176,12 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
         child: Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withOpacity(0.6),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+            border: Border.all(color: KazaTheme.azulKaza.withOpacity(0.1), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: KazaTheme.azulKaza.withOpacity(0.05),
                 blurRadius: 24,
                 spreadRadius: -5,
               )
@@ -233,9 +197,9 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('1. Información General', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text('1. Información General', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
         const SizedBox(height: 8),
-        Text('Cuéntanos sobre tu empresa.', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7))),
+        Text('Cuéntanos sobre tu empresa.', style: TextStyle(fontSize: 14, color: KazaTheme.textMuted)),
         const SizedBox(height: 32),
         _buildTextField(_nameController, 'Nombre Legal o Comercial', icon: Icons.apartment, isRequired: true),
         const SizedBox(height: 24),
@@ -248,9 +212,9 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('2. Contacto e Identidad', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text('2. Contacto e Identidad', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
         const SizedBox(height: 8),
-        Text('¿Cómo pueden contactarte los clientes?', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7))),
+        Text('¿Cómo pueden contactarte los clientes?', style: TextStyle(fontSize: 14, color: KazaTheme.textMuted)),
         const SizedBox(height: 32),
         _buildTextField(_websiteController, 'Sitio web', icon: Icons.language),
         const SizedBox(height: 24),
@@ -265,9 +229,9 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('3. Ubicación', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text('3. Ubicación', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
         const SizedBox(height: 8),
-        Text('¿Dónde se encuentran tus oficinas?', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7))),
+        Text('¿Dónde se encuentran tus oficinas?', style: TextStyle(fontSize: 14, color: KazaTheme.textMuted)),
         const SizedBox(height: 32),
         _buildTextField(_cityController, 'Ciudad', icon: Icons.location_city),
         const SizedBox(height: 24),
@@ -281,23 +245,23 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: KazaTheme.textPrimary),
       validator: isRequired
           ? (value) => value == null || value.isEmpty ? 'Requerido' : null
           : null,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-        prefixIcon: icon != null ? Icon(icon, color: Colors.white.withOpacity(0.7)) : null,
+        hintStyle: const TextStyle(color: KazaTheme.textMuted),
+        prefixIcon: icon != null ? Icon(icon, color: KazaTheme.textMuted) : null,
         filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
+        fillColor: KazaTheme.grisClaro,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+          borderSide: BorderSide(color: KazaTheme.azulKaza.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -318,10 +282,10 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
                 onPressed: _isLoading ? null : _prevStep,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: Colors.white.withOpacity(0.5)),
+                  side: BorderSide(color: KazaTheme.azulKaza.withOpacity(0.5)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text('Atrás', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text('Atrás', style: TextStyle(color: KazaTheme.azulKaza, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           if (_currentStep > 0) const SizedBox(width: 16),
