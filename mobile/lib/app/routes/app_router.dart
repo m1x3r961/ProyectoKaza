@@ -45,11 +45,19 @@ import '../../features/developer/models/developer_models.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
+bool isAppInitialized = false;
+
 /// GoRouter configuration for Kaza — KAZA Master Design 5-Tab Shell
 /// Tabs: Mapa, Buscar, Guardados, Comparar, Perfil
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
+  redirect: (context, state) {
+    if (!isAppInitialized && state.uri.path != '/splash') {
+      return '/splash';
+    }
+    return null;
+  },
   routes: [
     // ── SPLASH SCREEN ────────────────────────────────────────────
     GoRoute(

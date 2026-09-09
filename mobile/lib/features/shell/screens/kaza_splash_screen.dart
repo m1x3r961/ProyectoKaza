@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_logo_widget.dart';
+import '../../../app/routes/app_router.dart';
 
 /// 🚀 KAZA Splash Screen — Design System Maestro B26
 ///
@@ -91,6 +92,7 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
   /// - Usuario autenticado CON onboarding completo → /map
   /// - Sin sesión (invitado) → /map
   Future<void> _navigateAfterSplash() async {
+    isAppInitialized = true;
     try {
       final supabase = Supabase.instance.client;
       final session = supabase.auth.currentSession;
