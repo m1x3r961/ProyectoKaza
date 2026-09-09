@@ -111108,7 +111108,7 @@ m=e==null?null:e.a
 if(m==null){q="No est\xe1s autenticado."
 s=1
 break}e=f.b.cJ("workspaces")
-d=a7==="PRO_AGENT"?"PERSONAL":"BUSINESS"
+d=a7==="PRO_AGENT"?"PERSONAL":"ORGANIZATION"
 c=t.N
 s=7
 return A.p(e.ji(0,A.a4(["name","Workspace de "+a6,"workspace_type",d,"owner_user_id",m],c,c)).f6("id").CB(0),$async$nC)

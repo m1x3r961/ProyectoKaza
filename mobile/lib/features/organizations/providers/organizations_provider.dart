@@ -126,7 +126,7 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
           .from('workspaces')
           .insert({
             'name': 'Workspace de $name',
-            'workspace_type': orgType == 'PRO_AGENT' ? 'PERSONAL' : 'BUSINESS',
+            'workspace_type': orgType == 'PRO_AGENT' ? 'PERSONAL' : 'ORGANIZATION',
             'owner_user_id': userId,
           })
           .select('id')
