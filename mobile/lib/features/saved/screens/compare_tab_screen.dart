@@ -113,12 +113,19 @@ class _CompareTabScreenState extends ConsumerState<CompareTabScreen> {
   @override
   Widget build(BuildContext context) {
     final savedAsyncValue = ref.watch(savedPropertiesProvider);
-    final isBusiness = _tier == 'BUSINESS';
+    final isPremium = _tier != 'FREE';
     
     // Limits logic
-    final limitText = isBusiness 
-        ? 'Plan BUSINESS: Máx. 10 propiedades' 
-        : (_tier == 'PRO' ? 'Plan PRO: Máx. 5 propiedades' : 'Límite Plan Free: Máx. 3 propiedades');
+    String limitText;
+    if (_tier == 'BUSINESS') {
+      limitText = 'Plan BUSINESS: Comparaciones Ilimitadas';
+    } else if (_tier == 'PRO') {
+      limitText = 'Plan PRO: Máx. 10 propiedades';
+    } else if (_tier == 'PLUS') {
+      limitText = 'Plan PLUS: Máx. 5 propiedades';
+    } else {
+      limitText = 'Límite Plan Free: Máx. 3 propiedades';
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -154,7 +161,7 @@ class _CompareTabScreenState extends ConsumerState<CompareTabScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                isBusiness ? 'Compara múltiples propiedades\nen paralelo' : 'Compara hasta 3 propiedades\nen paralelo',
+                isPremium ? 'Compara múltiples propiedades\nen paralelo' : 'Compara hasta 3 propiedades\nen paralelo',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
@@ -178,17 +185,17 @@ class _CompareTabScreenState extends ConsumerState<CompareTabScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isBusiness ? KazaTheme.accentGold.withOpacity(0.15) : KazaTheme.n100,
+                    color: isPremium ? KazaTheme.accentGold.withOpacity(0.15) : KazaTheme.n100,
                     borderRadius: BorderRadius.circular(20),
-                    border: isBusiness ? Border.all(color: KazaTheme.accentGold.withOpacity(0.5)) : null,
+                    border: isPremium ? Border.all(color: KazaTheme.accentGold.withOpacity(0.5)) : null,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isBusiness ? Icons.star : Icons.info_outline, 
+                        isPremium ? Icons.star : Icons.info_outline, 
                         size: 16, 
-                        color: isBusiness ? KazaTheme.accentGold : KazaTheme.textMuted
+                        color: isPremium ? KazaTheme.accentGold : KazaTheme.textMuted
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -196,7 +203,7 @@ class _CompareTabScreenState extends ConsumerState<CompareTabScreen> {
                         style: TextStyle(
                           fontSize: 12, 
                           fontWeight: FontWeight.bold, 
-                          color: isBusiness ? KazaTheme.accentGold : KazaTheme.textMuted
+                          color: isPremium ? KazaTheme.accentGold : KazaTheme.textMuted
                         ),
                       ),
                     ],

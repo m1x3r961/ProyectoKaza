@@ -118129,9 +118129,10 @@ if(d){s.toString
 d=t.z
 p=A.ix(new A.aJt(e),i,d)
 A.bt(s,!1).fC(p,d)}else s.P(t.q).f.cn(B.adV)},
-v(a){var s,r,q,p,o,n,m,l=this,k=null,j=l.gbU().eA($.EG(),t.Fu),i=l.w,h=i==="BUSINESS"
-if(h)s="Plan BUSINESS: M\xe1x. 10 propiedades"
-else s=i==="PRO"?"Plan PRO: M\xe1x. 5 propiedades":"L\xedmite Plan Free: M\xe1x. 3 propiedades"
+v(a){var s,r,q,p,o,n,m,l=this,k=null,j=l.gbU().eA($.EG(),t.Fu),i=l.w,h=i!=="FREE"
+if(i==="BUSINESS")s="Plan BUSINESS: Comparaciones Ilimitadas"
+else if(i==="PRO")s="Plan PRO: M\xe1x. 10 propiedades"
+else s=i==="PLUS"?"Plan PLUS: M\xe1x. 5 propiedades":"L\xedmite Plan Free: M\xe1x. 3 propiedades"
 i=A.cw(k,k,!0,B.h,k,1,k,k,0,!1,k,!1,k,k,k,k,!0,k,k,k,k,k,B.ap8,k,k,k,1,k)
 r=A.G(k,B.Xx,B.k,k,k,new A.M(B.bh,k,k,k,k,k,B.ak),k,k,k,B.as,k,k,k)
 q=t.p
