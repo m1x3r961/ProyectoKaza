@@ -32,7 +32,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   double _currentZoom = 13.5;
 
   PropertyMapItem? _selectedProperty;
-  String _selectedOperation = 'Comprar';
+  String _selectedOperation = 'Todas';
   int _minRooms = 0;
   RangeValues _priceRange = const RangeValues(0, 1000000);
 
@@ -187,7 +187,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
       if (_selectedOperation == 'Comprar' && !opLower.contains('venta') && !opLower.contains('vender')) return false;
       if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar') && !opLower.contains('temporal')) return false;
       if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético') && !opLower.contains('anticret')) return false;
-
+      // If 'Todas', we don't filter out anything based on operation
       // 2. Filter by min rooms
       if (_minRooms > 0 && prop.bedrooms < _minRooms) return false;
 
@@ -275,7 +275,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     MapNoResultsState(
                       onModifySearch: () {
                         setState(() {
-                          _selectedOperation = 'Comprar';
+                          _selectedOperation = 'Todas';
                           _minRooms = 0;
                           _priceRange = const RangeValues(0, 1000000);
                         });

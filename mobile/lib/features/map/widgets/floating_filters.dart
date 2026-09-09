@@ -66,6 +66,7 @@ class _OperationDropdownPill extends StatelessWidget {
       color: Colors.white,
       elevation: 8,
       itemBuilder: (ctx) => [
+        _buildMenuItem('Todas', selectedOperation == 'Todas'),
         _buildMenuItem('Comprar', selectedOperation == 'Comprar'),
         _buildMenuItem('Alquilar', selectedOperation == 'Alquilar'),
         _buildMenuItem('Anticrético', selectedOperation == 'Anticrético'),
