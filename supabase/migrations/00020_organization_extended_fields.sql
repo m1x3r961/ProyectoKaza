@@ -33,12 +33,21 @@ ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_memberships ENABLE ROW LEVEL SECURITY;
 
 -- 2.5 Create RLS Policies for Workspaces
+DROP POLICY IF EXISTS "Public Read Workspaces" ON public.workspaces;
+DROP POLICY IF EXISTS "Users can create workspaces" ON public.workspaces;
+DROP POLICY IF EXISTS "Users can update own workspaces" ON public.workspaces;
+DROP POLICY IF EXISTS "Users can delete own workspaces" ON public.workspaces;
+
 CREATE POLICY "Public Read Workspaces" ON public.workspaces FOR SELECT USING (true);
 CREATE POLICY "Users can create workspaces" ON public.workspaces FOR INSERT WITH CHECK (auth.uid() = owner_user_id);
 CREATE POLICY "Users can update own workspaces" ON public.workspaces FOR UPDATE USING (auth.uid() = owner_user_id);
 CREATE POLICY "Users can delete own workspaces" ON public.workspaces FOR DELETE USING (auth.uid() = owner_user_id);
 
 -- 3. Create RLS Policies for Organizations
+DROP POLICY IF EXISTS "Public Read Organizations" ON public.organizations;
+DROP POLICY IF EXISTS "Users can create organizations" ON public.organizations;
+DROP POLICY IF EXISTS "Members can update their organization" ON public.organizations;
+
 -- Permitir leer a todos por ahora
 CREATE POLICY "Public Read Organizations" ON public.organizations FOR SELECT USING (true);
 -- Permitir a usuarios autenticados crear organizaciones
@@ -53,6 +62,11 @@ CREATE POLICY "Members can update their organization" ON public.organizations FO
 );
 
 -- 4. Create RLS Policies for Organization Memberships
+DROP POLICY IF EXISTS "Public Read Memberships" ON public.organization_memberships;
+DROP POLICY IF EXISTS "Users can insert memberships" ON public.organization_memberships;
+DROP POLICY IF EXISTS "Users can update memberships" ON public.organization_memberships;
+DROP POLICY IF EXISTS "Users can delete memberships" ON public.organization_memberships;
+
 CREATE POLICY "Public Read Memberships" ON public.organization_memberships FOR SELECT USING (true);
 -- Permitir insert (ej: creador de org se asigna owner)
 CREATE POLICY "Users can insert memberships" ON public.organization_memberships FOR INSERT WITH CHECK (auth.uid() = user_id);
