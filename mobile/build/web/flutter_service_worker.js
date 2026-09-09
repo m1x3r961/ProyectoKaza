@@ -3,11 +3,12 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"assets/AssetManifest.bin": "1827b92ad12b83ed6fb984a088df34e4",
-"assets/AssetManifest.bin.json": "60b9d876c04fbf73f04061f94d6d2cad",
-"assets/AssetManifest.json": "d7eac6c4922fe292a24d9286b1a8786f",
+const RESOURCES = {"assets/AssetManifest.bin": "32a22b7601c8b222ec5eedf50017f418",
+"assets/AssetManifest.bin.json": "4c90a1dee1d91882d4d516d1295ebeb6",
+"assets/AssetManifest.json": "2c475daf3430582c85955184068062d4",
 "assets/assets/images/kaza.mp4": "f77025b60dca1c8d95f2b3aa8a29a752",
 "assets/assets/images/kaza_app_icon.png": "e1223b460e1f7d7304cf355011c7ddaa",
+"assets/assets/images/kaza_app_icon_1024.png": "d1aeaf8751231bc6789eece1e9986ea1",
 "assets/assets/images/kaza_logo.gif": "c0f6550ed0710c67d5431b931fa5a4b5",
 "assets/assets/images/logo.png": "1111e6a9880c3cdfbee3db4e9975ea6f",
 "assets/assets/images/WhatsApp%2520Image%25202026-08-01%2520at%252012.15.39.jpeg": "ccfe838491ef970d70828e13ce989fe0",
@@ -34,14 +35,14 @@ const RESOURCES = {"assets/AssetManifest.bin": "1827b92ad12b83ed6fb984a088df34e4
 "canvaskit/skwasm.worker.js": "89990e8c92bcb123999aa81f7e203b1c",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "flutter.js": "4b2350e14c6650ba82871f60906437ea",
-"flutter_bootstrap.js": "4be3f03880e5508ea07e250f4fad8c40",
+"flutter_bootstrap.js": "53de2314ba70675532dbc58b6a56d579",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
 "index.html": "f59e32d024d9aa293128e10e9a30a343",
 "/": "f59e32d024d9aa293128e10e9a30a343",
-"main.dart.js": "4ae395052315c3b5b66fdc02d2f9fcab",
+"main.dart.js": "f0446b43b3e177da2f9d1cc8f0db62fa",
 "manifest.json": "6818dc0048f086a6849c17ab04b5b189",
 "version.json": "9ed43ffa08b5c3b81f0154dc4943c58e"};
 // The application shell files that are downloaded before a service worker can

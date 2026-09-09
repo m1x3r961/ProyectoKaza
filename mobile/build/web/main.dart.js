@@ -111153,7 +111153,7 @@ A.WI.prototype={
 v(a){var s=null,r=A.a([B.an,B.an.a7(0.8)],t.t_)
 return A.G(s,B.aaH,B.k,s,s,new A.M(s,s,s,A.u(12),A.a([new A.be(0,B.Z,B.an.a7(0.3),B.dV,6)],t.V),new A.lE(B.e7,B.e6,B.d5,r,s,s),B.n),s,s,s,B.ed,s,s,s)}}
 A.WL.prototype={
-v(a){return A.b5F("assets/images/kaza_app_icon.png",null,B.kz,120,120)}}
+v(a){return A.b5F("assets/images/kaza_app_icon_1024.png",null,B.kz,120,120)}}
 A.Hz.prototype={
 aF(a,b){var s,r,q,p,o,n,m,l,k,j,i,h,g,f=null,e=this.d
 if(e>1){s=b.a/2
@@ -115094,7 +115094,7 @@ v(a){var s=null,r=A.u(20)
 return A.bp(A.G(s,A.T(A.a([A.G(s,B.Zf,B.k,s,s,new A.M(B.bh,s,s,s,s,s,B.ak),s,s,s,B.aj,s,s,s),B.b4,B.aow,B.b4,new A.ao(1/0,s,A.cr(!1,B.amB,s,s,B.G,s,s,s,s,this.c,s,A.cl(s,s,B.w,s,s,s,s,s,s,B.h,s,s,B.bq,s,new A.aR(A.u(12),B.q),s,s,s,s,s)),s)],t.p),B.i,B.f,B.Q),B.k,s,s,new A.M(B.h,s,s,r,B.pL,s,B.n),s,s,B.ld,B.dN,s,s,s),s,s)}}
 A.Xo.prototype={
 v(a){var s=null,r=A.u(20)
-return A.bp(A.G(s,A.T(A.a([new A.ao(50,50,A.b5F("assets/images/kaza_app_icon.png",s,B.kz,s,s),s),B.b4,B.anu],t.p),B.i,B.f,B.Q),B.k,s,s,new A.M(B.h,s,s,r,B.pL,s,B.n),s,s,B.ld,B.dN,s,s,s),s,s)}}
+return A.bp(A.G(s,A.T(A.a([new A.ao(50,50,A.b5F("assets/images/kaza_app_icon_1024.png",s,B.kz,s,s),s),B.b4,B.anu],t.p),B.i,B.f,B.Q),B.k,s,s,new A.M(B.h,s,s,r,B.pL,s,B.n),s,s,B.ld,B.dN,s,s,s),s,s)}}
 A.Xm.prototype={
 v(a){var s=null,r=A.u(20)
 return A.bp(A.G(s,A.T(A.a([A.G(s,B.YE,B.k,s,s,new A.M(B.bh,s,s,s,s,s,B.ak),s,s,s,B.aj,s,s,s),B.b4,B.apS,B.N,B.anj,B.b4,new A.ao(1/0,s,A.cr(!1,B.alD,s,s,B.G,s,s,s,s,this.c,s,A.cl(s,s,B.j,s,s,s,s,s,s,B.h,s,s,B.bq,s,new A.aR(A.u(12),B.q),s,s,s,s,s)),s)],t.p),B.i,B.f,B.Q),B.k,s,s,new A.M(B.h,s,s,r,B.pL,s,B.n),s,s,B.ld,B.dN,s,s,s),s,s)}}
