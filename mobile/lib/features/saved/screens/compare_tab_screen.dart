@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/kaza_theme.dart';
-import '../../../core/supabase/supabase_config.dart';
+import '../../../core/network/supabase_config.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'saved_screen.dart';
 import 'comparator_screen.dart';
