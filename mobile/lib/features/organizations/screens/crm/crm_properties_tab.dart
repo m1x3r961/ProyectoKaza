@@ -92,21 +92,12 @@ class CrmPropertiesTab extends ConsumerWidget {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: SizedBox(
-              height: 180,
+              height: 140,
               width: double.infinity,
-              child: listing.photos.isNotEmpty
-                  ? Image.network(
-                      listing.photos.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: KazaTheme.grisClaro,
-                        child: const Icon(Icons.image_not_supported, color: KazaTheme.textMuted),
-                      ),
-                    )
-                  : Container(
-                      color: KazaTheme.grisClaro,
-                      child: const Icon(Icons.home, size: 48, color: KazaTheme.textMuted),
-                    ),
+              child: Container(
+                color: KazaTheme.grisClaro,
+                child: const Icon(Icons.home, size: 48, color: KazaTheme.textMuted),
+              ),
             ),
           ),
           
@@ -122,49 +113,18 @@ class CrmPropertiesTab extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         listing.title.isNotEmpty ? listing.title : 'Propiedad sin título',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${listing.currencyCode} ${listing.priceUsd.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+                      listing.formattedPrice,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                
-                // Ubicación
-                Row(
-                  children: [
-                    const Icon(Icons.location_on, size: 16, color: KazaTheme.coralKaza),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        listing.cityId.isNotEmpty ? listing.cityId : 'Ubicación no especificada',
-                        style: const TextStyle(color: KazaTheme.textMuted, fontSize: 14),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Características Principales
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    _buildFeatureChip(Icons.bed, '${listing.rooms} Hab.'),
-                    _buildFeatureChip(Icons.bathtub, '${listing.bathrooms} Bañ.'),
-                    if (listing.totalSurfaceM2 > 0)
-                      _buildFeatureChip(Icons.square_foot, '${listing.totalSurfaceM2} m²'),
-                  ],
-                ),
-                
                 const SizedBox(height: 16),
                 const Divider(),
                 
@@ -190,7 +150,7 @@ class CrmPropertiesTab extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'Última act: ${listing.updatedAt.toLocal().toString().split(' ')[0]}',
+                      listing.freshnessConfirmedAt != null ? 'Última act: ${listing.freshnessConfirmedAt!.toLocal().toString().split(' ')[0]}' : 'Última act: N/A',
                       style: const TextStyle(color: KazaTheme.textMuted, fontSize: 12),
                     ),
                   ],
@@ -200,17 +160,6 @@ class CrmPropertiesTab extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFeatureChip(IconData icon, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: KazaTheme.textMuted),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13)),
-      ],
     );
   }
 }
