@@ -102,11 +102,11 @@ class MapSearchingState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                color: KazaTheme.azulKaza,
-                strokeWidth: 3,
+              width: 50,
+              height: 50,
+              child: Image.asset(
+                'assets/images/kaza_app_icon.png',
+                fit: BoxFit.contain,
               ),
             ),
             SizedBox(height: 20),

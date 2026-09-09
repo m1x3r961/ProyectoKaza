@@ -95,9 +95,10 @@ class KazaSplashLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const KazaAnimatedLogo(
-      width: 240,
-      height: 80,
+    return Image.asset(
+      'assets/images/kaza_app_icon.png',
+      width: 120,
+      height: 120,
       fit: BoxFit.contain,
     );
   }

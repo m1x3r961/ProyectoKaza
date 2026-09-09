@@ -79,8 +79,8 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
     await Future.delayed(const Duration(milliseconds: 600));
     _pillsController.forward();
 
-    // Esperar que el GIF completa su primer ciclo (~2.5s)
-    await Future.delayed(const Duration(milliseconds: 2200));
+    // Esperar 3 segundos como solicitado
+    await Future.delayed(const Duration(milliseconds: 3000));
     if (!mounted) return;
 
     await _navigateAfterSplash();
