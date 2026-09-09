@@ -4,6 +4,7 @@ import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/crm_models.dart';
+import 'crm_process_detail_screen.dart';
 
 final crmOpportunitiesProvider = FutureProvider.autoDispose<List<CrmOpportunity>>((ref) async {
   final auth = ref.watch(kazaAuthProvider);
@@ -26,8 +27,17 @@ class CrmOpportunitiesScreen extends ConsumerStatefulWidget {
 }
 
 class _CrmOpportunitiesScreenState extends ConsumerState<CrmOpportunitiesScreen> {
-  String _selectedStage = 'PROSPECTO';
-  final List<String> _stages = ['PROSPECTO', 'VISITA', 'NEGOCIACION', 'CIERRE', 'PERDIDO'];
+  String _selectedStage = 'INTERESADO';
+  final List<String> _stages = ['INTERESADO', 'CONTACTO', 'VISITA', 'NEGOCIACION', 'CERRADA', 'DESCARTADO'];
+
+  Color _getInterestColor(String level) {
+    switch (level) {
+      case 'ALTO': return Colors.red;
+      case 'MEDIO': return Colors.orange;
+      case 'BAJO': return Colors.blue;
+      default: return KazaTheme.grisMedio;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,33 +114,54 @@ class _CrmOpportunitiesScreenState extends ConsumerState<CrmOpportunitiesScreen>
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final opp = filtered[index];
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: KazaTheme.glassBorder),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(child: Text(opp.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.azulKaza))),
-                              Text('USD ${opp.amountExpected.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold, color: KazaTheme.verifiedGreen)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          if (opp.contact != null)
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => CrmProcessDetailScreen(opportunity: opp)));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: KazaTheme.glassBorder),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Icon(Icons.person, size: 14, color: KazaTheme.textSecondary),
-                                const SizedBox(width: 4),
-                                Text(opp.contact!.firstName, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13)),
+                                Expanded(child: Text(opp.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.azulKaza))),
+                                if (opp.amountExpected > 0)
+                                  Text('USD ${opp.amountExpected.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold, color: KazaTheme.verifiedGreen)),
                               ],
                             ),
-                        ],
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                if (opp.contact != null)
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.person, size: 14, color: KazaTheme.textSecondary),
+                                      const SizedBox(width: 4),
+                                      Text('${opp.contact!.firstName} ${opp.contact!.lastName ?? ''}'.trim(), style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13)),
+                                    ],
+                                  )
+                                else
+                                  const Text('Sin contacto', style: TextStyle(color: KazaTheme.textMuted, fontSize: 13)),
+                                
+                                Row(
+                                  children: [
+                                    Icon(Icons.local_fire_department, size: 14, color: _getInterestColor(opp.interestLevel)),
+                                    const SizedBox(width: 4),
+                                    Text(opp.interestLevel, style: TextStyle(color: _getInterestColor(opp.interestLevel), fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

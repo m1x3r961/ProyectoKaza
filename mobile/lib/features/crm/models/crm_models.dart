@@ -34,6 +34,9 @@ class CrmOpportunity {
   final double amountExpected;
   final String? contactId;
   final CrmContact? contact;
+  final String interestLevel;
+  final String? leadSource;
+  final String? rejectionReason;
 
   CrmOpportunity({
     required this.id,
@@ -42,16 +45,22 @@ class CrmOpportunity {
     this.amountExpected = 0.0,
     this.contactId,
     this.contact,
+    this.interestLevel = 'NO_CALIFICADO',
+    this.leadSource,
+    this.rejectionReason,
   });
 
   factory CrmOpportunity.fromJson(Map<String, dynamic> json) {
     return CrmOpportunity(
       id: json['id'],
       title: json['title'] ?? 'Sin título',
-      stage: json['stage'] ?? 'PROSPECTO',
+      stage: json['stage'] ?? 'INTERESADO',
       amountExpected: (json['amount_expected'] ?? 0).toDouble(),
       contactId: json['contact_id'],
       contact: json['crm_contacts'] != null ? CrmContact.fromJson(json['crm_contacts']) : null,
+      interestLevel: json['interest_level'] ?? 'NO_CALIFICADO',
+      leadSource: json['lead_source'],
+      rejectionReason: json['rejection_reason'],
     );
   }
 }
