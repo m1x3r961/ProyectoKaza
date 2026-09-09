@@ -93,6 +93,12 @@ class ComparatorScreen extends StatelessWidget {
       ],
     );
   }
+  String? _getImage(Map<String, dynamic> prop) {
+    if (prop['photos'] != null && prop['photos'] is List && (prop['photos'] as List).isNotEmpty) {
+      return prop['photos'][0].toString();
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +110,15 @@ class ComparatorScreen extends StatelessWidget {
 
     final rooms1 = prop1['rooms'] ?? 0;
     final rooms2 = prop2['rooms'] ?? 0;
+
+    final baths1 = prop1['bathrooms'] ?? 0;
+    final baths2 = prop2['bathrooms'] ?? 0;
+
+    final parking1 = prop1['parking'] ?? 0;
+    final parking2 = prop2['parking'] ?? 0;
+
+    final img1 = _getImage(prop1);
+    final img2 = _getImage(prop2);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -147,22 +162,32 @@ class ComparatorScreen extends StatelessWidget {
                   Expanded(
                     flex: 3,
                     child: Container(
-                      height: 80,
+                      height: 100,
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF0F4F8),
                         borderRadius: BorderRadius.circular(12),
+                        image: img1 != null ? DecorationImage(image: NetworkImage(img1), fit: BoxFit.cover) : null,
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
                       ),
+                      child: img1 == null ? const Icon(Icons.image, color: Colors.black12, size: 32) : null,
                     ),
                   ),
                   Expanded(
                     flex: 3,
                     child: Container(
-                      height: 80,
+                      height: 100,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF0F4F8),
                         borderRadius: BorderRadius.circular(12),
+                        image: img2 != null ? DecorationImage(image: NetworkImage(img2), fit: BoxFit.cover) : null,
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
                       ),
+                      child: img2 == null ? const Icon(Icons.image, color: Colors.black12, size: 32) : null,
                     ),
                   ),
                 ],
@@ -181,18 +206,29 @@ class ComparatorScreen extends StatelessWidget {
                       children: [
                         Text(
                           _getZone(prop1),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: KazaTheme.azulKaza,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
+                            height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatPrice(prop1),
-                          style: const TextStyle(
-                            color: KazaTheme.textMuted,
-                            fontSize: 12,
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: KazaTheme.accentGold.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _formatPrice(prop1),
+                            style: const TextStyle(
+                              color: KazaTheme.accentGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -205,18 +241,29 @@ class ComparatorScreen extends StatelessWidget {
                       children: [
                         Text(
                           _getZone(prop2),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: KazaTheme.azulKaza,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
+                            height: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatPrice(prop2),
-                          style: const TextStyle(
-                            color: KazaTheme.textMuted,
-                            fontSize: 12,
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: KazaTheme.accentGold.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _formatPrice(prop2),
+                            style: const TextStyle(
+                              color: KazaTheme.accentGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -228,37 +275,49 @@ class ComparatorScreen extends StatelessWidget {
               const Divider(height: 1, color: Color(0xFFE2E8F0)),
 
               // Table
-              _buildRow('Construido', surface1 > 0 ? '$surface1 m²' : 'No informado', surface2 > 0 ? '$surface2 m²' : 'No informado'),
-              _buildRow('Precio/m²', _getPricePerM2(prop1), _getPricePerM2(prop2)),
-              _buildRow('Dormitorios', rooms1 > 0 ? rooms1.toString() : '—', rooms2 > 0 ? rooms2.toString() : '—'),
-              _buildRow('Antigüedad', prop1['antiquity']?.toString() ?? 'No informado', prop2['antiquity']?.toString() ?? 'No informado'),
-
-              const SizedBox(height: 16),
-              const Text(
-                'KAZA no inventa precio ni precio/m².',
-                style: TextStyle(
-                  color: KazaTheme.textMuted,
-                  fontSize: 11,
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildRow('Construido', surface1 > 0 ? '$surface1 m²' : 'No info', surface2 > 0 ? '$surface2 m²' : 'No info'),
+                    _buildRow('Precio/m²', _getPricePerM2(prop1), _getPricePerM2(prop2)),
+                    _buildRow('Dormitorios', rooms1 > 0 ? rooms1.toString() : '—', rooms2 > 0 ? rooms2.toString() : '—'),
+                    _buildRow('Baños', baths1 > 0 ? baths1.toString() : '—', baths2 > 0 ? baths2.toString() : '—'),
+                    _buildRow('Parqueos', parking1 > 0 ? parking1.toString() : '—', parking2 > 0 ? parking2.toString() : '—'),
+                    _buildRow('Antigüedad', prop1['antiquity']?.toString().capitalize() ?? 'No info', prop2['antiquity']?.toString().capitalize() ?? 'No info'),
+                    _buildRow('Estado', prop1['condition']?.toString().capitalize() ?? '—', prop2['condition']?.toString().capitalize() ?? '—'),
+                    _buildRow('Ubicación exacta', prop1['address_canonical']?.toString() ?? '—', prop2['address_canonical']?.toString() ?? '—'),
+                    
+                    const SizedBox(height: 16),
+                    const Center(
+                      child: Text(
+                        'KAZA no inventa precio ni precio/m².',
+                        style: TextStyle(
+                          color: KazaTheme.textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-
-              const Spacer(),
               
               // Action Button
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 24),
+                margin: const EdgeInsets.only(bottom: 24, top: 8),
                 child: OutlinedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('La IA de KAZA pronto te ayudará a comparar.'),
+                        content: Text('La IA de KAZA pronto te ayudará a comparar y decidir.'),
                         backgroundColor: KazaTheme.azulKaza,
                       ),
                     );
                   },
                   icon: const Icon(Icons.auto_awesome, size: 18),
-                  label: const Text('Ayúdame a comparar'),
+                  label: const Text('Ayúdame a decidir'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: KazaTheme.azulKaza,
                     side: const BorderSide(color: KazaTheme.azulKaza),
