@@ -829,12 +829,17 @@ class _PropertyPreviewCard extends StatelessWidget {
               children: [
                 // Image
                 property.imageUrl != null
-                    ? Image.network(
-                        property.imageUrl!,
+                    ? Container(
                         height: 220,
                         width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        color: const Color(0xFF1A1A2E),
+                        child: Image.network(
+                          property.imageUrl!,
+                          height: 220,
+                          width: double.infinity,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        ),
                       )
                     : _imagePlaceholder(),
                 // Close button
