@@ -184,6 +184,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ),
                               ),
                             ),
+                          ] else ...[
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: () => context.push('/login'),
+                              icon: const Icon(Icons.login, size: 16),
+                              label: const Text('Iniciar sesión', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: KazaTheme.azulKaza,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                                minimumSize: const Size(0, 36),
+                              ),
+                            ),
                           ],
                         ],
                       ),
