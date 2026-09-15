@@ -90,23 +90,37 @@ class KazaAppBarLogo extends StatelessWidget {
 }
 
 /// 🎬 KAZA Splash Logo — versión para splash screen sobre fondo oscuro/navy
-/// Usa el logo negativo en blanco (KAZA_Negative_Navy) optimizado para fondos oscuros.
+/// Muestra el símbolo con colores originales (coral) + wordmark "KAZA" en blanco.
 class KazaSplashLogo extends StatelessWidget {
   const KazaSplashLogo({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/kaza_logo_negative_navy.png',
-      width: 200,
-      height: 67,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) => Image.asset(
-        'assets/images/kaza_logo_primary.png',
-        width: 200,
-        height: 67,
-        fit: BoxFit.contain,
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Símbolo KAZA con sus colores naturales (coral)
+        Image.asset(
+          'assets/images/kaza_symbol.png',
+          width: 56,
+          height: 56,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const SizedBox(width: 56, height: 56),
+        ),
+        const SizedBox(width: 14),
+        // Wordmark en blanco para fondo oscuro
+        const Text(
+          'KAZA',
+          style: TextStyle(
+            fontSize: 44,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: 2,
+            height: 1.0,
+          ),
+        ),
+      ],
     );
   }
 }
