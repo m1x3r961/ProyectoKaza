@@ -12,18 +12,17 @@ const _kSvgNegative =
 const _kSvgSymbol =
     'assets/KAZA_Wordmark_Lockup_1.0/01_MASTER_VECTOR/KAZA_Symbol_Master.svg';
 
-/// 🎬 KAZA Splash Logo — SVG con tagline, colores originales sobre fondo blanco
-/// Símbolo navy + wordmark navy + tagline coral — 640×204 viewBox
+/// 🎬 KAZA Splash Logo — PNG HD con tagline, colores originales sobre fondo blanco
+/// Símbolo navy + wordmark navy + tagline coral — 2048px de resolución
 class KazaSplashLogo extends StatelessWidget {
   const KazaSplashLogo({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      _kSvgTagline,
-      width: 260,
+    return Image.asset(
+      'assets/images/kaza_logo_tagline_hd.png',
+      width: 280,
       fit: BoxFit.contain,
-      placeholderBuilder: (_) => _FallbackLogo(dark: false),
     );
   }
 }
