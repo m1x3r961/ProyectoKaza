@@ -1,21 +1,73 @@
-// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../app/theme/kaza_theme.dart';
 
-/// 🎬 KAZA Animated Logo Widget — Design System Maestro B26
-///
-/// Muestra el logo animado KAZA usando el GIF generado desde kaza.mp4.
-/// Fallback: kaza_logo_primary.png (logo primario con símbolo + wordmark) si el GIF no carga.
-///
-/// Uso:
-///   KazaAnimatedLogo()               // Tamaño por defecto (200×67)
-///   KazaAnimatedLogo(width: 120)     // Tamaño personalizado
-///   KazaAnimatedLogo(useGif: false)  // Fuerza el logo estático primario
+// Rutas a los SVG del KAZA Wordmark Lockup 1.0
+const _kSvgTagline =
+    'assets/KAZA_Wordmark_Lockup_1.0/01_MASTER_VECTOR/KAZA_Lockup_With_Tagline.svg';
+const _kSvgPrimary =
+    'assets/KAZA_Wordmark_Lockup_1.0/01_MASTER_VECTOR/KAZA_Lockup_Primary.svg';
+const _kSvgNegative =
+    'assets/KAZA_Wordmark_Lockup_1.0/01_MASTER_VECTOR/KAZA_Lockup_Negative_Navy.svg';
+const _kSvgSymbol =
+    'assets/KAZA_Wordmark_Lockup_1.0/01_MASTER_VECTOR/KAZA_Symbol_Master.svg';
+
+/// 🎬 KAZA Splash Logo — SVG con tagline, colores originales sobre fondo blanco
+/// Símbolo navy + wordmark navy + tagline coral — 640×204 viewBox
+class KazaSplashLogo extends StatelessWidget {
+  const KazaSplashLogo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      _kSvgTagline,
+      width: 260,
+      fit: BoxFit.contain,
+      placeholderBuilder: (_) => _FallbackLogo(dark: false),
+    );
+  }
+}
+
+/// 🎬 KAZA AppBar Logo — SVG primario compacto para barras de navegación
+class KazaAppBarLogo extends StatelessWidget {
+  final bool dark;
+  const KazaAppBarLogo({super.key, this.dark = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      dark ? _kSvgNegative : _kSvgPrimary,
+      height: 28,
+      fit: BoxFit.contain,
+      placeholderBuilder: (_) => _FallbackLogo(dark: dark),
+    );
+  }
+}
+
+/// 🎬 KAZA Symbol Logo — solo el ícono/símbolo sin wordmark
+class KazaSymbolLogo extends StatelessWidget {
+  final double size;
+  const KazaSymbolLogo({super.key, this.size = 48});
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      _kSvgSymbol,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+    );
+  }
+}
+
+/// 🎬 KAZA Animated Logo — mantiene compatibilidad con GIF animado
+/// Fallback al SVG Primary si useGif=false
 class KazaAnimatedLogo extends StatelessWidget {
   final double width;
   final double? height;
   final BoxFit fit;
   final bool useGif;
+  final bool dark;
 
   const KazaAnimatedLogo({
     super.key,
@@ -23,6 +75,7 @@ class KazaAnimatedLogo extends StatelessWidget {
     this.height,
     this.fit = BoxFit.contain,
     this.useGif = true,
+    this.dark = false,
   });
 
   @override
@@ -33,24 +86,32 @@ class KazaAnimatedLogo extends StatelessWidget {
         width: width,
         height: height ?? width,
         fit: fit,
+        errorBuilder: (_, __, ___) => SvgPicture.asset(
+          dark ? _kSvgNegative : _kSvgPrimary,
+          width: width,
+          height: height,
+          fit: fit,
+        ),
       );
     }
-    return _fallbackLogo();
-  }
-
-  Widget _fallbackLogo() {
-    return Image.asset(
-      'assets/images/kaza_logo_primary.png',
+    return SvgPicture.asset(
+      dark ? _kSvgNegative : _kSvgPrimary,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (context, error, stackTrace) => _textLogo(),
     );
   }
+}
 
-  Widget _textLogo() {
+/// Widget de texto fallback cuando el SVG no carga
+class _FallbackLogo extends StatelessWidget {
+  final bool dark;
+  const _FallbackLogo({this.dark = false});
+
+  @override
+  Widget build(BuildContext context) {
     return RichText(
-      text: const TextSpan(
+      text: TextSpan(
         children: [
           TextSpan(
             text: 'K',
@@ -65,79 +126,11 @@ class KazaAnimatedLogo extends StatelessWidget {
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w900,
-              color: KazaTheme.azulKaza,
+              color: dark ? Colors.white : KazaTheme.azulKaza,
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// 🎬 KAZA App Bar Logo — versión compacta para AppBar
-/// Tamaño optimizado para barras de navegación (ancho ~100px)
-class KazaAppBarLogo extends StatelessWidget {
-  const KazaAppBarLogo({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const KazaAnimatedLogo(
-      width: 100,
-      height: 36,
-      fit: BoxFit.contain,
-    );
-  }
-}
-
-/// 🎬 KAZA Splash Logo — versión para splash screen sobre fondo oscuro/navy
-/// Muestra el símbolo con colores originales (coral) + wordmark "KAZA" en blanco.
-class KazaSplashLogo extends StatelessWidget {
-  const KazaSplashLogo({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Símbolo KAZA con sus colores naturales (coral)
-        Image.asset(
-          'assets/images/kaza_symbol.png',
-          width: 56,
-          height: 56,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => const SizedBox(width: 56, height: 56),
-        ),
-        const SizedBox(width: 14),
-        // Wordmark en blanco para fondo oscuro
-        const Text(
-          'KAZA',
-          style: TextStyle(
-            fontSize: 44,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: 2,
-            height: 1.0,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 🎬 KAZA Symbol Logo — solo el símbolo (ícono) sin wordmark
-/// Ideal para espacios compactos: loaders, marcadores de mapa, etc.
-class KazaSymbolLogo extends StatelessWidget {
-  final double size;
-  const KazaSymbolLogo({super.key, this.size = 48});
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/kaza_symbol.png',
-      width: size,
-      height: size,
-      fit: BoxFit.contain,
     );
   }
 }

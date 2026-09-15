@@ -37,9 +37,9 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
   void initState() {
     super.initState();
 
-    // Status bar transparente sobre fondo oscuro
+    // Status bar oscura (íconos dark sobre fondo blanco)
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
     );
 
     // Animaciones
@@ -140,42 +140,22 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: KazaTheme.azulKaza,
+      backgroundColor: Colors.white,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
+        value: SystemUiOverlayStyle.dark,
         child: Stack(
           children: [
-            // ── Fondo con gradiente Navy ──────────────────────────────
+            // ── Fondo blanco con sutil glow coral arriba ──────────────
             Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: RadialGradient(
-                  center: const Alignment(0, -0.3),
-                  radius: 1.2,
+                  center: Alignment(0.6, -0.8),
+                  radius: 1.0,
                   colors: [
-                    const Color(0xFF1A3150),
-                    KazaTheme.azulKaza,
-                    const Color(0xFF080F18),
+                    Color(0xFFFFEDE8), // coral muy suave
+                    Colors.white,
                   ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-              ),
-            ),
-
-            // ── Coral accent glow (top-right) ─────────────────────────
-            Positioned(
-              top: -80,
-              right: -60,
-              child: Container(
-                width: 240,
-                height: 240,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      KazaTheme.coralKaza.withValues(alpha: 0.18),
-                      Colors.transparent,
-                    ],
-                  ),
+                  stops: [0.0, 0.6],
                 ),
               ),
             ),
@@ -190,29 +170,12 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
                     children: [
                       const Spacer(flex: 2),
 
-                      // Logo animado GIF
+                      // Logo SVG con tagline incorporada
                       SlideTransition(
                         position: _logoSlide,
                         child: FadeTransition(
                           opacity: _logoFade,
-                          child: Column(
-                            children: [
-                              const KazaSplashLogo(),
-                              const SizedBox(height: 16),
-
-                              // Tagline
-                              FadeTransition(
-                                opacity: _taglineFade,
-                                child: Text(
-                                  'Más que un lugar.',
-                                  style: KazaTheme.bodyLarge(
-                                    color: Colors.white.withValues(alpha: 0.75),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: const KazaSplashLogo(),
                         ),
                       ),
 
@@ -240,13 +203,12 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
                 opacity: _pillsFade,
                 child: Column(
                   children: [
-                    // Progress dots animados
                     _AnimatedDots(),
                     const SizedBox(height: 16),
                     Text(
                       'Cargando experiencia...',
                       style: KazaTheme.label(
-                        color: Colors.white.withValues(alpha: 0.4),
+                        color: KazaTheme.textMuted.withValues(alpha: 0.6),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -275,9 +237,9 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: KazaTheme.azulKaza.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            border: Border.all(color: KazaTheme.azulKaza.withValues(alpha: 0.12)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -286,7 +248,7 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
               const SizedBox(width: 6),
               Text(
                 p['text'] as String,
-                style: KazaTheme.label(color: Colors.white.withValues(alpha: 0.8)),
+                style: KazaTheme.label(color: KazaTheme.azulKaza.withValues(alpha: 0.75)),
               ),
             ],
           ),
