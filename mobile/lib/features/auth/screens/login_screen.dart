@@ -30,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _locationController = TextEditingController();
   
   bool _isLoading = false;
+  bool _isLoginMode = false;
   Uint8List? _avatarBytes;
   String? _avatarName;
 
@@ -351,7 +352,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Creación de Cuenta KAZA'),
+        title: Text(_isLoginMode ? 'Iniciar Sesión' : 'Creación de Cuenta KAZA'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -413,8 +414,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: _nextPage,
+              onPressed: () {
+                setState(() => _isLoginMode = false);
+                _nextPage();
+              },
               child: const Text('Crear cuenta nueva', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: KazaTheme.primaryTeal,
+                side: const BorderSide(color: KazaTheme.primaryTeal, width: 2),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                setState(() => _isLoginMode = true);
+                _nextPage();
+              },
+              child: const Text('Iniciar con cuenta existente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -438,9 +459,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             child: Column(
               children: [
-                const Text(
-                  '¿Cómo quieres crear tu cuenta?',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  _isLoginMode ? 'Inicia sesión con tu cuenta' : '¿Cómo quieres crear tu cuenta?',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 30),
