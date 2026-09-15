@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../../core/widgets/kaza_logo_widget.dart';
 
 /// 📊 MAP EMPTY STATES — "17 ESTADOS DE SISTEMA"
 /// Three system states: No Results, Searching, No Connection
@@ -104,10 +105,7 @@ class MapSearchingState extends StatelessWidget {
             SizedBox(
               width: 50,
               height: 50,
-              child: Image.asset(
-                'assets/images/kaza_logo_final.png',
-                fit: BoxFit.contain,
-              ),
+              child: const KazaSymbolLogo(size: 50),
             ),
             const SizedBox(height: 20),
             const Text(

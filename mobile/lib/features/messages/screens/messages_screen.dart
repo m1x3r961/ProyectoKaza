@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../../../core/widgets/kaza_badges.dart';
+import '../../../core/widgets/kaza_logo_widget.dart';
 import 'chat_detail_screen.dart';
 
 /// 💬 MENSAJES Y VISITAS - Kaza Leads, Chats & Visit Safety
@@ -66,11 +67,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset(
-              'assets/images/logo.png',
-              height: 28,
-              fit: BoxFit.contain,
-            ),
+            const KazaAppBarLogo(),
             const SizedBox(width: 10),
             const Text('Mensajes & Visitas'),
           ],

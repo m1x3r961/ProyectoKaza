@@ -386,16 +386,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 40),
           Center(
             child: Image.asset(
-              'assets/images/logo.png',
-              height: 100,
+              'assets/images/kaza_logo_tagline.png',
+              width: 200,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) => const Icon(Icons.home, size: 100, color: KazaTheme.primaryTeal),
             ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Más que un lugar.',
-            style: TextStyle(fontSize: 16, color: KazaTheme.textMuted, fontStyle: FontStyle.italic),
           ),
           const SizedBox(height: 60),
           const Text(

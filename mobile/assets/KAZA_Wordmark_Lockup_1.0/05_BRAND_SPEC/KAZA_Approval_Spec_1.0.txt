@@ -1,0 +1,32 @@
+KAZA — WORDMARK & LOCKUP APPROVAL CANDIDATE 1.0
+
+SYMBOL
+V3 Master Symbol 1.0 — geometry frozen.
+
+WORDMARK
+Base: Manrope SemiBold
+Kerning K1.5 reference:
+KA +5.5
+AZ -2.5
+ZA -2.5
+Values are from the 150 px cap-height construction and scale proportionally.
+
+PRIMARY HORIZONTAL LOCKUP
+Symbol optical height: 1.35 × KAZA cap-height (L2)
+Symbol-to-wordmark spacing: S2; reference 46 px at 120 px KAZA cap-height, scale proportionally.
+
+TAGLINE
+Text: más que un lugar
+Base: Manrope Medium
+Alignment: begins at left edge of KAZA wordmark, not at symbol edge.
+Vertical spacing: T1.5; approx. 0.22 × KAZA cap-height in current construction.
+Tagline remains subordinate to the wordmark.
+
+COLORS
+Working Navy: #0D1B2A
+Working Coral: #FF5A3C
+Color calibration is still pending; these are not yet frozen final master colors.
+
+STATUS
+This sheet is for final visual approval before freezing KAZA Wordmark & Lockup 1.0.
+No glyph shapes have been modified.

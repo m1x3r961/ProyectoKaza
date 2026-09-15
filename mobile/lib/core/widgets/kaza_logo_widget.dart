@@ -5,12 +5,12 @@ import '../../app/theme/kaza_theme.dart';
 /// 🎬 KAZA Animated Logo Widget — Design System Maestro B26
 ///
 /// Muestra el logo animado KAZA usando el GIF generado desde kaza.mp4.
-/// Fallback: logo.png estático si el GIF no carga.
+/// Fallback: kaza_logo_primary.png (logo primario con símbolo + wordmark) si el GIF no carga.
 ///
 /// Uso:
 ///   KazaAnimatedLogo()               // Tamaño por defecto (200×67)
 ///   KazaAnimatedLogo(width: 120)     // Tamaño personalizado
-///   KazaAnimatedLogo(dark: true)     // Sobre fondo oscuro (usa logo.png blanco)
+///   KazaAnimatedLogo(useGif: false)  // Fuerza el logo estático primario
 class KazaAnimatedLogo extends StatelessWidget {
   final double width;
   final double? height;
@@ -40,7 +40,7 @@ class KazaAnimatedLogo extends StatelessWidget {
 
   Widget _fallbackLogo() {
     return Image.asset(
-      'assets/images/logo.png',
+      'assets/images/kaza_logo_primary.png',
       width: width,
       height: height,
       fit: fit,
@@ -89,23 +89,41 @@ class KazaAppBarLogo extends StatelessWidget {
   }
 }
 
-/// 🎬 KAZA Splash Logo — versión grande para splash screen (ancho ~240px)
+/// 🎬 KAZA Splash Logo — versión para splash screen sobre fondo oscuro/navy
+/// Usa el logo negativo en blanco (KAZA_Negative_Navy) optimizado para fondos oscuros.
 class KazaSplashLogo extends StatelessWidget {
   const KazaSplashLogo({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/kaza_logo_final.png',
-      width: 120,
-      height: 120,
+      'assets/images/kaza_logo_negative_navy.png',
+      width: 200,
+      height: 67,
       fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) => Container(
-        width: 120,
-        height: 120,
-        color: Colors.red,
-        child: const Center(child: Text('Logo Error', style: TextStyle(color: Colors.white))),
+      errorBuilder: (context, error, stackTrace) => Image.asset(
+        'assets/images/kaza_logo_primary.png',
+        width: 200,
+        height: 67,
+        fit: BoxFit.contain,
       ),
+    );
+  }
+}
+
+/// 🎬 KAZA Symbol Logo — solo el símbolo (ícono) sin wordmark
+/// Ideal para espacios compactos: loaders, marcadores de mapa, etc.
+class KazaSymbolLogo extends StatelessWidget {
+  final double size;
+  const KazaSymbolLogo({super.key, this.size = 48});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/images/kaza_symbol.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
     );
   }
 }
