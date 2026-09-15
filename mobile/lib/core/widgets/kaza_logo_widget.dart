@@ -20,9 +20,10 @@ class KazaSplashLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/kaza_logo_tagline_hd.png',
+      'assets/KAZA_Wordmark_Lockup_1.0/02_PNG_TRANSPARENT/KAZA_Tagline_2048px.png',
       width: 280,
       fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const _FallbackLogo(),
     );
   }
 }
@@ -50,11 +51,12 @@ class KazaSymbolLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      _kSvgSymbol,
+    return Image.asset(
+      'assets/KAZA_Wordmark_Lockup_1.0/04_APP_ASSETS/KAZA_Symbol_1024px.png',
       width: size,
       height: size,
       fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const _FallbackLogo(),
     );
   }
 }

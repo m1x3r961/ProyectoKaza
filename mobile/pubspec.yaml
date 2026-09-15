@@ -78,6 +78,8 @@ flutter:
     - assets/pins/
     - assets/icons/
     - assets/KAZA_Wordmark_Lockup_1.0/01_MASTER_VECTOR/
+    - assets/KAZA_Wordmark_Lockup_1.0/02_PNG_TRANSPARENT/
+    - assets/KAZA_Wordmark_Lockup_1.0/04_APP_ASSETS/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
