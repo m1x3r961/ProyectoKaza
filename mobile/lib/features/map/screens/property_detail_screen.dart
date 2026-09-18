@@ -10,6 +10,7 @@ import '../../../core/network/supabase_config.dart';
 import '../providers/map_properties_provider.dart';
 import '../../saved/screens/saved_screen.dart';
 import '../widgets/property_detail_sections.dart';
+import '../../properties/screens/tour_360_local_screen.dart';
 
 /// 🏠 PROPERTY DETAIL SCREEN — Ficha Completa de Propiedad KAZA v2
 /// Prototipo B16 · Ficha completa con 12 secciones
@@ -27,13 +28,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
   final ScrollController _scrollController = ScrollController();
   bool _showStickyHeader = false;
 
-  // Legacy 2D/3D state (for dedicated tab view if user requests it)
+  // 2D floor plan state
   int _selectedRoomIndex = 0;
-  double _rotationY = 0.6;
-  double _rotationX = 0.3;
-  double _zoomScale = 1.0;
-  bool _showWireframe3D = false;
-  int _activeFloor = 1;
 
   final List<Map<String, dynamic>> _rooms = [
     {
@@ -663,8 +659,23 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
     );
   }
 
-  // ─── VISOR 3D CARD (Collapsible) ────────────────────────────────────────────
+  // ─── VISOR 360° REAL CON IMÁGENES PANORÁMICAS ────────────────────────────────
   Widget _buildVirtualTourCard() {
+    const images = [
+      'assets/images/1.jpeg',
+      'assets/images/2.jpeg',
+      'assets/images/3.jpeg',
+      'assets/images/4.jpeg',
+      'assets/images/5.jpeg',
+    ];
+    const scenes = [
+      ('Entrada', '🏠'),
+      ('Cocina', '🍳'),
+      ('Salón', '🛋️'),
+      ('Pasillo', '🚪'),
+      ('Dormitorio', '🛏️'),
+    ];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
@@ -673,12 +684,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
               children: [
                 Container(
                   width: 26, height: 26,
@@ -687,113 +700,112 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                   child: const Text('+', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 10),
-                const Icon(Icons.view_in_ar_outlined, size: 18, color: KazaTheme.azulKaza),
+                const Icon(Icons.view_in_ar_rounded, size: 18, color: KazaTheme.azulKaza),
                 const SizedBox(width: 6),
-                const Text('Visor 3D Interactivo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+                const Text('Tour Virtual 360°', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
                 const Spacer(),
-                // Floor level
-                DropdownButton<int>(
-                  value: _activeFloor,
-                  dropdownColor: Colors.white,
-                  underline: const SizedBox(),
-                  style: const TextStyle(fontSize: 12, color: KazaTheme.azulKaza),
-                  items: const [
-                    DropdownMenuItem(value: 1, child: Text('Nivel 1')),
-                    DropdownMenuItem(value: 2, child: Text('Nivel 2')),
-                  ],
-                  onChanged: (v) { if (v != null) setState(() => _activeFloor = v); },
-                ),
-                IconButton(
-                  icon: Icon(
-                    _showWireframe3D ? Icons.grid_4x4 : Icons.view_in_ar,
-                    size: 20,
-                    color: _showWireframe3D ? KazaTheme.primaryCoral : KazaTheme.textSecondary,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: KazaTheme.coralKaza.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: KazaTheme.coralKaza.withValues(alpha: 0.3)),
                   ),
-                  onPressed: () => setState(() => _showWireframe3D = !_showWireframe3D),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // 3D canvas
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                height: 280,
-                child: GestureDetector(
-                  onPanUpdate: (d) {
-                    setState(() {
-                      _rotationY += d.delta.dx * 0.01;
-                      _rotationX = (_rotationX + d.delta.dy * 0.01).clamp(-1.0, 1.0);
-                    });
-                  },
-                  child: Stack(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(color: const Color(0xFFE8ECEF)),
-                      CustomPaint(
-                        size: const Size(double.infinity, 280),
-                        painter: VirtualModel3DPainter(
-                          rotationY: _rotationY,
-                          rotationX: _rotationX,
-                          zoom: _zoomScale,
-                          isWireframe: _showWireframe3D,
-                          floor: _activeFloor,
-                        ),
-                      ),
-                      // Instructions
-                      Positioned(
-                        top: 10, left: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.touch_app, size: 13, color: KazaTheme.primaryCoral),
-                              SizedBox(width: 5),
-                              Text('Arrastra para orbitar en 360°', style: TextStyle(fontSize: 11, color: KazaTheme.textSecondary, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Zoom controls
-                      Positioned(
-                        right: 10, bottom: 10,
-                        child: Column(
-                          children: [
-                            _zoomBtn(Icons.add, 'zi', () => setState(() => _zoomScale = (_zoomScale * 1.2).clamp(0.5, 3.0))),
-                            const SizedBox(height: 6),
-                            _zoomBtn(Icons.remove, 'zo', () => setState(() => _zoomScale = (_zoomScale / 1.2).clamp(0.5, 3.0))),
-                            const SizedBox(height: 6),
-                            _zoomBtn(Icons.restart_alt, 'zr', () => setState(() { _rotationY = 0.6; _rotationX = 0.3; _zoomScale = 1.0; })),
-                          ],
-                        ),
-                      ),
+                      Container(width: 5, height: 5, decoration: const BoxDecoration(color: KazaTheme.coralKaza, shape: BoxShape.circle)),
+                      const SizedBox(width: 5),
+                      const Text('5 escenas', style: TextStyle(color: KazaTheme.coralKaza, fontSize: 10, fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
 
-  Widget _zoomBtn(IconData icon, String tag, VoidCallback onPressed) {
-    return FloatingActionButton.small(
-      heroTag: tag,
-      backgroundColor: Colors.white,
-      elevation: 2,
-      onPressed: onPressed,
-      child: Icon(icon, size: 18, color: KazaTheme.azulKaza),
+          const SizedBox(height: 14),
+
+          // ── Preview strip
+          SizedBox(
+            height: 80,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: images.length,
+              itemBuilder: (ctx, i) {
+                final (label, emoji) = scenes[i];
+                return GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => Tour360LocalScreen(
+                      propertyTitle: widget.property.title,
+                      assetImages: images,
+                    ),
+                  )),
+                  child: Container(
+                    width: 96,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.asset(images[i], fit: BoxFit.cover),
+                        Positioned(
+                          bottom: 0, left: 0, right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                            color: Colors.black.withValues(alpha: 0.55),
+                            child: Text(
+                              '$emoji $label',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Botón principal
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: KazaTheme.azulKaza,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
+              label: const Text('Iniciar Tour 360° Inmersivo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => Tour360LocalScreen(
+                  propertyTitle: widget.property.title,
+                  assetImages: images,
+                ),
+              )),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
+
 // =============================================================================
+
 // CUSTOM PAINTER 1: Plano 2D Interactivo con Cotas y Blueprint Grid
 // =============================================================================
 class FloorPlan2DPainter extends CustomPainter {
