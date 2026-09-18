@@ -269,9 +269,8 @@
 
 <script>
   // ── CONFIGURACIÓN DE ESCENAS ──────────────────────────────────────────────
-  const BASE = window.location.href.includes('localhost')
-    ? 'http://localhost:5000/assets/images/'
-    : 'assets/images/';   // ruta relativa a Flutter web
+  // En Flutter Web los assets definidos en pubspec se copian en 'assets/assets/...'
+  const BASE = 'assets/assets/images/';
 
   const scenes = [
     {
