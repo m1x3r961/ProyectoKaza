@@ -300,7 +300,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
             },
           ),
 
-          // ━━━ 2. TOP SEARCH BAR + FLOATING FILTERS ━━━━━━━━━━━━━━━━━━━━━━━
+          // ━━━ 2. TOP SEARCH BAR + TOGGLE + FLOATING FILTERS ━━━━━━━━━━━━━━
           SafeArea(
             child: Padding(
               padding: EdgeInsets.symmetric(
@@ -310,7 +310,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Search bar
+                  // ── Search bar con toggle Mapa/Lista integrado ──
                   Container(
                     height: 50,
                     decoration: BoxDecoration(
@@ -344,7 +344,81 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                             ),
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        // ── TOGGLE MAPA / LISTA ──────────────────────
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F4F8),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Mapa
+                              GestureDetector(
+                                onTap: () => setState(() => _showListOverlay = false),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: !_showListOverlay ? KazaTheme.azulKaza : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.map_rounded,
+                                        size: 14,
+                                        color: !_showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Mapa',
+                                        style: TextStyle(
+                                          color: !_showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Lista
+                              GestureDetector(
+                                onTap: () => setState(() => _showListOverlay = true),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: _showListOverlay ? KazaTheme.azulKaza : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.list_rounded,
+                                        size: 14,
+                                        color: _showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Lista',
+                                        style: TextStyle(
+                                          color: _showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -490,19 +564,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
             ),
           ),
 
-          // ━━━ 5. LIST TOGGLE BUTTON (Left side) ━━━━━━━━━━━━━━━━━━━━━━━━━━
-          if (!_isDrawingPolygon && _selectedProperty == null)
-            Positioned(
-              left: KazaResponsive.horizontalPadding(context),
-              bottom: _showListOverlay ? 320 : 24,
-              child: _MapActionButton(
-                heroTag: 'list_toggle',
-                icon: _showListOverlay ? Icons.map_rounded : Icons.list_rounded,
-                onTap: () {
-                  setState(() => _showListOverlay = !_showListOverlay);
-                },
-              ),
-            ),
+          // ━━━ 5. LIST TOGGLE (now in search bar — hidden here) ━━━━━━━━━━━━
+          // El toggle Mapa/Lista está integrado en la barra de búsqueda superior
 
           // ━━━ 6. LIST OVERLAY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           if (_showListOverlay)

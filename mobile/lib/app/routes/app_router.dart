@@ -11,6 +11,7 @@ import '../../features/financing/screens/financing_requests_screen.dart';
 import '../../features/ai_assistant/screens/ai_hub_screen.dart';
 import '../../features/ai_assistant/screens/ai_chat_screen.dart';
 import '../../features/saved/screens/compare_tab_screen.dart';
+import '../../features/map/screens/kaza_invest_screen.dart';
 import '../../features/achievements/screens/achievements_screen.dart';
 import '../../features/collaborations/screens/collaboration_flow_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
@@ -89,12 +90,12 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Tab 2: COMPARAR
+        // Tab 2: KAZA INVEST
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/compare',
-              builder: (context, state) => const CompareTabScreen(),
+              path: '/invest',
+              builder: (context, state) => const KazaInvestScreen(),
             ),
           ],
         ),

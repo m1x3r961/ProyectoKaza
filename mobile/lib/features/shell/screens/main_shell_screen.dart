@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 
 /// 🏛️ MAIN SHELL SCREEN — 5-Tab Navigation (KAZA Master Design)
-/// Tabs: Mapa, Buscar, Guardados, Comparar, Perfil
+/// Tabs: Mapa, Guardados, [Publicar], Invest, Perfil
 class MainShellScreen extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -27,14 +27,14 @@ class MainShellScreen extends ConsumerWidget {
       body: navigationShell,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 8.0), // Un pequeño padding sobre el nav
+        padding: const EdgeInsets.only(bottom: 8.0),
         child: FloatingActionButton(
           onPressed: () => context.push('/ai-hub'),
           backgroundColor: KazaTheme.azulKaza,
           elevation: 6,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: KazaTheme.coralKaza, width: 2), // Toque naranja/coral
+            side: const BorderSide(color: KazaTheme.coralKaza, width: 2),
           ),
           child: const Icon(
             Icons.auto_awesome_rounded,
@@ -60,6 +60,7 @@ class MainShellScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
+              // Tab 0: MAPA
               _buildNavItem(
                 index: 0,
                 icon: Icons.location_on_outlined,
@@ -69,6 +70,7 @@ class MainShellScreen extends ConsumerWidget {
                 screenWidth: screenWidth,
                 onTap: () => navigationShell.goBranch(0),
               ),
+              // Tab 1: GUARDADOS
               _buildNavItem(
                 index: 1,
                 icon: Icons.bookmark_border_rounded,
@@ -78,24 +80,19 @@ class MainShellScreen extends ConsumerWidget {
                 screenWidth: screenWidth,
                 onTap: () => navigationShell.goBranch(1),
               ),
-              
+
               // ── BOTÓN CENTRAL: PUBLICAR ─────────────────────────────
               _buildPublishItem(context, ref, screenWidth),
-              
-              _buildNavItem(
+
+              // Tab 2: KAZA INVEST ── NUEVA TAB
+              _buildInvestNavItem(
                 index: 2,
-                icon: Icons.compare_arrows_rounded,
-                activeIcon: Icons.compare_arrows_rounded,
-                label: 'Comparar',
                 currentIndex: currentIndex,
                 screenWidth: screenWidth,
-                onTap: () => checkProgressiveAuth(
-                  context: context,
-                  ref: ref,
-                  actionName: 'Comparar propiedades',
-                  onAuthenticatedAction: () => navigationShell.goBranch(2),
-                ),
+                onTap: () => navigationShell.goBranch(2),
               ),
+
+              // Tab 3: PERFIL
               _buildNavItem(
                 index: 3,
                 icon: Icons.person_outline_rounded,
@@ -122,7 +119,6 @@ class MainShellScreen extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     final isSelected = currentIndex == index;
-    // Hide label on very small screens to prevent overflow
     final showLabel = screenWidth >= 340;
     final iconSize = screenWidth < 360 ? 22.0 : 24.0;
 
@@ -156,9 +152,78 @@ class MainShellScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Tab especial KAZA Invest con badge coral y diseño premium
+  Widget _buildInvestNavItem({
+    required int index,
+    required int currentIndex,
+    required double screenWidth,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = currentIndex == index;
+    final showLabel = screenWidth >= 340;
+    final iconSize = screenWidth < 360 ? 22.0 : 24.0;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  Icons.trending_up_rounded,
+                  color: isSelected ? KazaTheme.coralKaza : KazaTheme.grisMedio,
+                  size: iconSize,
+                ),
+                // Badge "%" indicator
+                if (!isSelected)
+                  Positioned(
+                    top: -4,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: KazaTheme.coralKaza,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '%',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 7,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (showLabel) ...[
+              const SizedBox(height: 3),
+              Text(
+                'Invest',
+                style: TextStyle(
+                  color: isSelected ? KazaTheme.coralKaza : KazaTheme.grisMedio,
+                  fontSize: screenWidth < 380 ? 10 : 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPublishItem(BuildContext context, WidgetRef ref, double screenWidth) {
     final showLabel = screenWidth >= 340;
-    
+
     return GestureDetector(
       onTap: () {
         checkProgressiveAuth(
