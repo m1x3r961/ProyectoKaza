@@ -674,7 +674,6 @@ class PropertyDetailsSection extends StatelessWidget {
             'Disponible',
             valueColor: KazaTheme.semanticSuccess,
           ),
-          _detailRow(Icons.event_outlined, 'Entrega estimada', 'Inmediata'),
           _detailRow(Icons.fingerprint, 'ID de propiedad', 'KZA-${property.id.substring(0, 8)}'),
         ],
       ),
@@ -762,45 +761,6 @@ class _PropertyDescriptionSectionState extends State<PropertyDescriptionSection>
             _divider(),
           ],
 
-          // Ideal para
-          const Text(
-            'Ideal para',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: _idealFor.map((label) {
-              IconData icon;
-              switch (label) {
-                case 'Familias':
-                  icon = Icons.family_restroom;
-                  break;
-                case 'Inversión':
-                  icon = Icons.trending_up;
-                  break;
-                default:
-                  icon = Icons.business_center_outlined;
-              }
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: KazaTheme.grisClaro,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, size: 24, color: KazaTheme.azulKaza),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(label, style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
         ],
       ),
     );
@@ -968,32 +928,8 @@ class PropertyAvailabilitySection extends StatelessWidget {
 
           _divider(),
 
-          // Fechas
-          _detailRow(Icons.calendar_today_outlined, 'Publicación activa desde', '05 abr. 2025'),
-          const SizedBox(height: 4),
-
-          // Frescura row
-          Row(
-            children: [
-              const Icon(Icons.refresh, size: 18, color: KazaTheme.grisMedio),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text('Frescura (actualización de info)', style: TextStyle(fontSize: 13, color: KazaTheme.textSecondary)),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: KazaTheme.verdeEntorno.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text('Actualizada', style: TextStyle(fontSize: 11, color: KazaTheme.verdeEntorno, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _detailRow(Icons.event_note_outlined, 'Última actualización', '12 may. 2025'),
-          _detailRow(Icons.sync_outlined, 'Frecuencia de actualización', 'Quincenal'),
-
+          // Fechas eliminadas porque no vienen de la BD actualmente (eran ficticias)
+          
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(10),
@@ -1007,7 +943,7 @@ class PropertyAvailabilitySection extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'La información puede cambiar. Verifica siempre la fecha de actualización.',
+                    'La disponibilidad puede cambiar. Verifica contactando al anunciante.',
                     style: TextStyle(fontSize: 11, color: Colors.brown.shade600, height: 1.4),
                   ),
                 ),
@@ -1140,56 +1076,6 @@ class PropertyLocationSection extends StatelessWidget {
             ),
           ),
 
-          _divider(),
-
-          const Text(
-            'Entorno',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
-          ),
-          const SizedBox(height: 10),
-
-          ..._distances.map(
-            (d) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: KazaTheme.grisClaro,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(d['icon'] as IconData, size: 16, color: KazaTheme.azulKaza),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(d['place'] as String, style: const TextStyle(fontSize: 13, color: KazaTheme.textSecondary)),
-                  ),
-                  Text(
-                    d['dist'] as String,
-                    style: const TextStyle(fontSize: 12, color: KazaTheme.azulKaza, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    d['km'] as String,
-                    style: const TextStyle(fontSize: 12, color: KazaTheme.grisMedio),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 4),
-          GestureDetector(
-            child: const Row(
-              children: [
-                Icon(Icons.arrow_forward_ios, size: 12, color: KazaTheme.primaryCoral),
-                SizedBox(width: 4),
-                Text('Ver más del entorno', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: KazaTheme.primaryCoral)),
-              ],
-            ),
-          ),
         ],
       ),
     );

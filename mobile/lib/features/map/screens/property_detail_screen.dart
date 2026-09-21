@@ -304,10 +304,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               child: _buildFinancingBanner(context),
             ),
 
-            // ── 03b · Plano 2D Interactivo ─────────────────────────────────
+            // ── 03b · Plano 2D Interactivo (Oculto por ahora porque era ficticio) ────────
+            /*
             SliverToBoxAdapter(
               child: _buildFloorPlanCard(),
             ),
+            */
 
             // ── 04 · Descripción y destacados ─────────────────────────────
             SliverToBoxAdapter(
@@ -357,10 +359,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               child: PropertyReportSection(),
             ),
 
-            // ── Visor 3D (bonus — collapsible) ────────────────────────────
+            // ── Visor 3D (Oculto por ahora porque era ficticio) ────────────
+            /*
             SliverToBoxAdapter(
               child: _buildVirtualTourCard(),
             ),
+            */
 
             // Bottom spacing
             const SliverToBoxAdapter(
