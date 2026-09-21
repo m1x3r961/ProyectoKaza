@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../models/financing_models.dart';
+import '../models/fintech_models.dart';
+import '../services/fintech_api_service.dart';
 import '../widgets/entity_detail_sheet.dart';
+import 'kyc_verification_sheet.dart';
+import 'credit_simulator_sheet.dart';
 
-/// 01 CÓMO FUNCIONA / 02 ELIGE TU ENTIDAD
-/// Directorio de Entidades Financieras
+/// 01 DASHBOARD FINANCIERO (Hackathon Banco Unión)
+/// Muestra Wallet P2P, Kaza Score, KYC y Entidades
 class FinancingScreen extends StatefulWidget {
   const FinancingScreen({super.key});
 
@@ -14,19 +19,47 @@ class FinancingScreen extends StatefulWidget {
 }
 
 class _FinancingScreenState extends State<FinancingScreen> {
-  String _selectedFilter = 'Todas';
-  final List<String> _filters = ['Todas', 'Bancos', 'Cooperativas', 'Financieras', 'Gobierno'];
+  final FintechApiService _apiService = FintechApiService();
+  FintechProfile? _profile;
+  bool _isLoading = true;
 
-  List<FinancialEntity> get _filteredEntities {
-    if (_selectedFilter == 'Todas') return mockEntities;
-    final typeMapping = {
-      'Bancos': FinancialEntityType.bank,
-      'Cooperativas': FinancialEntityType.cooperative,
-      'Financieras': FinancialEntityType.financial,
-      'Gobierno': FinancialEntityType.government,
-    };
-    final type = typeMapping[_selectedFilter];
-    return mockEntities.where((e) => e.type == type).toList();
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final profile = await _apiService.getProfile();
+      setState(() => _profile = profile);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showKycVerification() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => KycVerificationSheet(
+        apiService: _apiService,
+        onVerified: _loadProfile,
+      ),
+    );
+  }
+
+  void _showCreditSimulator() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => CreditSimulatorSheet(
+        apiService: _apiService,
+      ),
+    );
   }
 
   void _showEntityDetail(FinancialEntity entity) {
@@ -51,156 +84,213 @@ class _FinancingScreenState extends State<FinancingScreen> {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Financiamiento',
+          'Mi Kaza Financiera',
           style: TextStyle(color: KazaTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: KazaTheme.textPrimary),
+            onPressed: _loadProfile,
+          )
+        ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'ELIGE TU ENTIDAD FINANCIERA',
-                    style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Tasas y condiciones referenciales. Verifica siempre en el sitio oficial de cada entidad.',
-                    style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Filtros
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _filters.map((filter) {
-                        final isSelected = _selectedFilter == filter;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(filter, style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : KazaTheme.textPrimary)),
-                            selected: isSelected,
-                            selectedColor: KazaTheme.azulKaza,
-                            backgroundColor: Colors.white,
-                            side: BorderSide(color: isSelected ? KazaTheme.azulKaza : KazaTheme.glassBorder),
-                            onSelected: (bool selected) {
-                              if (selected) setState(() => _selectedFilter = filter);
-                            },
-                          ),
-                        );
-                      }).toList(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: KazaTheme.azulKaza))
+          : RefreshIndicator(
+              onRefresh: _loadProfile,
+              color: KazaTheme.azulKaza,
+              child: CustomScrollView(
+                slivers: [
+                  // 1. DASHBOARD FINTECH (Wallet & Score)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildWalletCard(),
+                          const SizedBox(height: 20),
+                          _buildKycAndScoreCard(),
+                          const SizedBox(height: 20),
+                          _buildActionButtons(),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // Table Header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      children: [
-                        const Expanded(flex: 3, child: Text('Entidad', style: TextStyle(color: KazaTheme.textMuted, fontSize: 11, fontWeight: FontWeight.bold))),
-                        Expanded(flex: 2, child: Text('Tasa referencial (anual)', style: TextStyle(color: KazaTheme.textMuted, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                        const Expanded(flex: 2, child: Text('Plazo (máx.)', style: TextStyle(color: KazaTheme.textMuted, fontSize: 11, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                        const Expanded(flex: 1, child: SizedBox.shrink()),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-          ),
-          
-          // Lista de entidades
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final entity = _filteredEntities[index];
-                  return _buildEntityCard(entity);
-                },
-                childCount: _filteredEntities.length,
-              ),
-            ),
-          ),
 
-          // Sección Educativa "LO QUE DEBES SABER"
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'LO QUE DEBES SABER',
-                    style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildEducationalItem(Icons.handshake_outlined, 'KAZA te conecta', 'Somos un puente de conexión. No somos la entidad financiera.'),
-                  _buildEducationalItem(Icons.account_balance_outlined, 'Entidad responsable', 'La entidad financiera es la única responsable de evaluar, aprobar y desembolsar el crédito.'),
-                  _buildEducationalItem(Icons.percent_rounded, 'Tasas referenciales', 'Las tasas son referenciales y pueden cambiar. Verifica siempre en el sitio oficial.'),
-                  _buildEducationalItem(Icons.lock_outline_rounded, 'Tu información, tu control', 'Solo compartimos la información necesaria y con tu autorización.'),
-                  _buildEducationalItem(Icons.shield_outlined, 'Sin influencia en tu perfil', 'Usar esta sección no afecta tu reputación, confianza ni acceso a KAZA.'),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // Disclaimer bottom
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: KazaTheme.azulKaza.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: KazaTheme.azulKaza.withValues(alpha: 0.1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: KazaTheme.azulKaza, size: 20),
-                            SizedBox(width: 8),
-                            Expanded(child: Text('NO ES ASESORAMIENTO FINANCIERO', style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold, fontSize: 12))),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'La información es referencial y no constituye recomendación financiera. Verifica siempre con la entidad.',
-                          style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Icon(Icons.verified_user_outlined, color: KazaTheme.verifiedGreen, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: RichText(
-                                text: const TextSpan(
-                                  style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12),
-                                  children: [
-                                    TextSpan(text: 'KAZA INFORMA, TÚ DECIDES. ', style: TextStyle(fontWeight: FontWeight.bold)),
-                                    TextSpan(text: 'KAZA te da información para decidir. Tú eliges con quién y cómo avanzar.'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                  // 2. DIRECTORIO DE ENTIDADES
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      child: const Text(
+                        'DIRECTORIO DE ENTIDADES',
+                        style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          return _buildEntityCard(mockEntities[index]);
+                        },
+                        childCount: mockEntities.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
                 ],
               ),
+            ),
+    );
+  }
+
+  Widget _buildWalletCard() {
+    final balance = _profile?.wallet.balance ?? 0.0;
+    final formatter = NumberFormat.currency(symbol: 'Bs. ', decimalDigits: 2);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [KazaTheme.azulKaza, Color(0xFF1E3A5F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Kaza Wallet P2P',
+                style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('Banco Unión (Demo)', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            formatter.format(balance),
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Disponible para reservas inmobiliarias',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKycAndScoreCard() {
+    final isVerified = _profile?.kycStatus == KycStatus.verified;
+    final score = _profile?.kazaScore;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KazaTheme.glassBorder),
+      ),
+      child: Row(
+        children: [
+          // Kaza Score
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Kaza Score', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      score?.toString() ?? '---',
+                      style: TextStyle(
+                        color: score != null ? (score >= 600 ? KazaTheme.semanticSuccess : KazaTheme.semanticWarning) : KazaTheme.textPrimary,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('/ 850', style: TextStyle(color: KazaTheme.textMuted, fontSize: 14)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _profile?.scoreLabel ?? 'Sin evaluar',
+                  style: const TextStyle(color: KazaTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          Container(width: 1, height: 60, color: KazaTheme.glassBorder),
+          const SizedBox(width: 20),
+          // KYC Status
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Identidad ASFI', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+                isVerified
+                    ? Row(
+                        children: [
+                          const Icon(Icons.verified_user_rounded, color: KazaTheme.semanticSuccess, size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Verificada', style: TextStyle(color: KazaTheme.semanticSuccess, fontWeight: FontWeight.bold, fontSize: 14)),
+                        ],
+                      )
+                    : OutlinedButton(
+                        onPressed: _showKycVerification,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          minimumSize: Size.zero,
+                          side: const BorderSide(color: KazaTheme.coralKaza),
+                        ),
+                        child: const Text('Verificar ahora', style: TextStyle(color: KazaTheme.coralKaza, fontSize: 12)),
+                      ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _showCreditSimulator,
+            icon: const Icon(Icons.calculate_rounded, size: 18),
+            label: const Text('Simular Crédito'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: KazaTheme.coralKaza,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -224,76 +314,33 @@ class _FinancingScreenState extends State<FinancingScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Row(
               children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: entity.brandColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(Icons.account_balance, color: entity.brandColor, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  flex: 3,
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: entity.brandColor.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Icon(Icons.account_balance, color: entity.brandColor, size: 20), // Fallback logo
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(entity.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.textPrimary))),
+                      Text(entity.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
+                      const SizedBox(height: 4),
+                      Text('Tasa: ${entity.referenceRate.toStringAsFixed(2)}% | Máx: ${entity.maxTermYears} años', style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
                     ],
                   ),
                 ),
-                Expanded(
-                  flex: 2,
-                  child: Text('${entity.referenceRate.toStringAsFixed(2)}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: KazaTheme.textPrimary), textAlign: TextAlign.center),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text('${entity.maxTermYears} años', style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13), textAlign: TextAlign.center),
-                ),
-                const Expanded(
-                  flex: 1,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Icon(Icons.chevron_right_rounded, color: KazaTheme.azulKaza),
-                  ),
-                ),
+                const Icon(Icons.chevron_right_rounded, color: KazaTheme.azulKaza),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildEducationalItem(IconData icon, String title, String desc) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: KazaTheme.glassBorder),
-            ),
-            child: Icon(icon, color: KazaTheme.azulKaza, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: KazaTheme.textPrimary, fontSize: 14)),
-                const SizedBox(height: 4),
-                Text(desc, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 13, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

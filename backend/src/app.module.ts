@@ -7,9 +7,12 @@ import { ListingsService } from './domain/listings/listings.service';
 import { PromotionsController } from './domain/promotions/promotions.controller';
 import { PromotionsService } from './domain/promotions/promotions.service';
 import { KazaIdentityAdapter } from './domain/identity/kaza-identity.adapter';
+import { FintechModule } from './domain/fintech/fintech.module';
 
 @Module({
-  imports: [],
+  imports: [
+    FintechModule, // 🏦 Módulo Simulado Banco Unión (Hackathon Incuba Union 3.0)
+  ],
   controllers: [
     AppController, 
     ListingsController, 

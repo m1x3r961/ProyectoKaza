@@ -2342,8 +2342,12 @@ file:///E:/proyectoKaza/mobile/lib/features/developer/providers/developer_provid
 file:///E:/proyectoKaza/mobile/lib/features/developer/screens/developer_dashboard_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/developer/screens/project_detail_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/financing/models/financing_models.dart
+file:///E:/proyectoKaza/mobile/lib/features/financing/models/fintech_models.dart
+file:///E:/proyectoKaza/mobile/lib/features/financing/screens/credit_simulator_sheet.dart
 file:///E:/proyectoKaza/mobile/lib/features/financing/screens/financing_requests_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/financing/screens/financing_screen.dart
+file:///E:/proyectoKaza/mobile/lib/features/financing/screens/kyc_verification_sheet.dart
+file:///E:/proyectoKaza/mobile/lib/features/financing/services/fintech_api_service.dart
 file:///E:/proyectoKaza/mobile/lib/features/financing/widgets/entity_detail_sheet.dart
 file:///E:/proyectoKaza/mobile/lib/features/financing/widgets/handoff_dialog.dart
 file:///E:/proyectoKaza/mobile/lib/features/kaza_trust/models/trust_models.dart
@@ -2351,6 +2355,7 @@ file:///E:/proyectoKaza/mobile/lib/features/kaza_trust/screens/kaza_trust_screen
 file:///E:/proyectoKaza/mobile/lib/features/map/providers/map_properties_provider.dart
 file:///E:/proyectoKaza/mobile/lib/features/map/providers/property_state_provider.dart
 file:///E:/proyectoKaza/mobile/lib/features/map/screens/cluster_bottom_sheet.dart
+file:///E:/proyectoKaza/mobile/lib/features/map/screens/kaza_invest_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/map/screens/map_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/map/screens/property_detail_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/map/screens/property_state_wrapper.dart
@@ -2395,6 +2400,7 @@ file:///E:/proyectoKaza/mobile/lib/features/profile/screens/reputation_screen.da
 file:///E:/proyectoKaza/mobile/lib/features/profile/screens/security_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/profile/screens/settings_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/profile/screens/subscription_plans_screen.dart
+file:///E:/proyectoKaza/mobile/lib/features/properties/screens/tour_360_local_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/properties/screens/tour_360_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/publish/screens/publish_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/saved/screens/comparator_screen.dart
