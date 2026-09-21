@@ -359,12 +359,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               child: PropertyReportSection(),
             ),
 
-            // ── Visor 3D (Oculto por ahora porque era ficticio) ────────────
-            /*
+            // ── Visor 3D (bonus — collapsible) ────────────────────────────
             SliverToBoxAdapter(
               child: _buildVirtualTourCard(),
             ),
-            */
 
             // Bottom spacing
             const SliverToBoxAdapter(
