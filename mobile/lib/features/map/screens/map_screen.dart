@@ -329,12 +329,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                         const SizedBox(width: 16),
                         const Icon(Icons.search_rounded, color: KazaTheme.grisMedio, size: 22),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: TextField(
-                            style: TextStyle(fontSize: 14, color: KazaTheme.azulKaza),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 14, color: KazaTheme.azulKaza),
                             decoration: InputDecoration(
-                              hintText: 'Buscar barrio, dirección o zona',
-                              hintStyle: TextStyle(
+                              hintText: MediaQuery.of(context).size.width < 380 ? 'Buscar zona o barrio' : 'Buscar barrio, dirección o zona',
+                              hintStyle: const TextStyle(
                                 color: Color(0xFF94A3B8),
                                 fontWeight: FontWeight.w400,
                                 fontSize: 14,
@@ -507,7 +508,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
           // ━━━ 4. RIGHT-SIDE ACTION BUTTONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           Positioned(
             right: KazaResponsive.horizontalPadding(context),
-            bottom: _selectedProperty != null ? 260 : (_showListOverlay ? 320 : 24),
+            bottom: _selectedProperty != null ? 260 : (_showListOverlay ? 320 : 110),
             child: Column(
               children: [
                 // Zoom In button
