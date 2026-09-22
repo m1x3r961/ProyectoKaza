@@ -196,7 +196,7 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
 
             // ── Indicador de carga (bottom) ───────────────────────────
             Positioned(
-              bottom: 40 + MediaQuery.of(context).padding.bottom,
+              bottom: 100 + MediaQuery.of(context).padding.bottom,
               left: 0,
               right: 0,
               child: FadeTransition(
@@ -226,7 +226,6 @@ class _KazaSplashScreenState extends State<KazaSplashScreen>
     final pills = [
       {'icon': Icons.verified_outlined, 'text': 'Datos verificados'},
       {'icon': Icons.lock_outline, 'text': 'Privado y seguro'},
-      {'icon': Icons.accessibility_new_outlined, 'text': 'WCAG 2.2 AA'},
     ];
 
     return Wrap(
