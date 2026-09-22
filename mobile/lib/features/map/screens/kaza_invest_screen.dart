@@ -93,16 +93,23 @@ class _KazaInvestScreenState extends ConsumerState<KazaInvestScreen>
   @override
   Widget build(BuildContext context) {
     final roleAsync = ref.watch(userRoleProvider);
+    final tierAsync = ref.watch(userTierProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: roleAsync.when(
         data: (role) {
-          if (role == 'DEVELOPER') {
-            return const CrmProjectsDashboard();
-          } else {
-            return _buildAccessDeniedMessage();
-          }
+          return tierAsync.when(
+            data: (tier) {
+              if (role == 'DEVELOPER' || tier == 'PROPERTIES' || tier == 'BUSINESS') {
+                return const CrmProjectsDashboard();
+              } else {
+                return _buildAccessDeniedMessage();
+              }
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(child: Text('Error: $err')),
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),

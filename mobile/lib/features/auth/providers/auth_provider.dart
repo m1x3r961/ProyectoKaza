@@ -194,6 +194,24 @@ final userRoleProvider = FutureProvider<String>((ref) async {
   return 'USER';
 });
 
+final userTierProvider = FutureProvider<String>((ref) async {
+  final authState = ref.watch(kazaAuthProvider);
+  if (!authState.isAuthenticated || authState.userId == null) return 'FREE';
+
+  try {
+    final response = await SupabaseConfig.client
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', authState.userId!)
+        .maybeSingle();
+    
+    if (response != null && response['subscription_tier'] != null) {
+      return response['subscription_tier'] as String;
+    }
+  } catch (_) {}
+  return 'FREE';
+});
+
 /// Helper para Registro Progresivo Kaza Master v0.2
 /// "Explora primero; regístrate cuando necesites conservar o avanzar."
 void checkProgressiveAuth({
