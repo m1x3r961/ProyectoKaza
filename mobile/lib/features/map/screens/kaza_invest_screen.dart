@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/kaza_theme.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../organizations/screens/crm/properties/crm_projects_dashboard.dart';
 
 /// 📈 KAZA INVEST SCREEN — "05 KAZA Invest (inicio)"
 /// Inversiones inmobiliarias de forma simple y transparente.
@@ -90,10 +92,61 @@ class _KazaInvestScreenState extends ConsumerState<KazaInvestScreen>
 
   @override
   Widget build(BuildContext context) {
+    final roleAsync = ref.watch(userRoleProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
+      body: roleAsync.when(
+        data: (role) {
+          if (role == 'DEVELOPER') {
+            return const CrmProjectsDashboard();
+          } else {
+            return _buildAccessDeniedMessage();
+          }
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+    );
+  }
+
+  Widget _buildAccessDeniedMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline, size: 64, color: KazaTheme.grisMedio),
+            const SizedBox(height: 24),
+            const Text(
+              'Acceso Exclusivo',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Esta sección está reservada para Desarrolladoras de Proyectos Inmobiliarios.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: KazaTheme.textMuted, fontSize: 16),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: KazaTheme.coralKaza,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Conocer más', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConsumerInvest() {
+    return CustomScrollView(
+      slivers: [
           // ── HEADER ───────────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 180,
@@ -287,8 +340,7 @@ class _KazaInvestScreenState extends ConsumerState<KazaInvestScreen>
           // ── BOTTOM SPACE ─────────────────────────────────────────
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
-      ),
-    );
+      );
   }
 }
 

@@ -2370,6 +2370,9 @@ file:///E:/proyectoKaza/mobile/lib/features/media/models/kaza_media_item.dart
 file:///E:/proyectoKaza/mobile/lib/features/media/widgets/media_picker_widget.dart
 file:///E:/proyectoKaza/mobile/lib/features/onboarding/screens/onboarding_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/models/organization_models.dart
+file:///E:/proyectoKaza/mobile/lib/features/organizations/models/project_model.dart
+file:///E:/proyectoKaza/mobile/lib/features/organizations/models/project_unit_model.dart
+file:///E:/proyectoKaza/mobile/lib/features/organizations/providers/crm_projects_provider.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/providers/crm_properties_provider.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/providers/crm_stats_provider.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/providers/organizations_provider.dart
@@ -2379,6 +2382,9 @@ file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/crm_more_t
 file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/crm_pipeline_tab.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/crm_properties_tab.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/crm_resume_tab.dart
+file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/properties/crm_availability_matrix.dart
+file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/properties/crm_project_detail_screen.dart
+file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/crm/properties/crm_projects_dashboard.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/org_members_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/org_opportunities_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/screens/org_properties_screen.dart
