@@ -48,6 +48,15 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
       // Usar la RPC definida en la migración 00014
       await SupabaseConfig.client.rpc('fn_upgrade_subscription', params: {'p_tier': newTier});
       
+      // Si el plan es PROPERTIES, asegurarnos de que el rol sea DEVELOPER
+      if (newTier == 'PROPERTIES') {
+        try {
+          await SupabaseConfig.client.rpc('fn_upsert_professional_profile', params: {
+            'p_role': 'DEVELOPER'
+          });
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() => _currentTier = newTier);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -163,10 +172,28 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                         'Gestión de equipo y permisos',
                         'Inventario centralizado',
                         'Pipeline consolidado de todos tus agentes',
-                        'Módulo Desarrolladora (U08) — Proyectos inmobiliarios',
                       ],
                       onSelect: () => _upgradePlan('BUSINESS'),
                       color: const Color(0xFF7C4DFF), // Purple theme for business
+                    ),
+                    const SizedBox(height: 16),
+
+                    // PLAN PROPERTIES
+                    _buildPlanCard(
+                      title: 'PROPERTIES',
+                      price: 'Consultar',
+                      description: 'Gestión avanzada para proyectos inmobiliarios.',
+                      isActive: _currentTier == 'PROPERTIES',
+                      features: [
+                        'Todo lo de Business',
+                        'Gestión de Proyectos',
+                        'Unidades y Etapas Ilimitadas',
+                        'Matriz visual de Disponibilidad',
+                        'Integración Fintech (Simulador y Reserva)',
+                        'Módulo CRM Desarrolladora',
+                      ],
+                      onSelect: () => _upgradePlan('PROPERTIES'),
+                      color: KazaTheme.azulKaza, // Blue theme for developers
                     ),
                     const SizedBox(height: 32),
                 ],
