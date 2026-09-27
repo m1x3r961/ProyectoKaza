@@ -1,3 +1,5 @@
+import '../../../core/network/api_client.dart';
+import '../../auth/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/supabase_config.dart';
 import '../models/organization_models.dart';
@@ -41,11 +43,13 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
   OrganizationsNotifier() : super(const OrganizationsState());
 
   Future<void> load() async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
       final userId = SupabaseConfig.client.auth.currentUser?.id;
       if (userId == null) {
-        state = state.copyWith(isLoading: false, myOrgs: [], pendingInvitations: []);
+        state = state
+            .copyWith(isLoading: false, myOrgs: [], pendingInvitations: []);
         return;
       }
 
@@ -53,7 +57,8 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
       // NOTA: Usar 'legal_name' o 'name' según el esquema final
       final data = await SupabaseConfig.client
           .from('organization_memberships')
-          .select('role_name, organizations(id, legal_name, description, logo_url, website, contact_email, contact_phone, city, address, org_type, created_at)')
+          .select(
+              'role_name, organizations(id, legal_name, description, logo_url, website, contact_email, contact_phone, city, address, org_type, created_at)')
           .eq('user_id', userId);
 
       final orgs = <KazaOrganization>[];
@@ -69,42 +74,31 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
         }
       }
 
-      // Fetch pending invitations (Comentado temporalmente porque la tabla no existe aún en la base de datos)
-      /*
       final invites = await SupabaseConfig.client
           .from('organization_invitations')
-          .select('id, role, status, created_at, expires_at, organizations(name), invited_by_profiles:invited_by(display_name)')
-          .eq('invited_email', SupabaseConfig.client.auth.currentUser?.email ?? '')
-          .eq('status', 'PENDING');
-
-      final pendingInvites = <OrgInvitation>[];
-      for (final inv in invites) {
-        final org = inv['organizations'] as Map<String, dynamic>?;
-        pendingInvites.add(OrgInvitation(
-          id: inv['id'] as String,
-          orgName: org?['name'] as String? ?? 'Organización',
-          invitedByName: (inv['invited_by_profiles'] as Map?)
-                  ?['display_name'] as String? ??
-              'Un miembro',
-          role: parseOrgRole(inv['role'] as String? ?? 'member'),
-          status: InvitationStatus.pending,
-          createdAt: DateTime.tryParse(inv['created_at'] as String? ?? '') ??
-              DateTime.now(),
-          expiresAt: inv['expires_at'] != null
-              ? DateTime.tryParse(inv['expires_at'] as String)
-              : null,
-        ));
-      }
-      */
-      final pendingInvites = <OrgInvitation>[];
-
+          .select('id, role_name, created_at, expires_at')
+          .eq('status', 'PENDING')
+          .gt('expires_at', DateTime.now().toUtc().toIso8601String())
+          .limit(100);
+      final pendingInvites = invites
+          .map((inv) => OrgInvitation(
+              id: inv['id'] as String,
+              orgName: 'Invitación a organización',
+              invitedByName: 'Administrador de organización',
+              role: parseOrgRole(inv['role_name']),
+              status: InvitationStatus.pending,
+              createdAt: DateTime.parse(inv['created_at']),
+              expiresAt: DateTime.parse(inv['expires_at'])))
+          .toList();
+      if (!mounted) return;
       state = state.copyWith(
         myOrgs: orgs,
         pendingInvitations: pendingInvites,
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      if (mounted)
+        state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
@@ -124,48 +118,17 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
       final userId = SupabaseConfig.client.auth.currentUser?.id;
       if (userId == null) return 'No estás autenticado.';
 
-      // Crear un workspace primero porque la tabla organizations requiere un workspace_id
-      final workspaceResult = await SupabaseConfig.client
-          .from('workspaces')
-          .insert({
-            'name': 'Workspace de $name',
-            'workspace_type': orgType == 'PRO_AGENT' ? 'PERSONAL' : 'ORGANIZATION',
-            'owner_user_id': userId,
-          })
-          .select('id')
-          .single();
-      
-      final workspaceId = workspaceResult['id'] as String;
-      
-      final insertData = {
+      await ApiClient().request('/api/organizations', method: 'POST', body: {
         'legal_name': name,
-        'description': description,
-        'website': website,
-        'logo_url': logoUrl,
-        'contact_email': contactEmail,
-        'contact_phone': contactPhone,
-        'city': city,
-        'address': address,
         'org_type': orgType,
-        'workspace_id': workspaceId,
-      };
-
-      // Insertamos la organización
-      final result = await SupabaseConfig.client
-          .from('organizations')
-          .insert(insertData)
-          .select('id')
-          .single();
-
-      final orgId = result['id'] as String;
-
-      // Asignar rol owner al creador en organization_memberships (no members)
-      await SupabaseConfig.client.from('organization_memberships').insert({
-        'organization_id': orgId,
-        'user_id': userId,
-        'role_name': 'ADMIN', // o OWNER si existe
+        if (description != null) 'description': description,
+        if (website != null) 'website': website,
+        if (logoUrl != null) 'logo_url': logoUrl,
+        if (contactEmail != null) 'contact_email': contactEmail,
+        if (contactPhone != null) 'contact_phone': contactPhone,
+        if (city != null) 'city': city,
+        if (address != null) 'address': address,
       });
-
       await load();
       return null; // null = sin error
     } catch (e) {
@@ -176,8 +139,9 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
   /// Unirse mediante código de invitación
   Future<String?> joinByCode(String code) async {
     try {
-      await SupabaseConfig.client.rpc('fn_accept_invitation_by_code',
-          params: {'p_code': code.trim().toUpperCase()});
+      await ApiClient().request('/api/invitations/respond',
+          method: 'POST',
+          body: {'code': code.trim().toUpperCase(), 'accept': true});
       await load();
       return null;
     } catch (e) {
@@ -188,9 +152,8 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
   /// Aceptar invitación por email
   Future<String?> acceptInvitation(String invitationId) async {
     try {
-      await SupabaseConfig.client
-          .from('organization_invitations')
-          .update({'status': 'ACCEPTED'}).eq('id', invitationId);
+      await ApiClient().request('/api/invitations/respond',
+          method: 'POST', body: {'id': invitationId, 'accept': true});
       await load();
       return null;
     } catch (e) {
@@ -201,9 +164,8 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
   /// Rechazar invitación
   Future<String?> rejectInvitation(String invitationId) async {
     try {
-      await SupabaseConfig.client
-          .from('organization_invitations')
-          .update({'status': 'REJECTED'}).eq('id', invitationId);
+      await ApiClient().request('/api/invitations/respond',
+          method: 'POST', body: {'id': invitationId, 'accept': false});
       await load();
       return null;
     } catch (e) {
@@ -218,5 +180,6 @@ class OrganizationsNotifier extends StateNotifier<OrganizationsState> {
 
 final organizationsProvider =
     StateNotifierProvider<OrganizationsNotifier, OrganizationsState>((ref) {
+  ref.watch(kazaAuthProvider);
   return OrganizationsNotifier();
 });

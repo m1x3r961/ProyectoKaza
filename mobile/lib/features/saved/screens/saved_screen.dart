@@ -1,14 +1,16 @@
+import '../../../core/network/api_client.dart';
+import '../../auth/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/kaza_theme.dart';
-import '../../../core/network/supabase_config.dart';
 import 'comparator_screen.dart';
 
-final savedPropertiesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final response = await SupabaseConfig.client
-      .from('saved_properties')
-      .select('*, properties(*)');
-  return List<Map<String, dynamic>>.from(response);
+final savedPropertiesProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final auth = ref.watch(kazaAuthProvider);
+  if (!auth.isAuthenticated) return [];
+  return List<Map<String, dynamic>>.from(
+      await ApiClient().request('/api/saved'));
 });
 
 /// 🔖 GUARDADOS - WM-02 v0.3
@@ -20,8 +22,6 @@ class SavedScreen extends ConsumerStatefulWidget {
 }
 
 class _SavedScreenState extends ConsumerState<SavedScreen> {
-
-
   void _onComparePressed(List<Map<String, dynamic>> savedItems) {
     if (savedItems.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,7 +41,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     for (int i = 0; i < savedItems.length; i++) {
       final prop1 = savedItems[i]['properties'] as Map<String, dynamic>?;
       if (prop1 == null) continue;
-      
+
       final op1 = prop1['operation']?.toString().toUpperCase();
       final type1 = prop1['property_type']?.toString().toUpperCase();
 
@@ -71,7 +71,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No hay 2 propiedades guardadas de la misma operación y tipología para comparar (V1).'),
+          content: Text(
+              'No hay 2 propiedades guardadas de la misma operación y tipología para comparar (V1).'),
           backgroundColor: KazaTheme.accentGold,
         ),
       );
@@ -81,9 +82,11 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
   String _formatPrice(Map<String, dynamic> prop) {
     final priceUsd = prop['price_usd'];
     final priceBob = prop['price_bob'];
-    
-    if (priceUsd != null && priceUsd > 0) return 'USD ${priceUsd.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
-    if (priceBob != null && priceBob > 0) return 'Bs ${priceBob.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+
+    if (priceUsd != null && priceUsd > 0)
+      return 'USD ${priceUsd.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+    if (priceBob != null && priceBob > 0)
+      return 'Bs ${priceBob.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
     return 'Consultar precio';
   }
 
@@ -142,135 +145,153 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         ],
       ),
       body: savedAsyncValue.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: KazaTheme.azulKaza)),
-        error: (err, stack) => _buildEmptySavedState(),
-        data: (savedItems) {
-          if (savedItems.isEmpty) return _buildEmptySavedState();
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(savedPropertiesProvider);
-            },
-            child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: savedItems.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final item = savedItems[index];
-                    final prop = item['properties'] as Map<String, dynamic>? ?? {};
+          loading: () => const Center(
+              child: CircularProgressIndicator(color: KazaTheme.azulKaza)),
+          error: (err, stack) => _buildEmptySavedState(),
+          data: (savedItems) {
+            if (savedItems.isEmpty) return _buildEmptySavedState();
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(savedPropertiesProvider);
+              },
+              child: ListView.separated(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: savedItems.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  final item = savedItems[index];
+                  final prop =
+                      item['properties'] as Map<String, dynamic>? ?? {};
 
-                    final title = prop['address_canonical'] ?? 'Inmueble Guardado';
-                    final priceStr = _formatPrice(prop);
-                    final surface = prop['total_surface_m2'] ?? 0;
-                    final priceM2Str = _getPricePerM2(prop);
-                    
-                    String? imageUrl;
-                    if (prop['photos'] != null && prop['photos'] is List && (prop['photos'] as List).isNotEmpty) {
-                      imageUrl = prop['photos'][0].toString();
-                    }
-                    
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Image Thumbnail
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            color: const Color(0xFFF0F4F8),
-                            child: imageUrl != null
-                                ? Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(
-                                      child: Icon(Icons.image, color: Colors.black12, size: 28),
-                                    ),
-                                  )
-                                : const Center(
-                                    child: Icon(Icons.image, color: Colors.black12, size: 28),
+                  final title =
+                      prop['address_canonical'] ?? 'Inmueble Guardado';
+                  final priceStr = _formatPrice(prop);
+                  final surface = prop['total_surface_m2'] ?? 0;
+                  final priceM2Str = _getPricePerM2(prop);
+
+                  String? imageUrl;
+                  if (prop['photos'] != null &&
+                      prop['photos'] is List &&
+                      (prop['photos'] as List).isNotEmpty) {
+                    imageUrl = prop['photos'][0].toString();
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Image Thumbnail
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          color: const Color(0xFFF0F4F8),
+                          child: imageUrl != null
+                              ? Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Center(
+                                    child: Icon(Icons.image,
+                                        color: Colors.black12, size: 28),
                                   ),
-                          ),
+                                )
+                              : const Center(
+                                  child: Icon(Icons.image,
+                                      color: Colors.black12, size: 28),
+                                ),
                         ),
-                        const SizedBox(width: 16),
-                        // Details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: KazaTheme.azulKaza,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: KazaTheme.azulKaza,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                priceStr,
-                                style: const TextStyle(
-                                  color: KazaTheme.azulKaza,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              priceStr,
+                              style: const TextStyle(
+                                color: KazaTheme.azulKaza,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                surface > 0 ? '$surface m² - $priceM2Str' : 'Superficie: No informado',
-                                style: const TextStyle(
-                                  color: KazaTheme.textMuted,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              surface > 0
+                                  ? '$surface m² - $priceM2Str'
+                                  : 'Superficie: No informado',
+                              style: const TextStyle(
+                                color: KazaTheme.textMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: KazaTheme.azulKaza.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      prop['operation']?.toString().toUpperCase() ?? 'VENTA',
-                                      style: const TextStyle(
-                                        color: KazaTheme.azulKaza,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: KazaTheme.azulKaza.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    prop['operation']
+                                            ?.toString()
+                                            .toUpperCase() ??
+                                        'VENTA',
+                                    style: const TextStyle(
+                                      color: KazaTheme.azulKaza,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: KazaTheme.grisMedio.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      prop['property_type']?.toString().toUpperCase() ?? 'INMUEBLE',
-                                      style: const TextStyle(
-                                        color: KazaTheme.grisMedio,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: KazaTheme.grisMedio.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    prop['property_type']
+                                            ?.toString()
+                                            .toUpperCase() ??
+                                        'INMUEBLE',
+                                    style: const TextStyle(
+                                      color: KazaTheme.grisMedio,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    );
-                  },
-                ),
-          );
-        }
-      ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          }),
     );
   }
 
@@ -281,11 +302,15 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.bookmark_border, size: 64, color: KazaTheme.textMuted),
+            const Icon(Icons.bookmark_border,
+                size: 64, color: KazaTheme.textMuted),
             const SizedBox(height: 16),
             const Text(
               'No tienes guardados',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: KazaTheme.azulKaza),
             ),
             const SizedBox(height: 8),
             const Text(

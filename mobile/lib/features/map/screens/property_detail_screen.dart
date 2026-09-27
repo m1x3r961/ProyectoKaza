@@ -1,3 +1,6 @@
+import '../../../core/network/api_client.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../messages/screens/chat_detail_screen.dart';
 // ignore_for_file: deprecated_member_use
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -20,7 +23,8 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({super.key, required this.property});
 
   @override
-  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+  ConsumerState<PropertyDetailScreen> createState() =>
+      _PropertyDetailScreenState();
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
@@ -83,22 +87,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
         setState(() => _showStickyHeader = show);
       }
     });
-    
-    // Solo contar la visualización una vez al abrir
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _incrementViewCount();
-    });
-  }
-
-  Future<void> _incrementViewCount() async {
-    try {
-      await SupabaseConfig.client.rpc(
-        'increment_property_view',
-        params: {'p_property_id': widget.property.id},
-      );
-    } catch (e) {
-      debugPrint('Error incrementing view: $e');
-    }
   }
 
   @override
@@ -108,12 +96,48 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
   }
 
   // ─── SAVE PROPERTY ─────────────────────────────────────────────────────────
+  Future<void> _contact() async {
+    if (SupabaseConfig.client.auth.currentUser == null) {
+      checkProgressiveAuth(
+          context: context,
+          ref: ref,
+          actionName: 'contactar',
+          onAuthenticatedAction: () => _contact());
+      return;
+    }
+    try {
+      final result = await ApiClient().request(
+          '/api/conversations/property/${widget.property.id}',
+          method: 'POST');
+      if (mounted)
+        await Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => ChatDetailScreen(
+                    title: widget.property.title,
+                    conversationId: result['id'] as String)));
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('No se pudo iniciar la conversación. Reintentá.')));
+    }
+  }
+
   Future<void> _saveProperty() async {
+    if (SupabaseConfig.client.auth.currentUser == null) {
+      checkProgressiveAuth(
+          context: context,
+          ref: ref,
+          actionName: 'guardar',
+          onAuthenticatedAction: () => _saveProperty());
+      return;
+    }
     try {
       final userId = SupabaseConfig.client.auth.currentUser?.id;
       final payload = {'property_id': widget.property.id};
       if (userId != null) payload['user_id'] = userId;
-      await SupabaseConfig.client.from('saved_properties').insert(payload);
+      await SupabaseConfig.client.from('saved_properties').upsert(payload,
+          onConflict: 'user_id,property_id', ignoreDuplicates: true);
       ref.invalidate(savedPropertiesProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +149,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -201,7 +226,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   height: 1,
-                  color: _showStickyHeader ? const Color(0xFFE2E8F0) : Colors.transparent,
+                  color: _showStickyHeader
+                      ? const Color(0xFFE2E8F0)
+                      : Colors.transparent,
                 ),
               ),
             ),
@@ -222,7 +249,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                             color: KazaTheme.azulKaza,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 20),
+                          child: const Icon(Icons.apartment_rounded,
+                              color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -243,7 +271,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                                 'Explora en detalle con transparencia, contexto y confianza.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: KazaTheme.textSecondary.withValues(alpha: 0.8),
+                                  color: KazaTheme.textSecondary
+                                      .withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -258,15 +287,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _trustPillar(Icons.verified_outlined, 'Datos oficiales\ny verificados'),
+                          _trustPillar(Icons.verified_outlined,
+                              'Datos oficiales\ny verificados'),
                           const SizedBox(width: 8),
-                          _trustPillar(Icons.update_rounded, 'Actualizado\ny transparente'),
+                          _trustPillar(Icons.update_rounded,
+                              'Actualizado\ny transparente'),
                           const SizedBox(width: 8),
-                          _trustPillar(Icons.bar_chart_rounded, 'Cobertura y\nmetodología visibles'),
+                          _trustPillar(Icons.bar_chart_rounded,
+                              'Cobertura y\nmetodología visibles'),
                           const SizedBox(width: 8),
-                          _trustPillar(Icons.business_center_outlined, 'Sin sesgos\ncomerciales'),
+                          _trustPillar(Icons.business_center_outlined,
+                              'Sin sesgos\ncomerciales'),
                           const SizedBox(width: 8),
-                          _trustPillar(Icons.lock_outlined, 'Privado y\nseguro'),
+                          _trustPillar(
+                              Icons.lock_outlined, 'Privado y\nseguro'),
                         ],
                       ),
                     ),
@@ -398,7 +432,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                 children: [
                   const Text(
                     'Precio',
-                    style: TextStyle(color: KazaTheme.textSecondary, fontSize: 11),
+                    style:
+                        TextStyle(color: KazaTheme.textSecondary, fontSize: 11),
                   ),
                   Text(
                     widget.property.price,
@@ -417,7 +452,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                     backgroundColor: KazaTheme.primaryCoral,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   icon: const Icon(Icons.chat_rounded, size: 18),
@@ -425,14 +461,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                     'Contactar anunciante',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('💬 Iniciando chat seguro con el anunciante...'),
-                        backgroundColor: KazaTheme.primaryCoral,
-                      ),
-                    );
-                  },
+                  onPressed: _contact,
                 ),
               ),
             ],
@@ -458,7 +487,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
           const SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(fontSize: 10, color: KazaTheme.textSecondary, height: 1.3),
+            style: const TextStyle(
+                fontSize: 10, color: KazaTheme.textSecondary, height: 1.3),
           ),
         ],
       ),
@@ -482,16 +512,26 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: KazaTheme.glassBorder)),
-                child: const Icon(Icons.account_balance_outlined, color: KazaTheme.azulKaza, size: 20),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: KazaTheme.glassBorder)),
+                child: const Icon(Icons.account_balance_outlined,
+                    color: KazaTheme.azulKaza, size: 20),
               ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Financiamiento disponible', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
-                    Text('Conecta con entidades financieras', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 12)),
+                    Text('Financiamiento disponible',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: KazaTheme.textPrimary)),
+                    Text('Conecta con entidades financieras',
+                        style: TextStyle(
+                            color: KazaTheme.textSecondary, fontSize: 12)),
                   ],
                 ),
               ),
@@ -506,15 +546,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: KazaTheme.azulKaza),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Ver opciones de financiamiento', style: TextStyle(color: KazaTheme.azulKaza, fontWeight: FontWeight.bold)),
+                  Text('Ver opciones de financiamiento',
+                      style: TextStyle(
+                          color: KazaTheme.azulKaza,
+                          fontWeight: FontWeight.bold)),
                   SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded, color: KazaTheme.azulKaza, size: 18),
+                  Icon(Icons.chevron_right_rounded,
+                      color: KazaTheme.azulKaza, size: 18),
                 ],
               ),
             ),
@@ -532,7 +577,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -542,15 +592,26 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
             Row(
               children: [
                 Container(
-                  width: 26, height: 26,
+                  width: 26,
+                  height: 26,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(color: KazaTheme.azulKaza, shape: BoxShape.circle),
-                  child: const Text('03b', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                  decoration: const BoxDecoration(
+                      color: KazaTheme.azulKaza, shape: BoxShape.circle),
+                  child: const Text('03b',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 10),
-                const Icon(Icons.architecture, size: 18, color: KazaTheme.azulKaza),
+                const Icon(Icons.architecture,
+                    size: 18, color: KazaTheme.azulKaza),
                 const SizedBox(width: 6),
-                const Text('Plano 2D Interactivo', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+                const Text('Plano 2D Interactivo',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: KazaTheme.azulKaza)),
               ],
             ),
             const SizedBox(height: 14),
@@ -567,25 +628,35 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                     child: GestureDetector(
                       onTap: () => setState(() => _selectedRoomIndex = idx),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 7),
                         decoration: BoxDecoration(
-                          color: isSel ? KazaTheme.azulKaza : KazaTheme.grisClaro,
+                          color:
+                              isSel ? KazaTheme.azulKaza : KazaTheme.grisClaro,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isSel ? KazaTheme.azulKaza : const Color(0xFFE2E8F0),
+                            color: isSel
+                                ? KazaTheme.azulKaza
+                                : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(r['icon'] as IconData, size: 14, color: isSel ? Colors.white : KazaTheme.textSecondary),
+                            Icon(r['icon'] as IconData,
+                                size: 14,
+                                color: isSel
+                                    ? Colors.white
+                                    : KazaTheme.textSecondary),
                             const SizedBox(width: 4),
                             Text(
                               r['name'] as String,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: isSel ? Colors.white : KazaTheme.textPrimary,
+                                color: isSel
+                                    ? Colors.white
+                                    : KazaTheme.textPrimary,
                               ),
                             ),
                           ],
@@ -607,44 +678,69 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                   children: [
                     CustomPaint(
                       size: const Size(double.infinity, 260),
-                      painter: FloorPlan2DPainter(rooms: _rooms, selectedIndex: _selectedRoomIndex),
+                      painter: FloorPlan2DPainter(
+                          rooms: _rooms, selectedIndex: _selectedRoomIndex),
                     ),
                     // Room info overlay
                     Positioned(
-                      bottom: 12, left: 12, right: 12,
+                      bottom: 12,
+                      left: 12,
+                      right: 12,
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.95),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8)
+                          ],
                         ),
                         child: Row(
                           children: [
-                            Icon(_rooms[_selectedRoomIndex]['icon'] as IconData, color: _rooms[_selectedRoomIndex]['color'] as Color, size: 24),
+                            Icon(_rooms[_selectedRoomIndex]['icon'] as IconData,
+                                color: _rooms[_selectedRoomIndex]['color']
+                                    as Color,
+                                size: 24),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(_rooms[_selectedRoomIndex]['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: KazaTheme.azulKaza)),
+                                  Text(
+                                      _rooms[_selectedRoomIndex]['name']
+                                          as String,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: KazaTheme.azulKaza)),
                                   Text(
                                     '${_rooms[_selectedRoomIndex]['dimensions']} · ${_rooms[_selectedRoomIndex]['surface']}',
-                                    style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary),
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: KazaTheme.textSecondary),
                                   ),
                                 ],
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: (_rooms[_selectedRoomIndex]['color'] as Color).withValues(alpha: 0.12),
+                                color: (_rooms[_selectedRoomIndex]['color']
+                                        as Color)
+                                    .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 _rooms[_selectedRoomIndex]['surface'] as String,
-                                style: TextStyle(color: _rooms[_selectedRoomIndex]['color'] as Color, fontWeight: FontWeight.bold, fontSize: 12),
+                                style: TextStyle(
+                                    color: _rooms[_selectedRoomIndex]['color']
+                                        as Color,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12),
                               ),
                             ),
                           ],
@@ -684,7 +780,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -696,29 +797,51 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
             child: Row(
               children: [
                 Container(
-                  width: 26, height: 26,
+                  width: 26,
+                  height: 26,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(color: KazaTheme.azulKaza, shape: BoxShape.circle),
-                  child: const Text('+', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  decoration: const BoxDecoration(
+                      color: KazaTheme.azulKaza, shape: BoxShape.circle),
+                  child: const Text('+',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 10),
-                const Icon(Icons.view_in_ar_rounded, size: 18, color: KazaTheme.azulKaza),
+                const Icon(Icons.view_in_ar_rounded,
+                    size: 18, color: KazaTheme.azulKaza),
                 const SizedBox(width: 6),
-                const Text('Tour Virtual 360°', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
+                const Text('Tour Virtual 360°',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: KazaTheme.azulKaza)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: KazaTheme.coralKaza.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: KazaTheme.coralKaza.withValues(alpha: 0.3)),
+                    border: Border.all(
+                        color: KazaTheme.coralKaza.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(width: 5, height: 5, decoration: const BoxDecoration(color: KazaTheme.coralKaza, shape: BoxShape.circle)),
+                      Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                              color: KazaTheme.coralKaza,
+                              shape: BoxShape.circle)),
                       const SizedBox(width: 5),
-                      const Text('5 escenas', style: TextStyle(color: KazaTheme.coralKaza, fontSize: 10, fontWeight: FontWeight.w700)),
+                      const Text('5 escenas',
+                          style: TextStyle(
+                              color: KazaTheme.coralKaza,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
@@ -738,12 +861,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               itemBuilder: (ctx, i) {
                 final (label, emoji) = scenes[i];
                 return GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => Tour360LocalScreen(
-                      propertyTitle: widget.property.title,
-                      assetImages: images,
-                    ),
-                  )),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => Tour360LocalScreen(
+                          propertyTitle: widget.property.title,
+                          assetImages: images,
+                        ),
+                      )),
                   child: Container(
                     width: 96,
                     margin: const EdgeInsets.only(right: 8),
@@ -757,14 +882,21 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                       children: [
                         Image.asset(images[i], fit: BoxFit.cover),
                         Positioned(
-                          bottom: 0, left: 0, right: 0,
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 3),
                             color: Colors.black.withValues(alpha: 0.55),
                             child: Text(
                               '$emoji $label',
-                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
@@ -786,17 +918,21 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                 backgroundColor: KazaTheme.azulKaza,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
-              label: const Text('Iniciar Tour 360° Inmersivo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => Tour360LocalScreen(
-                  propertyTitle: widget.property.title,
-                  assetImages: images,
-                ),
-              )),
+              label: const Text('Iniciar Tour 360° Inmersivo',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Tour360LocalScreen(
+                      propertyTitle: widget.property.title,
+                      assetImages: images,
+                    ),
+                  )),
             ),
           ),
         ],
@@ -804,7 +940,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
     );
   }
 }
-
 
 // =============================================================================
 
@@ -861,7 +996,9 @@ class FloorPlan2DPainter extends CustomPainter {
         ..color = roomColor.withValues(alpha: isSel ? 0.35 : 0.15)
         ..style = PaintingStyle.fill;
 
-      canvas.drawRRect(RRect.fromRectAndRadius(scaledRect, const Radius.circular(8)), fillPaint);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(scaledRect, const Radius.circular(8)),
+          fillPaint);
       canvas.drawRRect(
           RRect.fromRectAndRadius(scaledRect, const Radius.circular(8)),
           isSel ? selectedBorderPaint : borderPaint);
@@ -918,13 +1055,22 @@ class VirtualModel3DPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2 + 20);
 
     final List<List<double>> rawVertices = [
-      [-100, 60, -80], [100, 60, -80], [100, 60, 80], [-100, 60, 80],
-      [-100, -20, -80], [100, -20, -80], [100, -20, 80], [-100, -20, 80],
+      [-100, 60, -80],
+      [100, 60, -80],
+      [100, 60, 80],
+      [-100, 60, 80],
+      [-100, -20, -80],
+      [100, -20, -80],
+      [100, -20, 80],
+      [-100, -20, 80],
     ];
 
     if (floor == 2) {
       rawVertices.addAll([
-        [-60, -90, -50], [60, -90, -50], [60, -90, 50], [-60, -90, 50],
+        [-60, -90, -50],
+        [60, -90, -50],
+        [60, -90, 50],
+        [-60, -90, 50],
       ]);
     }
 
@@ -944,15 +1090,30 @@ class VirtualModel3DPainter extends CustomPainter {
     }).toList();
 
     final List<List<int>> edges = [
-      [0, 1], [1, 2], [2, 3], [3, 0],
-      [4, 5], [5, 6], [6, 7], [7, 4],
-      [0, 4], [1, 5], [2, 6], [3, 7],
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 0],
+      [4, 5],
+      [5, 6],
+      [6, 7],
+      [7, 4],
+      [0, 4],
+      [1, 5],
+      [2, 6],
+      [3, 7],
     ];
 
     if (floor == 2 && projected.length >= 12) {
       edges.addAll([
-        [8, 9], [9, 10], [10, 11], [11, 8],
-        [4, 8], [5, 9], [6, 10], [7, 11],
+        [8, 9],
+        [9, 10],
+        [10, 11],
+        [11, 8],
+        [4, 8],
+        [5, 9],
+        [6, 10],
+        [7, 11],
       ]);
     }
 
@@ -962,7 +1123,8 @@ class VirtualModel3DPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final fillPaint = Paint()
-      ..color = KazaTheme.primaryCoral.withValues(alpha: isWireframe ? 0.05 : 0.25)
+      ..color =
+          KazaTheme.primaryCoral.withValues(alpha: isWireframe ? 0.05 : 0.25)
       ..style = PaintingStyle.fill;
 
     if (!isWireframe) {

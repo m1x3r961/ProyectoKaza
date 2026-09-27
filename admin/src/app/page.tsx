@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { adminApi } from '../lib/supabase';
+import { AdminAccess } from './admin-access';
 import { useAutoUpdate } from '../hooks/useAutoUpdate';
 import {
   Shield, BarChart3, Users, Building2, AlertTriangle,
@@ -98,16 +99,16 @@ function SBadge({ status }: { status: 'ACTIVE' | 'PENDING' | 'SUSPENDED' }) {
   return <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px', backgroundColor: bg, color: c }}>{status}</span>;
 }
 
-export default function AdminDashboardSuite() {
+function AdminDashboardSuite() {
   const w = useWindowWidth();
   const mob = w < 768;
   const tab = w >= 768 && w < 1024;
   const desk = w >= 1024;
 
   // 🔄 Auto-update: detecta nuevos builds sin consumo excesivo de red
-  const { updateAvailable, countdown, reloadNow, dismiss } = useAutoUpdate({
+  const { updateAvailable, reloadNow, dismiss } = useAutoUpdate({
     pollInterval: 90_000,   // Check cada 90 segundos
-    autoReloadAfter: 10,    // Cuenta regresiva de 10s antes de recargar
+    autoReloadAfter: 0,
   });
 
   const [mod, setMod] = useState<AdminModule>('DASHBOARD');
@@ -118,6 +119,7 @@ export default function AdminDashboardSuite() {
   const [supaOk, setSupaOk] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
   const [refresh, setRefresh] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
   const [listCount, setListCount] = useState(0);
   const [usersCount, setUsersCount] = useState(0);
   const [casesCount, setCasesCount] = useState(0);
@@ -129,37 +131,48 @@ export default function AdminDashboardSuite() {
     setRefresh(true);
     const t0 = performance.now();
     try {
-      const { data: dc, error: ec } = await supabase.from('admin_cases').select('*');
-      if (!ec && dc && dc.length > 0) {
+      const dashboard = await adminApi('/dashboard');
+      const dc = dashboard.cases; const ec = null;
+      if (!ec && dc) {
         setSupaOk(true);
         const mc: AdminCase[] = dc.map((i: any) => ({ id: i.id, type: i.case_type || 'USER_VERIFICATION', priority: i.priority || 'MEDIUM', status: i.status || 'NEW', title: i.title, description: i.description, createdAt: new Date(i.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }));
         setCases(mc);
         setCasesCount(mc.filter(c => c.status !== 'RESOLVED').length);
       }
-      const { data: dp, count: pc, error: ep } = await supabase.from('properties').select('*', { count: 'exact' });
+      const dp = dashboard.properties; const pc = dp.length; const ep = null;
       if (!ep && dp) {
         setSupaOk(true);
         if (pc !== null) setListCount(pc);
-        setListings(dp.map((i: any) => ({ id: i.id, title: i.address_canonical || 'Propiedad sin título', type: i.property_type || 'Departamento', price: i.price_usd ? `$${i.price_usd.toLocaleString()}` : 'Por definir', location: i.city_id ? i.city_id.replace('_', ' ').toUpperCase() : 'Desconocido', mediaStatus: 'VERIFIED_REAL', status: i.status || 'PUBLISHED', publisher: 'Agente Registrado', createdAt: new Date(i.created_at).toLocaleDateString() })));
+        setListings(dp.map((i: any) => ({ id: i.id, title: i.title || 'Propiedad sin título', type: i.property_type || 'Departamento', price: i.price_usd ? `$${i.price_usd.toLocaleString()}` : 'Por definir', location: i.city_id ? i.city_id.replace('_', ' ').toUpperCase() : 'Desconocido', mediaStatus: 'PENDING_REVIEW', status: i.moderation_status === 'SUSPENDED' ? 'BANNED' : i.status === 'AVAILABLE' ? 'PUBLISHED' : 'DRAFT', publisher: 'Agente Registrado', createdAt: new Date(i.created_at).toLocaleDateString() })));
       }
-      const { data: du, count: uc, error: eu } = await supabase.from('profiles').select('*', { count: 'exact' });
+      const du = dashboard.users; const uc = du.length; const eu = null;
       if (!eu && du) {
         setSupaOk(true);
         if (uc !== null) setUsersCount(uc);
-        setUsers(du.map((i: any) => ({ id: i.id, name: i.full_name || i.email?.split('@')[0] || 'Usuario', email: i.email || '', role: i.role || 'USER', status: 'ACTIVE', trustScore: 98, listingsCount: 0, registeredAt: new Date(i.created_at || new Date()).toLocaleDateString() })));
+        setUsers(du.map((i: any) => ({ id: i.id, name: i.full_name || i.email?.split('@')[0] || 'Usuario', email: i.email || '', role: i.system_role || 'USER', status: i.status || 'ACTIVE', trustScore: 0, listingsCount: 0, registeredAt: new Date(i.created_at || new Date()).toLocaleDateString() })));
       }
       setLatency(Math.round(performance.now() - t0));
-    } catch { setLatency(14); }
+      setOperationError(null);
+    } catch(e) { setSupaOk(false); setOperationError((e as Error).message); }
     finally { setRefresh(false); }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const delUser = async (id: string) => { if (!confirm('¿Eliminar usuario?')) return; setUsers(p => p.filter(u => u.id !== id)); setUsersCount(p => Math.max(0, p - 1)); try { await supabase.from('profiles').delete().eq('id', id); } catch { } };
-  const resolveCase = async (id: string) => { setCases(p => p.map(c => c.id === id ? { ...c, status: 'RESOLVED' } : c)); try { await supabase.from('admin_cases').update({ status: 'RESOLVED', updated_at: new Date().toISOString() }).eq('id', id); } catch { } };
-  const toggleUser = async (id: string, s: 'ACTIVE' | 'SUSPENDED') => { setUsers(p => p.map(u => u.id === id ? { ...u, status: s } : u)); try { await supabase.from('profiles').update({ status: s }).eq('id', id); } catch { } };
-  const toggleList = async (id: string, s: 'PUBLISHED' | 'BANNED') => { setListings(p => p.map(l => l.id === id ? { ...l, status: s } : l)); try { await supabase.from('properties').update({ status: s }).eq('id', id); } catch { } };
-  const delList = async (id: string) => { if (!confirm('¿Eliminar propiedad?')) return; setListings(p => p.filter(l => l.id !== id)); setListCount(p => Math.max(0, p - 1)); try { await supabase.from('properties').delete().eq('id', id); } catch { } };
+  const moderate = async (id: string, action: string) => {
+    if (refresh) return;
+    const reason = window.prompt('Motivo de la acción (mínimo 8 caracteres):');
+    if (!reason) return;
+    setRefresh(true);
+    try { await adminApi(`/${id}/moderate`, { action, reason }); await fetchData(); }
+    catch(e) { setOperationError((e as Error).message); }
+    finally { setRefresh(false); }
+  };
+  const delUser = (id:string) => moderate(id,'suspend_user');
+  const resolveCase = (id:string) => moderate(id,'resolve_case');
+  const toggleUser = (id:string,s:'ACTIVE'|'SUSPENDED') => moderate(id,s==='ACTIVE'?'restore_user':'suspend_user');
+  const toggleList = (id:string,s:'PUBLISHED'|'BANNED') => moderate(id,s==='PUBLISHED'?'restore_listing':'suspend_listing');
+  const delList = (id:string) => moderate(id,'suspend_listing');
   const go = (m: AdminModule) => { setMod(m); setSbOpen(false); };
   const fs2 = (base: number) => mob ? base - 2 : base;
 
@@ -232,7 +245,7 @@ export default function AdminDashboardSuite() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: '700', fontSize: '13px', color: '#FFF' }}>Nueva versión disponible</div>
               <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '2px', lineHeight: '1.4' }}>
-                Actualizando en <span style={{ color: '#10B981', fontWeight: 'bold' }}>{countdown}s</span>...
+                Recargá cuando termines tus cambios.
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                 <button
@@ -253,6 +266,7 @@ export default function AdminDashboardSuite() {
         </div>
       )}
       <G />
+      {operationError && <div role="alert" style={{padding:12,background:'#7f1d1d',color:'white'}}>{operationError}</div>}
       <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B0F17', color: '#F9FAFB', fontFamily: "'Inter',system-ui,sans-serif" }}>
         {desk && <aside style={{ width: '258px', flexShrink: 0, backgroundColor: '#111723', borderRight: '1px solid rgba(255,255,255,.08)', padding: '22px 15px', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}><SB /></aside>}
         {!desk && sbOpen && (
@@ -345,7 +359,7 @@ export default function AdminDashboardSuite() {
                           <td style={{ padding: '11px 12px' }} data-label="Estado"><SBadge status={u.status} /></td>
                           <td style={{ padding: '11px 12px' }} data-label="Acciones"><div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {u.status === 'ACTIVE' ? <Btn color="#EF4444" outlined onClick={() => toggleUser(u.id, 'SUSPENDED')}>Suspender</Btn> : <Btn color="#10B981" onClick={() => toggleUser(u.id, 'ACTIVE')}>Activar</Btn>}
-                            <Btn color="#EF4444" onClick={() => delUser(u.id)}>🗑 Eliminar</Btn>
+                            <Btn color="#EF4444" onClick={() => delUser(u.id)}>Suspender</Btn>
                           </div></td>
                         </tr>
                       ))}</tbody>
@@ -369,7 +383,7 @@ export default function AdminDashboardSuite() {
                           <td style={{ padding: '11px 12px' }} data-label="Estado"><span style={{ fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,.07)', color: '#FFF' }}>{l.status}</span></td>
                           <td style={{ padding: '11px 12px' }} data-label="Acciones"><div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {l.status === 'PUBLISHED' ? <Btn color="#EF4444" outlined onClick={() => toggleList(l.id, 'BANNED')}>Pausar</Btn> : <Btn color="#10B981" onClick={() => toggleList(l.id, 'PUBLISHED')}>Aprobar</Btn>}
-                            <Btn color="#EF4444" onClick={() => delList(l.id)}>🗑 Eliminar</Btn>
+                            <Btn color="#EF4444" onClick={() => delList(l.id)}>Suspender</Btn>
                           </div></td>
                         </tr>
                       ))}</tbody>
@@ -456,3 +470,5 @@ export default function AdminDashboardSuite() {
     </>
   );
 }
+
+export default function ProtectedAdmin(){return <AdminAccess><AdminDashboardSuite /></AdminAccess>;}

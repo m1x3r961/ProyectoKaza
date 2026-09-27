@@ -1,44 +1,18 @@
-import { Controller, Post, Patch, Body, Param, Headers, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Patch, Get, Body, Param, Headers, ParseUUIDPipe } from '@nestjs/common';
 import { ListingsService } from './listings.service';
+import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
+import { CurrentActor, Actor } from '../../security/access';
 import { CreateListingDto } from './dto/create-listing.dto';
-import { TransferControllerDto } from './dto/transfer-controller.dto';
 import { UpdateListingStatusDto } from './dto/update-status.dto';
-
+import { TransferControllerDto } from './dto/transfer-controller.dto';
 @Controller('api/listings')
 export class ListingsController {
-  constructor(private readonly listingsService: ListingsService) {}
-
-  /// POST /api/listings
-  /// Publicación formal de inmuebles mediante el Guardián de Dominio
-  @Post()
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async createListing(
-    @Headers('x-user-id') userId: string = 'usr-demo-operator',
-    @Body() dto: CreateListingDto,
-  ) {
-    return this.listingsService.createListing(userId, dto);
-  }
-
-  /// POST /api/listings/:id/transfer-controller
-  /// Transferencia bilateral de Controller entre Workspaces
-  @Post(':id/transfer-controller')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async transferController(
-    @Param('id') listingId: string,
-    @Headers('x-user-id') userId: string = 'usr-demo-operator',
-    @Body() dto: TransferControllerDto,
-  ) {
-    return this.listingsService.transferController(listingId, userId, dto);
-  }
-
-  /// PATCH /api/listings/:id/status
-  /// Transición controlada en la máquina de estados del Listing
-  @Patch(':id/status')
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  async updateStatus(
-    @Param('id') listingId: string,
-    @Body() dto: UpdateListingStatusDto,
-  ) {
-    return this.listingsService.updateStatus(listingId, dto);
-  }
+ constructor(private readonly service: ListingsService, private readonly db: SupabaseService) {}
+ @Get('mine') mine(@CurrentActor() a: Actor) { return this.db.rpc('kaza_my_listings', { p_actor: a.id }); }
+ @Get('limits') limits(@CurrentActor() a: Actor) { return this.db.rpc('kaza_listing_limits', { p_actor: a.id }); }
+ @Post() create(@CurrentActor() a: Actor, @Body() dto: CreateListingDto, @Headers('idempotency-key') key: string) { return this.service.createListing(a.id, dto, key); }
+ @Patch(':id/status') status(@CurrentActor() a: Actor, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateListingStatusDto) { return this.service.command(a.id,id,'status',dto); }
+ @Post(':id/refresh') refresh(@CurrentActor() a: Actor,@Param('id', ParseUUIDPipe) id: string) { return this.service.command(a.id,id,'refresh',{}); }
+ @Post(':id/transfer-controller') transfer(@CurrentActor() a: Actor,@Param('id', ParseUUIDPipe) id: string,@Body() dto: TransferControllerDto) { return this.service.command(a.id,id,'transfer',dto); }
+ @Post('transfers/:id/accept') accept(@CurrentActor() a: Actor,@Param('id', ParseUUIDPipe) id: string) { return this.db.rpc('kaza_accept_transfer',{p_actor:a.id,p_id:id}); }
 }

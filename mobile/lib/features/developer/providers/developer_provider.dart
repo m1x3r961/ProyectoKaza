@@ -36,11 +36,15 @@ class DeveloperState {
 
   // Estadísticas calculadas
   int get totalProjects => projects.length;
-  int get activeProjects => projects.where((p) => p.status != 'POST_VENTA' && p.status != 'IDEA').length;
+  int get activeProjects => projects
+      .where((p) => p.status != 'POST_VENTA' && p.status != 'IDEA')
+      .length;
   int get totalUnitsSold => projects.fold(0, (sum, p) => sum + p.soldUnits);
   int get totalUnitsAll => projects.fold(0, (sum, p) => sum + p.totalUnits);
-  double get totalInvestment => projects.fold(0.0, (sum, p) => sum + p.estimatedInvestment);
-  double get overallSalesPct => totalUnitsAll > 0 ? (totalUnitsSold / totalUnitsAll) * 100 : 0;
+  double get totalInvestment =>
+      projects.fold(0.0, (sum, p) => sum + p.estimatedInvestment);
+  double get overallSalesPct =>
+      totalUnitsAll > 0 ? (totalUnitsSold / totalUnitsAll) * 100 : 0;
 }
 
 // ── Notifier ─────────────────────────────────────────────────
@@ -72,9 +76,8 @@ class DeveloperNotifier extends StateNotifier<DeveloperState> {
           .eq('owner_id', userId)
           .order('created_at', ascending: false);
 
-      final projects = (projectsResp as List)
-          .map((j) => DevProject.fromJson(j))
-          .toList();
+      final projects =
+          (projectsResp as List).map((j) => DevProject.fromJson(j)).toList();
 
       state = state.copyWith(
         profile: profile,
@@ -88,15 +91,7 @@ class DeveloperNotifier extends StateNotifier<DeveloperState> {
   }
 
   /// Ejecutar seed de datos de ejemplo
-  Future<bool> seedDemoData() async {
-    try {
-      await _db.rpc('fn_seed_developer_demo');
-      return true;
-    } catch (e) {
-      debugPrint('Error en seed: $e');
-      return false;
-    }
-  }
+  Future<bool> seedDemoData() async => false;
 
   /// Cargar etapas de un proyecto
   Future<List<DevProjectStage>> loadStages(String projectId) async {
@@ -188,15 +183,19 @@ class DeveloperNotifier extends StateNotifier<DeveloperState> {
       final userId = _db.auth.currentUser?.id;
       if (userId == null) return null;
 
-      final resp = await _db.from('dev_projects').insert({
-        'owner_id': userId,
-        'name': name,
-        'project_type': projectType,
-        'description': description,
-        'total_units': totalUnits,
-        'available_units': totalUnits,
-        'city': city,
-      }).select('id').single();
+      final resp = await _db
+          .from('dev_projects')
+          .insert({
+            'owner_id': userId,
+            'name': name,
+            'project_type': projectType,
+            'description': description,
+            'total_units': totalUnits,
+            'available_units': totalUnits,
+            'city': city,
+          })
+          .select('id')
+          .single();
 
       // Recargar proyectos
       await loadAll(userId);
@@ -209,6 +208,7 @@ class DeveloperNotifier extends StateNotifier<DeveloperState> {
 }
 
 // ── Provider global ──────────────────────────────────────────
-final developerProvider = StateNotifierProvider<DeveloperNotifier, DeveloperState>((ref) {
+final developerProvider =
+    StateNotifierProvider<DeveloperNotifier, DeveloperState>((ref) {
   return DeveloperNotifier();
 });

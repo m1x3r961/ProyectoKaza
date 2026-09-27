@@ -7,6 +7,7 @@ class ListingModel {
   final String status;
   final DateTime? freshnessConfirmedAt;
   final int viewsCount;
+  final int version;
 
   ListingModel({
     required this.id,
@@ -17,17 +18,25 @@ class ListingModel {
     required this.status,
     this.freshnessConfirmedAt,
     this.viewsCount = 0,
+    this.version = 0,
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
     return ListingModel(
       id: json['id'] as String,
-      title: (json['title'] as String?) ?? (json['address_canonical'] as String?) ?? 'Sin título',
+      version: json['version'] as int? ?? 0,
+      title: (json['title'] as String?) ??
+          (json['address_canonical'] as String?) ??
+          'Sin título',
       description: json['description'] as String?,
-      priceOriginal: json['price_usd'] != null ? (json['price_usd'] as num).toDouble() : null,
-      currencyOriginal: 'USD',
+      priceOriginal: json['price_original'] != null
+          ? (json['price_original'] as num).toDouble()
+          : null,
+      currencyOriginal: json['currency_original'] as String? ?? 'USD',
       status: json['status'] as String? ?? 'DRAFT',
-      freshnessConfirmedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
+      freshnessConfirmedAt: json['freshness_confirmed_at'] != null
+          ? DateTime.tryParse(json['freshness_confirmed_at'])
+          : null,
       viewsCount: json['views_count'] as int? ?? 0,
     );
   }
@@ -40,7 +49,7 @@ class ListingModel {
     // Add thousand separators manually for simplicity, or just use string
     final regex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     final formatted = priceStr.replaceAllMapped(regex, (Match m) => '${m[1]}.');
-    
+
     if (currency == 'USD') return 'USD $formatted';
     if (currency == 'BOB') return 'Bs. $formatted';
     return '$currency $formatted';

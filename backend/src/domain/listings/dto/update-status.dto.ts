@@ -1,16 +1,5 @@
-import { IsEnum } from 'class-validator';
-
-export enum ListingStatusEnum {
-  DRAFT = 'DRAFT',
-  REVIEW = 'REVIEW',
-  AVAILABLE = 'AVAILABLE',
-  RESERVED = 'RESERVED',
-  CLOSED = 'CLOSED',
-  PAUSED = 'PAUSED',
-  WITHDRAWN = 'WITHDRAWN',
-}
-
+import { IsIn, IsInt, Min } from 'class-validator';
 export class UpdateListingStatusDto {
-  @IsEnum(ListingStatusEnum)
-  status: ListingStatusEnum;
+ @IsIn(['AVAILABLE','RESERVED','CLOSED','PAUSED','WITHDRAWN']) status: string;
+ @IsInt() @Min(0) version: number;
 }

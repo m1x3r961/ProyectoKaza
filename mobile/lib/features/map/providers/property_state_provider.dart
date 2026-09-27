@@ -1,6 +1,6 @@
+import '../../../core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import '../../../core/network/supabase_config.dart';
 import '../providers/map_properties_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,17 +16,17 @@ import '../providers/map_properties_provider.dart';
 
 /// Enum con los 12 estados representativos DEV11-E del sistema KAZA.
 enum KazaUIState {
-  loading,              // 01 · Cargando
-  empty,                // 02 · Sin resultados
-  error,                // 03 · Error inesperado
-  restricted,           // 04 · Contenido restringido
-  permissionRequired,   // 05 · Permiso requerido
-  entitlementRequired,  // 06 · Plan requerido
-  offline,              // 07 · Sin conexión
-  partialData,          // 08 · Datos incompletos
-  unknown,              // 09 · Desconocido
+  loading, // 01 · Cargando
+  empty, // 02 · Sin resultados
+  error, // 03 · Error inesperado
+  restricted, // 04 · Contenido restringido
+  permissionRequired, // 05 · Permiso requerido
+  entitlementRequired, // 06 · Plan requerido
+  offline, // 07 · Sin conexión
+  partialData, // 08 · Datos incompletos
+  unknown, // 09 · Desconocido
   confirmationRequired, // 10 · Confirmación requerida
-  backendSuccess,       // 11 · Disponible y completo
+  backendSuccess, // 11 · Disponible y completo
   deepLinkReauthorization, // 12 · Revalidación de enlace
 }
 
@@ -50,11 +50,8 @@ class PropertyWithState {
 final propertyStateProvider =
     FutureProvider.family<PropertyWithState, String>((ref, propertyId) async {
   try {
-    final response = await SupabaseConfig.client
-        .from('properties')
-        .select('*')
-        .eq('id', propertyId)
-        .maybeSingle();
+    final response = await ApiClient()
+        .request('/api/catalog/$propertyId', authenticated: false);
 
     // ── 02 · Empty — propiedad no encontrada ──────────────────────────────
     if (response == null) {
@@ -79,7 +76,8 @@ final propertyStateProvider =
     if (status == 'PREMIUM_ONLY') {
       return const PropertyWithState(
         uiState: KazaUIState.entitlementRequired,
-        stateMessage: 'Esta propiedad es exclusiva para usuarios Plus, Pro o Business.',
+        stateMessage:
+            'Esta propiedad es exclusiva para usuarios Plus, Pro o Business.',
       );
     }
 
@@ -87,7 +85,8 @@ final propertyStateProvider =
     final item = _parseRow(row);
 
     // ── 09 · Unknown — sin datos geoespaciales ni título ──────────────────
-    if (row['latitude'] == null && row['longitude'] == null &&
+    if (row['latitude'] == null &&
+        row['longitude'] == null &&
         (item.title.isEmpty || item.title == 'Propiedad KAZA')) {
       return const PropertyWithState(
         uiState: KazaUIState.unknown,
@@ -99,7 +98,7 @@ final propertyStateProvider =
     final updatedAt = row['updated_at'] as String?;
     final staleResult = _checkStaleness(updatedAt);
     final hasPhotos = item.photos.isNotEmpty;
-    final hasDesc   = item.description != null && item.description!.isNotEmpty;
+    final hasDesc = item.description != null && item.description!.isNotEmpty;
 
     if (staleResult != null || !hasPhotos || !hasDesc) {
       return PropertyWithState(
@@ -126,7 +125,8 @@ final propertyStateProvider =
         msg.contains('failed host lookup')) {
       return const PropertyWithState(
         uiState: KazaUIState.offline,
-        stateMessage: 'Sin conexión — Verifica tu internet e intenta nuevamente.',
+        stateMessage:
+            'Sin conexión — Verifica tu internet e intenta nuevamente.',
       );
     }
 
@@ -167,49 +167,48 @@ List<String> _lst(dynamic v) {
   return [];
 }
 
-double _lat(Map<String, dynamic> r) =>
-    _n(r['latitude'], -17.7833).toDouble();
+double _lat(Map<String, dynamic> r) => _n(r['latitude'], -17.7833).toDouble();
 
-double _lng(Map<String, dynamic> r) =>
-    _n(r['longitude'], -63.1821).toDouble();
+double _lng(Map<String, dynamic> r) => _n(r['longitude'], -63.1821).toDouble();
 
 /// Parsea una fila de Supabase en un [PropertyMapItem].
 PropertyMapItem _parseRow(Map<String, dynamic> row) {
-  final photos  = _lst(row['photos']);
-  final num px  = _n(row['price_usd'], _n(row['price_original'], 0));
-  final cov     = row['covered_surface_m2'];
+  final photos = _lst(row['photos']);
+  final num px = _n(row['price_usd'], _n(row['price_original'], 0));
+  final cov = row['covered_surface_m2'];
 
   return PropertyMapItem(
-    id:             row['id'].toString(),
-    title:          row['title'] as String? ??
-                    row['address_canonical'] as String? ??
-                    'Propiedad KAZA',
-    price:          px > 0 ? '\$ ${px.toStringAsFixed(0)}' : 'Consultar',
-    operation:      row['operation'] as String? ??
-                    row['operation_type'] as String? ?? 'VENTA',
-    type:           row['property_type'] as String? ?? 'Departamento',
-    location:       LatLng(_lat(row), _lng(row)),
-    bedrooms:       _n(row['rooms'], 0).toInt(),
-    bathrooms:      _n(row['bathrooms'], 0).toInt(),
-    surface:        '${_n(row['total_surface_m2'], 0).toStringAsFixed(0)} m²',
-    isPlus:         row['has_active_promotion'] == true,
-    trustLabel:     'Actor Verificado',
-    isOrg:          false,
-    imageUrl:       photos.isNotEmpty ? photos.first : null,
-    photos:         photos,
-    description:    row['description'] as String?,
-    amenities:      _lst(row['amenities']),
-    highlights:     _lst(row['highlights']),
-    agentName:      row['contact_name'] as String? ?? 'Anunciante KAZA',
-    contactPhone:   row['contact_phone'] as String?,
-    contactName:    row['contact_name'] as String?,
+    id: row['id'].toString(),
+    title: row['title'] as String? ??
+        row['address_canonical'] as String? ??
+        'Propiedad KAZA',
+    price: px > 0 ? '${row['currency_code'] == 'BOB' ? 'Bs.' : 'USD'} ${px.toStringAsFixed(0)}' : 'Consultar',
+    operation: row['operation'] as String? ??
+        row['operation_type'] as String? ??
+        'VENTA',
+    type: row['property_type'] as String? ?? 'Departamento',
+    location: LatLng(_lat(row), _lng(row)),
+    bedrooms: _n(row['rooms'], 0).toInt(),
+    bathrooms: _n(row['bathrooms'], 0).toInt(),
+    surface: '${_n(row['total_surface_m2'], 0).toStringAsFixed(0)} m²',
+    isPlus: row['has_active_promotion'] == true,
+    trustLabel: 'Información del anunciante',
+    isOrg: false,
+    imageUrl: photos.isNotEmpty ? photos.first : null,
+    photos: photos,
+    description: row['description'] as String?,
+    amenities: _lst(row['amenities']),
+    highlights: _lst(row['highlights']),
+    agentName: row['contact_name'] as String? ?? 'Anunciante KAZA',
+    contactPhone: row['contact_phone'] as String?,
+    contactName: row['contact_name'] as String?,
     coveredSurface: cov != null ? '$cov m²' : null,
-    parkingSpaces:  _n(row['parking_spaces'], 0).toInt(),
-    ageYears:       _n(row['age_years'], 0).toInt(),
-    floorsTotal:    _n(row['floors_total'], 1).toInt(),
-    currency:       row['currency_code'] as String? ?? 'USD',
-    address:        row['address_canonical'] as String?,
-    status:         row['status'] as String? ?? 'PUBLISHED',
-    ownerId:        row['owner_id'] as String?,
+    parkingSpaces: _n(row['parking_spaces'], 0).toInt(),
+    ageYears: _n(row['age_years'], 0).toInt(),
+    floorsTotal: _n(row['floors_total'], 1).toInt(),
+    currency: row['currency_code'] as String? ?? 'USD',
+    address: row['address_canonical'] as String?,
+    status: row['status'] as String? ?? 'PUBLISHED',
+    ownerId: row['owner_id'] as String?,
   );
 }

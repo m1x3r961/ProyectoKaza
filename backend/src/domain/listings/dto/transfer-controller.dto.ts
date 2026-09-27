@@ -1,13 +1,6 @@
-import { IsString, IsOptional } from 'class-validator';
-
+import { IsUUID, IsInt, Min } from 'class-validator';
 export class TransferControllerDto {
-  @IsString()
-  targetWorkspaceId: string;
-
-  @IsString()
-  newOperatorUserId: string;
-
-  @IsString()
-  @IsOptional()
-  transferNotes?: string;
+ @IsUUID() targetWorkspaceId: string;
+ @IsUUID() newOperatorUserId: string;
+ @IsInt() @Min(0) version: number;
 }

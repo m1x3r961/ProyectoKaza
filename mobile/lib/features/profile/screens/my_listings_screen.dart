@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../models/listing_model.dart';
 import '../providers/my_listings_provider.dart';
+import '../../map/providers/map_properties_provider.dart';
 
 /// 🏠 MIS PUBLICACIONES v0.3 FINAL (Gestión de Inmuebles Real)
 class MyListingsScreen extends ConsumerStatefulWidget {
@@ -14,6 +14,7 @@ class MyListingsScreen extends ConsumerStatefulWidget {
 }
 
 class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
+  final Set<String> _pending = {};
   String _selectedTab = 'Todas'; // Todas, Activas, Pausadas, Borradores
 
   @override
@@ -27,7 +28,11 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        title: const Text('Mis publicaciones', style: TextStyle(color: KazaTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Mis publicaciones',
+            style: TextStyle(
+                color: KazaTheme.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
         iconTheme: const IconThemeData(color: KazaTheme.textPrimary),
       ),
       body: Column(
@@ -53,21 +58,30 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
           // Lista de inmuebles desde Supabase
           Expanded(
             child: listingsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator(color: Colors.redAccent)),
-              error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent))),
+              loading: () => const Center(
+                  child: CircularProgressIndicator(color: Colors.redAccent)),
+              error: (err, stack) => Center(
+                  child: Text('Error: $err',
+                      style: const TextStyle(color: Colors.redAccent))),
               data: (listings) {
                 // Filtrar según el tab seleccionado
                 final filteredListings = listings.where((listing) {
                   if (_selectedTab == 'Todas') return true;
-                  if (_selectedTab == 'Activas') return listing.status == 'AVAILABLE' || listing.status == 'PUBLISHED';
-                  if (_selectedTab == 'Pausadas') return listing.status == 'PAUSED';
-                  if (_selectedTab == 'Borradores') return listing.status == 'DRAFT';
+                  if (_selectedTab == 'Activas')
+                    return listing.status == 'AVAILABLE' ||
+                        listing.status == 'PUBLISHED';
+                  if (_selectedTab == 'Pausadas')
+                    return listing.status == 'PAUSED';
+                  if (_selectedTab == 'Borradores')
+                    return listing.status == 'DRAFT';
                   return true;
                 }).toList();
 
                 if (filteredListings.isEmpty) {
                   return const Center(
-                    child: Text('No se encontraron publicaciones en este estado.', style: TextStyle(color: KazaTheme.textMuted)),
+                    child: Text(
+                        'No se encontraron publicaciones en este estado.',
+                        style: TextStyle(color: KazaTheme.textMuted)),
                   );
                 }
 
@@ -98,7 +112,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? Colors.redAccent : KazaTheme.glassBorder, width: isSelected ? 1.5 : 1.0),
+          border: Border.all(
+              color: isSelected ? Colors.redAccent : KazaTheme.glassBorder,
+              width: isSelected ? 1.5 : 1.0),
         ),
         child: Text(
           title,
@@ -123,32 +139,37 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
       case 'PUBLISHED':
         displayStatus = 'ACTIVO';
         statusColor = KazaTheme.statusAvailable;
-        actions = ['Actualizar disponibilidad', 'Invitar a colaborar', 'Pausar', 'Editar', 'Retirar'];
+        actions = [
+          'Actualizar disponibilidad',
+          'Reservar',
+          'Pausar',
+          'Retirar'
+        ];
         break;
       case 'PAUSED':
         displayStatus = 'PAUSADO';
         statusColor = KazaTheme.statusPaused;
-        actions = ['Reactivar', 'Editar', 'Retirar'];
+        actions = ['Reactivar', 'Retirar'];
         break;
       case 'RESERVED':
         displayStatus = 'RESERVADO';
         statusColor = KazaTheme.statusReserved;
-        actions = ['Marcar disponible', 'Cerrar operación', 'Editar'];
+        actions = ['Marcar disponible', 'Cerrar operación'];
         break;
       case 'DRAFT':
         displayStatus = 'DRAFT';
         statusColor = KazaTheme.textMuted;
-        actions = ['Continuar borrador', 'Eliminar borrador'];
+        actions = ['Reactivar', 'Retirar'];
         break;
       case 'CLOSED':
         displayStatus = 'CERRADO';
         statusColor = KazaTheme.statusClosed;
-        actions = ['Ver historial'];
+        actions = [];
         break;
       case 'WITHDRAWN':
         displayStatus = 'RETIRADO';
         statusColor = KazaTheme.textMuted;
-        actions = ['Ver historial', 'Republicar'];
+        actions = [];
         break;
     }
 
@@ -178,7 +199,11 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                     color: KazaTheme.grisClaro,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Center(child: Text('KAZA', style: TextStyle(color: KazaTheme.grisMedio, fontWeight: FontWeight.bold))),
+                  child: const Center(
+                      child: Text('KAZA',
+                          style: TextStyle(
+                              color: KazaTheme.grisMedio,
+                              fontWeight: FontWeight.bold))),
                 ),
                 const SizedBox(width: 16),
                 // Datos
@@ -186,17 +211,33 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(listing.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: KazaTheme.textPrimary)),
+                      Text(listing.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: KazaTheme.textPrimary)),
                       const SizedBox(height: 4),
-                      Text(listing.formattedPrice, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDraft ? KazaTheme.textMuted : KazaTheme.textPrimary)),
+                      Text(listing.formattedPrice,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: isDraft
+                                  ? KazaTheme.textMuted
+                                  : KazaTheme.textPrimary)),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: statusColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(displayStatus, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        child: Text(displayStatus,
+                            style: TextStyle(
+                                color: statusColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5)),
                       ),
                     ],
                   ),
@@ -212,20 +253,34 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
               spacing: 8,
               runSpacing: 8,
               children: actions.map((actionName) {
-                final isPrimaryAction = actionName == 'Actualizar disponibilidad' || actionName == 'Continuar borrador' || actionName == 'Reactivar' || actionName == 'Marcar disponible';
+                final isPrimaryAction =
+                    actionName == 'Actualizar disponibilidad' ||
+                        actionName == 'Continuar borrador' ||
+                        actionName == 'Reactivar' ||
+                        actionName == 'Marcar disponible';
                 return OutlinedButton(
-                  onPressed: () => _handleAction(actionName, listing),
+                  onPressed: _pending.contains(listing.id)
+                      ? null
+                      : () => _handleAction(actionName, listing),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    side: BorderSide(color: isPrimaryAction ? Colors.redAccent : KazaTheme.glassBorder),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    side: BorderSide(
+                        color: isPrimaryAction
+                            ? Colors.redAccent
+                            : KazaTheme.glassBorder),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
                   ),
                   child: Text(
                     actionName,
                     style: TextStyle(
-                      color: isPrimaryAction ? Colors.redAccent : KazaTheme.textSecondary,
+                      color: isPrimaryAction
+                          ? Colors.redAccent
+                          : KazaTheme.textSecondary,
                       fontSize: 12,
-                      fontWeight: isPrimaryAction ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isPrimaryAction ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                 );
@@ -237,39 +292,51 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
     );
   }
 
-  void _handleAction(String action, ListingModel listing) {
-    final notifier = ref.read(myListingsProvider.notifier);
-    
-    switch (action) {
-      case 'Actualizar disponibilidad':
-        notifier.refreshAvailability(listing.id);
-        break;
-      case 'Invitar a colaborar':
-        context.push('/invite-collaboration');
-        break;
-      case 'Pausar':
-        notifier.updateStatus(listing.id, 'PAUSED');
-        break;
-      case 'Reactivar':
-      case 'Marcar disponible':
-      case 'Republicar':
-        notifier.updateStatus(listing.id, 'PUBLISHED');
-        break;
-      case 'Retirar':
-        notifier.updateStatus(listing.id, 'WITHDRAWN');
-        break;
-      case 'Cerrar operación':
-        notifier.updateStatus(listing.id, 'CLOSED');
-        break;
-      case 'Eliminar borrador':
-        // Not implemented yet, usually an ARCHIVED status or physical DELETE
-        notifier.updateStatus(listing.id, 'ARCHIVED');
-        break;
-      case 'Editar':
-      case 'Continuar borrador':
-      case 'Ver historial':
-        // These would navigate to other screens
-        break;
+  Future<void> _handleAction(String action, ListingModel listing) async {
+    if (_pending.contains(listing.id)) return;
+    if (action == 'Retirar' || action == 'Cerrar operación') {
+      final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+                  title: Text(action),
+                  content:
+                      Text('¿Confirmás esta acción sobre "${listing.title}"?'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancelar')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Confirmar'))
+                  ]));
+      if (confirmed != true || !mounted) return;
+    }
+    setState(() => _pending.add(listing.id));
+    try {
+      final notifier = ref.read(myListingsProvider.notifier);
+      if (action == 'Actualizar disponibilidad') {
+        await notifier.refreshAvailability(listing.id);
+      } else {
+        final status = {
+          'Pausar': 'PAUSED',
+          'Reactivar': 'AVAILABLE',
+          'Marcar disponible': 'AVAILABLE',
+          'Reservar': 'RESERVED',
+          'Retirar': 'WITHDRAWN',
+          'Cerrar operación': 'CLOSED'
+        }[action];
+        if (status != null) await notifier.updateStatus(listing.id, status);
+      }
+      if (mounted) ref.invalidate(mapPropertiesProvider);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'No se pudo confirmar el cambio. Actualizamos la lista para que puedas reintentar.')));
+        ref.invalidate(myListingsProvider);
+      }
+    } finally {
+      if (mounted) setState(() => _pending.remove(listing.id));
     }
   }
 }

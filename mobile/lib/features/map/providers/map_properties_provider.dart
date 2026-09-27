@@ -1,8 +1,6 @@
-import 'dart:async';
+import '../../../core/network/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/network/supabase_config.dart';
 
 /// Modelo de datos parseado para el mapa y la ficha completa de propiedad
 class PropertyMapItem {
@@ -18,42 +16,59 @@ class PropertyMapItem {
   final bool isPlus;
   final String trustLabel;
   final bool isOrg;
+
   /// Cantidad de propiedades que representa este pin (cluster/edificio). >= 1.
   final int propertyCount;
+
   /// Lista de propiedades agrupadas si es un clúster
   final List<PropertyMapItem>? subItems;
 
   // ── Campos extendidos (B04 Publish + Ficha completa B16) ──────────────────
   /// Imagen principal de la propiedad
   final String? imageUrl;
+
   /// Galería completa de fotos
   final List<String> photos;
+
   /// Descripción larga de la propiedad
   final String? description;
+
   /// Lista de amenidades (e.g. ['Piscina', 'Gimnasio', 'Terraza'])
   final List<String> amenities;
+
   /// Highlights / puntos clave de la descripción
   final List<String> highlights;
+
   /// Nombre del anunciante / agente
   final String? agentName;
+
   /// Teléfono de contacto del anunciante
   final String? contactPhone;
+
   /// Nombre del contacto
   final String? contactName;
+
   /// Superficie construida (m²)
   final String? coveredSurface;
+
   /// Parqueos / garages
   final int parkingSpaces;
+
   /// Antigüedad en años
   final int ageYears;
+
   /// Total de pisos del edificio/propiedad
   final int floorsTotal;
+
   /// Moneda del precio
   final String currency;
+
   /// Dirección canónica / legible
   final String? address;
+
   /// Estado de la publicación (PUBLISHED, AVAILABLE, DRAFT...)
   final String status;
+
   /// ID del dueño/publicador
   final String? ownerId;
 
@@ -91,7 +106,8 @@ class PropertyMapItem {
   });
 }
 
-class LocalPublishedPropertiesNotifier extends StateNotifier<List<PropertyMapItem>> {
+class LocalPublishedPropertiesNotifier
+    extends StateNotifier<List<PropertyMapItem>> {
   LocalPublishedPropertiesNotifier() : super([]);
 
   void addProperty(PropertyMapItem item) {
@@ -99,8 +115,8 @@ class LocalPublishedPropertiesNotifier extends StateNotifier<List<PropertyMapIte
   }
 }
 
-final localPublishedPropertiesProvider =
-    StateNotifierProvider<LocalPublishedPropertiesNotifier, List<PropertyMapItem>>((ref) {
+final localPublishedPropertiesProvider = StateNotifierProvider<
+    LocalPublishedPropertiesNotifier, List<PropertyMapItem>>((ref) {
   return LocalPublishedPropertiesNotifier();
 });
 
@@ -126,7 +142,8 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
   final idStr = row['id'].toString();
   final double lat = _extractLat(row);
   final double lng = _extractLng(row);
-  final num price = _parseNum(row['price_usd'], _parseNum(row['price_original'], 0));
+  final num price =
+      _parseNum(row['price_usd'], _parseNum(row['price_original'], 0));
 
   // Fotos: puede ser JSONB array o campo `photos`
   final List<String> photosList = _parseJsonbList(row['photos']);
@@ -145,7 +162,7 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
   return PropertyMapItem(
     id: idStr,
     title: row['title'] ?? row['address_canonical'] ?? 'Propiedad Kaza',
-    price: price > 0 ? '\$ ${price.toStringAsFixed(0)}' : 'Consultar',
+    price: price > 0 ? '${row['currency_code'] == 'BOB' ? 'Bs.' : 'USD'} ${price.toStringAsFixed(0)}' : 'Consultar',
     operation: row['operation'] ?? row['operation_type'] ?? 'VENTA',
     type: row['property_type'] ?? 'Departamento',
     location: LatLng(lat, lng),
@@ -153,7 +170,7 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
     bathrooms: _parseNum(row['bathrooms'], 0).toInt(),
     surface: '${_parseNum(row['total_surface_m2'], 0).toStringAsFixed(0)} m²',
     isPlus: row['has_active_promotion'] == true,
-    trustLabel: 'Actor Verificado',
+    trustLabel: 'Información del anunciante',
     isOrg: false,
     imageUrl: firstPhoto,
     photos: photosList,
@@ -175,88 +192,30 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
 }
 
 // =============================================================================
-// PROVIDER — StreamProvider con Supabase Realtime
+// Public catalog, bounded by viewport. Riverpod discards obsolete provider responses.
 // =============================================================================
-/// Provider de Riverpod que combina:
-///  1. ⚡ Supabase Realtime: cualquier INSERT/UPDATE/DELETE en `properties`
-///     dispara automáticamente una actualización en la UI (0 polling).
-///  2. 🔄 Fallback periódico de 30s (por si se pierde la conexión WebSocket).
-///  3. 📌 Items locales publicados en la sesión actual.
-///
-/// Consumo de red: 1 WebSocket persistente (gestionado por Supabase SDK).
-final mapPropertiesProvider = StreamProvider<List<PropertyMapItem>>((ref) async* {
-  final localItems = ref.watch(localPublishedPropertiesProvider);
-
-  // Función interna para cargar todas las propiedades de Supabase (sin duplicados)
-  Future<List<PropertyMapItem>> fetchAll() async {
-    final List<PropertyMapItem> items = [];
-    final Set<String> seenKeys = {};
-
-    try {
-      final response =
-          await SupabaseConfig.client.from('properties').select('*');
-      for (final row in response) {
-        try {
-          final item = _rowToItem(row);
-          final key = item.id;
-          if (!seenKeys.contains(key) && key.isNotEmpty) {
-            seenKeys.add(key);
-            items.add(item);
-          }
-        } catch (_) {}
-      }
-    } catch (_) {}
-
-    for (final loc in localItems) {
-      final key = loc.id;
-      if (!seenKeys.contains(key) && key.isNotEmpty) {
-        seenKeys.add(key);
-        items.add(loc);
-      }
-    }
-
-    return items;
-  }
-
-  // 1. Emitir datos iniciales inmediatamente
-  yield await fetchAll();
-
-  // 2. Suscribirse al canal Realtime de Supabase para la tabla `properties`
-  //    Cada evento (INSERT/UPDATE/DELETE) recarga la lista completa.
-  final StreamController<List<PropertyMapItem>> controller =
-      StreamController<List<PropertyMapItem>>();
-
-  final channel = SupabaseConfig.client
-      .channel('public:properties')
-      .onPostgresChanges(
-        event: PostgresChangeEvent.all,
-        schema: 'public',
-        table: 'properties',
-        callback: (payload) async {
-          // Pequeño debounce para agrupar cambios rápidos consecutivos
-          await Future<void>.delayed(const Duration(milliseconds: 350));
-          if (!controller.isClosed) {
-            controller.add(await fetchAll());
-          }
-        },
-      )
-      .subscribe();
-
-  // 3. Cleanup al desechar el provider
-  ref.onDispose(() {
-    SupabaseConfig.client.removeChannel(channel);
-    controller.close();
-  });
-
-  // 4. Emitir todos los eventos del stream
-  yield* controller.stream;
+final mapBoundsProvider = StateProvider<Map<String, double>>(
+    (ref) => {'south': -17.95, 'north': -17.6, 'west': -63.4, 'east': -63.0});
+final mapPropertiesProvider =
+    StreamProvider.autoDispose<List<PropertyMapItem>>((ref) async* {
+  final bounds = ref.watch(mapBoundsProvider);
+  final query = Uri(queryParameters: {
+    ...bounds.map((k, v) => MapEntry(k, v.toString())),
+    'limit': '100'
+  }).query;
+  final rows = await ApiClient()
+      .request('/api/catalog?$query', authenticated: false) as List;
+  yield rows.map((row) => _rowToItem(Map<String, dynamic>.from(row))).toList();
 });
 
 double _extractLat(Map<String, dynamic> row) {
-  if (row['latitude'] != null) return _parseNum(row['latitude'], -17.7833).toDouble();
+  if (row['latitude'] != null)
+    return _parseNum(row['latitude'], -17.7833).toDouble();
   if (row['canonical_location'] != null) {
     final loc = row['canonical_location'];
-    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+    if (loc is Map &&
+        loc['coordinates'] is List &&
+        (loc['coordinates'] as List).length >= 2) {
       return _parseNum((loc['coordinates'] as List)[1], -17.7833).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
@@ -267,7 +226,9 @@ double _extractLat(Map<String, dynamic> row) {
   }
   if (row['public_location_geometry'] != null) {
     final loc = row['public_location_geometry'];
-    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+    if (loc is Map &&
+        loc['coordinates'] is List &&
+        (loc['coordinates'] as List).length >= 2) {
       return _parseNum((loc['coordinates'] as List)[1], -17.7833).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
@@ -280,10 +241,13 @@ double _extractLat(Map<String, dynamic> row) {
 }
 
 double _extractLng(Map<String, dynamic> row) {
-  if (row['longitude'] != null) return _parseNum(row['longitude'], -63.1821).toDouble();
+  if (row['longitude'] != null)
+    return _parseNum(row['longitude'], -63.1821).toDouble();
   if (row['canonical_location'] != null) {
     final loc = row['canonical_location'];
-    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+    if (loc is Map &&
+        loc['coordinates'] is List &&
+        (loc['coordinates'] as List).length >= 2) {
       return _parseNum((loc['coordinates'] as List)[0], -63.1821).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {
@@ -294,7 +258,9 @@ double _extractLng(Map<String, dynamic> row) {
   }
   if (row['public_location_geometry'] != null) {
     final loc = row['public_location_geometry'];
-    if (loc is Map && loc['coordinates'] is List && (loc['coordinates'] as List).length >= 2) {
+    if (loc is Map &&
+        loc['coordinates'] is List &&
+        (loc['coordinates'] as List).length >= 2) {
       return _parseNum((loc['coordinates'] as List)[0], -63.1821).toDouble();
     }
     if (loc is String && loc.contains('POINT')) {

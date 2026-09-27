@@ -1,3 +1,4 @@
+import { CurrentActor, Actor } from '../../security/access';
 import { Controller, Post, Body, Headers, UsePipes, ValidationPipe } from '@nestjs/common';
 import { PromotionsService } from './promotions.service';
 import { ActivatePlusPromotionDto } from './dto/activate-plus.dto';
@@ -11,9 +12,9 @@ export class PromotionsController {
   @Post('activate-plus')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async activatePlus(
-    @Headers('x-user-id') userId: string = 'usr-demo-payer',
+    @CurrentActor() actor: Actor,
     @Body() dto: ActivatePlusPromotionDto,
   ) {
-    return this.promotionsService.activatePlus(userId, dto);
+    return this.promotionsService.activatePlus(actor.id, dto);
   }
 }

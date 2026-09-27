@@ -4,13 +4,18 @@ import 'app/routes/app_router.dart';
 import 'app/theme/kaza_theme.dart';
 import 'core/network/supabase_config.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
     await SupabaseConfig.initialize();
   } catch (e) {
-    debugPrint('Supabase init notice: $e');
+    runApp(const MaterialApp(
+        home: Scaffold(
+            body: Center(
+                child: Text(
+                    'No se pudo iniciar KAZA. Revisa la configuración y la conexión.')))));
+    return;
   }
 
   runApp(
@@ -30,6 +35,10 @@ class KazaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: KazaTheme.darkTheme,
       routerConfig: appRouter,
+      builder: (context, child) => SupabaseConfig.appEnv == 'demo'
+          ? Banner(
+              message: 'DEMO', location: BannerLocation.topEnd, child: child!)
+          : child!,
     );
   }
 }

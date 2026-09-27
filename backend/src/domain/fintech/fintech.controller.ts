@@ -1,3 +1,4 @@
+import { CurrentActor, Actor, DemoOnly } from '../../security/access';
 import {
   Controller,
   Post,
@@ -21,6 +22,7 @@ import { WalletTransferDto } from './dto/wallet-transfer.dto';
 /// ──────────────────────────────────────────────────────────────────────────
 
 @Controller('api/fintech')
+@DemoOnly()
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class FintechController {
   constructor(private readonly fintechService: FintechService) {}
@@ -29,18 +31,18 @@ export class FintechController {
   // Dashboard financiero del usuario: wallet + KYC status + historial
   @Get('profile')
   async getProfile(
-    @Headers('x-user-id') userId: string = 'usr-demo-fintech',
+    @CurrentActor() actor: Actor,
   ) {
-    return this.fintechService.getUserFintechProfile(userId);
+    return this.fintechService.getUserFintechProfile(actor.id);
   }
 
   // ─── GET /api/fintech/wallet ───────────────────────────────────────────
   // Obtiene o inicializa la wallet virtual del usuario (saldo inicial: 5,000 Bs)
   @Get('wallet')
   async getWallet(
-    @Headers('x-user-id') userId: string = 'usr-demo-fintech',
+    @CurrentActor() actor: Actor,
   ) {
-    return this.fintechService.getOrCreateWallet(userId);
+    return this.fintechService.getOrCreateWallet(actor.id);
   }
 
   // ─── POST /api/fintech/kyc/verify ─────────────────────────────────────
@@ -48,10 +50,10 @@ export class FintechController {
   // Body: { idNumber, fullName, selfieBase64? }
   @Post('kyc/verify')
   async verifyKyc(
-    @Headers('x-user-id') userId: string = 'usr-demo-fintech',
+    @CurrentActor() actor: Actor,
     @Body() dto: VerifyKycDto,
   ) {
-    return this.fintechService.verifyKyc(userId, dto);
+    return this.fintechService.verifyKyc(actor.id, dto);
   }
 
   // ─── POST /api/fintech/credit/score ───────────────────────────────────
@@ -59,10 +61,10 @@ export class FintechController {
   // Body: { monthlyIncome, monthlyExpenses, applicantAge, requestedAmount, termYears, listingId? }
   @Post('credit/score')
   async creditScore(
-    @Headers('x-user-id') userId: string = 'usr-demo-fintech',
+    @CurrentActor() actor: Actor,
     @Body() dto: CreditScoreDto,
   ) {
-    return this.fintechService.evaluateCreditScore(userId, dto);
+    return this.fintechService.evaluateCreditScore(actor.id, dto);
   }
 
   // ─── POST /api/fintech/wallet/transfer ────────────────────────────────
@@ -70,9 +72,10 @@ export class FintechController {
   // Body: { receiverUserId, amount, concept?, referenceListingId? }
   @Post('wallet/transfer')
   async walletTransfer(
-    @Headers('x-user-id') userId: string = 'usr-demo-fintech',
+    @CurrentActor() actor: Actor,
     @Body() dto: WalletTransferDto,
+    @Headers("idempotency-key") key: string,
   ) {
-    return this.fintechService.transferP2P(userId, dto);
+    return this.fintechService.transferP2P(actor.id, dto, key);
   }
 }

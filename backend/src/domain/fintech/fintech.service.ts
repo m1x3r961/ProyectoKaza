@@ -75,7 +75,7 @@ export class FintechService {
       .from('mock_wallets')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle().throwOnError();
 
     if (existing) return existing as MockWallet;
 
@@ -84,7 +84,7 @@ export class FintechService {
       .from('mock_wallets')
       .insert({ user_id: userId, balance: SALDO_INICIAL_DEMO })
       .select()
-      .single();
+      .maybeSingle().throwOnError();
 
     if (error) throw new BadRequestException('No se pudo crear la wallet del usuario.');
     return created as MockWallet;
@@ -100,7 +100,7 @@ export class FintechService {
       .from('mock_user_kyc')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle().throwOnError();
 
     const existingKyc = existing as MockKyc | null;
 
@@ -108,7 +108,7 @@ export class FintechService {
       return {
         success: true,
         status: 'VERIFIED',
-        message: 'Tu identidad ya está verificada con Banco Unión.',
+        message: 'Tu verificación simulada ya está registrada.',
         kazaScore: existingKyc.kaza_score,
         alreadyVerified: true,
       };
@@ -141,7 +141,7 @@ export class FintechService {
           reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', userId);
+        .eq('user_id', userId).throwOnError();
     } else {
       await this.db.from('mock_user_kyc').insert({
         user_id: userId,
@@ -150,20 +150,20 @@ export class FintechService {
         id_number: dto.idNumber,
         rejection_reason: rejectionReason,
         reviewed_at: new Date().toISOString(),
-      });
+      }).throwOnError();
     }
 
     return {
       success: isApproved,
       status: newStatus,
       message: isApproved
-        ? '✅ Identidad verificada exitosamente. Cumples con las normativas ASFI.'
+        ? 'Verificación simulada aprobada. No acredita identidad ni cumplimiento bancario.'
         : '❌ Verificación rechazada. Revisa tus datos e inténtalo nuevamente.',
       kazaScore: isApproved ? kazaScore : null,
       rejectionReason,
       // Metadatos del motor de evaluación para el pitch
       evaluatedBy: 'Motor KYC Banco Unión (Simulado)',
-      asfiCompliance: 'ASFI Circular SB/616/2021',
+      simulation: true,
       processedAt: new Date().toISOString(),
     };
   }
@@ -178,7 +178,7 @@ export class FintechService {
       .from('mock_user_kyc')
       .select('status, kaza_score')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle().throwOnError();
 
     const typedKyc = kyc as MockKyc | null;
 
@@ -192,6 +192,7 @@ export class FintechService {
 
     // ── Motor de Scoring Financiero Simulado ──
     const netIncome = dto.monthlyIncome - dto.monthlyExpenses;
+    if (netIncome <= 0) throw new BadRequestException("El ingreso neto debe ser positivo.");
     const debtToIncomeRatio = dto.requestedAmount / (netIncome * 12 * dto.termYears);
     const ageRiskFactor = dto.applicantAge > 55 ? 0.8 : 1.0;
 
@@ -218,7 +219,7 @@ export class FintechService {
         applicant_age: dto.applicantAge,
         status: 'REJECTED',
         rejection_reason: 'Perfil de riesgo no cumple los requisitos mínimos del producto solicitado.',
-      });
+      }).throwOnError();
 
       return {
         success: false,
@@ -267,7 +268,7 @@ export class FintechService {
       rejection_reason: isAffordable
         ? null
         : `La cuota mensual estimada (${monthlyFee.toFixed(2)} Bs) supera el 30% de tu ingreso neto.`,
-    });
+    }).throwOnError();
 
     if (!isAffordable) {
       return {
@@ -290,7 +291,7 @@ export class FintechService {
     return {
       success: true,
       status: 'PRE_APPROVED',
-      message: '🎉 ¡Felicitaciones! Estás pre-aprobado para un crédito hipotecario.',
+      message: 'Simulación aprobada. No constituye una oferta ni preaprobación bancaria.',
       kazaScore,
       bankProduct: bestProduct.name,
       approvedAmount: dto.requestedAmount,
@@ -300,9 +301,9 @@ export class FintechService {
       monthlyFee: Math.round(monthlyFee),
       totalToPayback: Math.round(monthlyFee * totalMonths),
       maxCapacity: Math.round(maxMonthlyPayment),
-      nextStep: 'Presenta este comprobante en cualquier sucursal Banco Unión para formalizar tu solicitud.',
+      nextStep: 'Resultado exclusivo de demostración; no es un comprobante bancario.',
       evaluatedBy: 'Motor de Riesgo Banco Unión (Simulado)',
-      asfiCompliance: 'Ley 393 de Servicios Financieros - Bolivia',
+      simulation: true,
       processedAt: new Date().toISOString(),
     };
   }
@@ -311,93 +312,10 @@ export class FintechService {
   // 4. TRANSFERENCIA P2P: PAGO DE RESERVA
   // ───────────────────────────────────────────────────────────────────────────
 
-  async transferP2P(senderUserId: string, dto: WalletTransferDto) {
-    // Verificar KYC del remitente
-    const { data: kyc } = await this.db
-      .from('mock_user_kyc')
-      .select('status')
-      .eq('user_id', senderUserId)
-      .single();
-
-    const typedKyc = kyc as { status: string } | null;
-    if (!typedKyc || typedKyc.status !== 'VERIFIED') {
-      throw new BadRequestException(
-        'Debes completar la verificación de identidad (KYC) antes de realizar transferencias.',
-      );
-    }
-
-    // Obtener/crear wallets de ambas partes
-    const senderWallet = await this.getOrCreateWallet(senderUserId);
-    const receiverWallet = await this.getOrCreateWallet(dto.receiverUserId);
-
-    // Validar saldo suficiente
-    if (senderWallet.balance < dto.amount) {
-      throw new BadRequestException(
-        `Saldo insuficiente. Tu saldo actual es ${senderWallet.balance} BOB y el monto de la reserva es ${dto.amount} BOB.`,
-      );
-    }
-
-    // ── Transacción Atómica: Débito y Crédito ──
-    // Débito al remitente
-    const { error: debitError } = await this.db
-      .from('mock_wallets')
-      .update({ balance: senderWallet.balance - dto.amount, updated_at: new Date().toISOString() })
-      .eq('id', senderWallet.id);
-
-    if (debitError) throw new BadRequestException('Error al procesar el débito.');
-
-    // Crédito al receptor
-    const { error: creditError } = await this.db
-      .from('mock_wallets')
-      .update({ balance: receiverWallet.balance + dto.amount, updated_at: new Date().toISOString() })
-      .eq('id', receiverWallet.id);
-
-    if (creditError) {
-      // Rollback manual: revertir el débito
-      await this.db
-        .from('mock_wallets')
-        .update({ balance: senderWallet.balance, updated_at: new Date().toISOString() })
-        .eq('id', senderWallet.id);
-      throw new BadRequestException('Error al procesar el crédito. Transacción revertida.');
-    }
-
-    // Registrar la transacción en el historial
-    const { data: txRecord } = await this.db
-      .from('mock_wallet_transactions')
-      .insert({
-        sender_wallet_id: senderWallet.id,
-        receiver_wallet_id: receiverWallet.id,
-        amount: dto.amount,
-        currency: 'BOB',
-        status: 'COMPLETED',
-        concept: dto.concept || `Reserva de propiedad Kaza`,
-        reference_listing_id: dto.referenceListingId || null,
-      })
-      .select()
-      .single();
-
-    return {
-      success: true,
-      message: `✅ Transferencia completada. Se enviaron ${dto.amount} BOB exitosamente.`,
-      transaction: {
-        id: (txRecord as any)?.id,
-        amount: dto.amount,
-        currency: 'BOB',
-        concept: dto.concept || 'Reserva de propiedad Kaza',
-        status: 'COMPLETED',
-        timestamp: new Date().toISOString(),
-      },
-      senderBalance: senderWallet.balance - dto.amount,
-      // Simulación de comprobante blockchain-style (hash sha256-like para el demo)
-      blockchainRef: `0x${Buffer.from(`kaza-${senderUserId}-${dto.receiverUserId}-${Date.now()}`).toString('hex').slice(0, 40)}`,
-      processedBy: 'Kaza Wallet Engine · Banco Unión P2P (Simulado)',
-      processedAt: new Date().toISOString(),
-    };
+  async transferP2P(senderUserId: string, dto: WalletTransferDto, key: string) {
+    if (!key || !/^[a-zA-Z0-9_-]{16,100}$/.test(key)) throw new BadRequestException('Idempotency-Key requerido.');
+    return this.supabaseService.rpc('kaza_mock_transfer', { p_actor: senderUserId, p_receiver: dto.receiverUserId, p_amount: dto.amount, p_key: key, p_concept: dto.concept || 'Reserva simulada', p_listing: dto.referenceListingId || null });
   }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // 5. ESTADO FINANCIERO DEL USUARIO (Dashboard Summary)
-  // ───────────────────────────────────────────────────────────────────────────
 
   async getUserFintechProfile(userId: string) {
     const wallet = await this.getOrCreateWallet(userId);
@@ -406,26 +324,28 @@ export class FintechService {
       .from('mock_user_kyc')
       .select('status, kaza_score')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle().throwOnError();
 
     const { data: transactions } = await this.db
       .from('mock_wallet_transactions')
       .select('*')
       .or(`sender_wallet_id.eq.${wallet.id},receiver_wallet_id.eq.${wallet.id}`)
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(10).throwOnError();
 
     const { data: creditApps } = await this.db
       .from('mock_credit_applications')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(5).throwOnError();
 
     const typedKyc = kyc as MockKyc | null;
 
     return {
       wallet: {
+        id: wallet.id,
+        userId: wallet.user_id,
         balance: wallet.balance,
         currency: wallet.currency,
         isActive: wallet.is_active,

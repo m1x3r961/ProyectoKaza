@@ -1,268 +1,158 @@
-# 🏢 Kaza - Análisis de Viabilidad Técnica y Arquitectura de Referencia
-> **Documento Evaluado:** `KAZA_Product_Architecture_Master_v0.2.docx`  
-> **Stack Oficial del Sistema:**  
-> 📱 **Flutter** (Mobile Cross-Platform Consumer & Professional App)  
-> 🛡️ **NestJS / TypeScript** (Backend Server & Guardián del Dominio)  
-> ⚡ **Supabase Platform** (PostgreSQL + PostGIS + Auth + Realtime + Storage)  
-> 🖥️ **Next.js / TypeScript** (Backoffice Web Admin Desktop-First)  
-> **Veredicto Técnico:** 🚀 **EXCELENCIA ARQUITECTÓNICA (10 / 10)** — Separación de responsabilidades de nivel empresarial.
+# KAZA — Arquitectura del proyecto
 
----
+KAZA es una plataforma inmobiliaria con búsqueda por mapa, publicación de inmuebles, conversaciones, herramientas para agentes y organizaciones, proyectos de desarrolladoras y funciones financieras de demostración.
 
-## 📌 1. Visión y Separación de Responsabilidades
+Actualizado el **27 de septiembre de 2026**. Este README describe el código local actual. Las migraciones y los despliegues remotos requieren la carga manual y verificación del propietario del proyecto. Algunas pantallas siguen siendo prototipos; su presencia no acredita un flujo productivo completo.
 
-La arquitectura de Kaza consolida una separación clara entre la infraestructura de datos y la protección del dominio de negocio:
+## Vista general
 
 ```mermaid
-graph TD
-    subgraph FrontendClients ["1. Capa de Clientes (Frontends)"]
-        Flutter[📱 Flutter Mobile App<br>iOS / Android / Web Consumer]
-        NextAdmin[🖥️ Next.js Admin Web<br>Desktop Backoffice & Moderación]
-    end
-
-    subgraph DomainGuardian ["2. Guardián del Dominio (Backend Engine)"]
-        NestJS[🛡️ NestJS API Server<br>TypeScript / Domain Logic]
-        
-        subgraph NestModules ["Módulos Core de NestJS"]
-            PropMod[Property & MarketCycle Domain]
-            DedupMod[Deduplicación & Stacking Engine]
-            GateMod[Market Launch Compliance Gate]
-            InsightsMod[Kaza Insights & Privacy Pipeline]
-            BillMod[Billing & Payment Gateways]
-        end
-        
-        NestJS --- NestModules
-    end
-
-    subgraph InfraPlatform ["3. Plataforma de Infraestructura (Supabase)"]
-        SAuth[Supabase Auth<br>JWT / RBAC / MFA]
-        PG[(PostgreSQL + PostGIS<br>Claves, Relaciones & RLS)]
-        SReal[Supabase Realtime<br>WebSockets Chat & Visitas]
-        SStore[Supabase Storage<br>Fotos, Renders & Documentos]
-    end
-
-    Flutter -->|Auth Token| SAuth
-    Flutter -->|Read-heavy Queries & RLS| PG
-    Flutter -->|Realtime Chat & Visitas| SReal
-    Flutter -->|Uploads| SStore
-    Flutter -->|Acciones de Negocio & Dominio| NestJS
-
-    NextAdmin -->|Auth Admin| SAuth
-    NextAdmin -->|Casos de Moderación & Admin API| NestJS
-
-    NestJS -->|Service Role / Admin Query| PG
-    NestJS -->|Event Triggers| SReal
+flowchart LR
+    F[Flutter: app y web] --> A[Supabase Auth]
+    N[Next.js: administración] --> A
+    F -->|Catálogo público / comandos con JWT| API[NestJS]
+    N -->|JWT + MFA| API
+    API -->|RPC privilegiada con actor verificado| DB[(PostgreSQL + PostGIS)]
+    F -->|Datos propios con JWT y RLS| DB
+    F --> S[Supabase Storage]
+    F <-->|Mensajes de participantes| RT[Supabase Realtime]
+    API -->|Contexto público limitado| AI[Proveedor IA]
+    F --> M[OpenStreetMap / Nominatim]
 ```
 
----
+NestJS es un monolito modular. Centraliza publicación, estados, transferencia, organizaciones, mensajería, moderación e IA. Supabase directo se conserva para Auth, datos propios protegidos por RLS, favoritos, borradores y carga de imágenes. No hay microservicios ni procesos de colas activos; `pg-boss` sigue siendo una dependencia sin worker configurado.
 
-## 📊 2. Cuadro de Responsabilidades por Capa
+## Repositorio y runtimes
 
-| Capa del Stack | Tecnología | Responsabilidad Principal |
-| :--- | :--- | :--- |
-| **App Móvil / Frontend** | **Flutter** | Experiencia *map-first* táctil fluida, búsqueda por polígonos, previsualización de propiedades, 5 pestañas de navegación y compras In-App (Apple/Google IAP). |
-| **Guardián del Dominio** | **NestJS (TypeScript)** | **Guardián de las Reglas de Negocio:** Valida transiciones de estado (`ListingStatus`, `ReservationRecord`), ejecuta la deduplicación de activos, valida los `Market Launch Compliance Gates`, procesa pasarelas externas para `Kaza Media` y pipeline de `Kaza Insights`. |
-| **Plataforma de Infraestructura** | **Supabase** | **Persistencia & Servicios Base:** PostgreSQL relacional + extensión espacial **PostGIS**, autenticación JWT, WebSockets en tiempo real para chat/visitas y almacenamiento S3 para archivos multimediales. |
-| **Backoffice de Administración** | **Next.js (TypeScript)** | Consola administrativa Web *Desktop-first* para moderación de contenido, gestión de `AdminCase`, verificación de identidad (*Trust*), configuración de mercados (*Country Market Config*) y auditoría. |
+| Carpeta | Stack | Responsabilidad |
+| --- | --- | --- |
+| `mobile/` | Flutter 3.27.0, Dart 3.6.0, Riverpod, GoRouter, flutter_map | Experiencia móvil/web y estado de interfaz. |
+| `backend/` | NestJS 10, TypeScript, Node 22 | HTTP, validación, autenticación y coordinación de comandos. |
+| `admin/` | Next.js 14, React 18 | Login administrativo, MFA, catálogo de soporte y moderación. |
+| `supabase/migrations/` | PostgreSQL, PostGIS y SQL | Modelo relacional, RLS, funciones transaccionales e integridad. |
+| `supabase/manual/` | Bundle SQL generado | Actualización para pegar manualmente en Supabase SQL Editor. |
+| `backend/test/`, `mobile/test/` | Node test runner, PGlite/PostGIS, Flutter test | Pruebas locales de permisos, migraciones, errores y contratos. |
+| `.github/workflows/` | GitHub Actions | Builds, análisis y pruebas de las tres aplicaciones. |
+| `docs/` | Markdown | Plan, avance, límites y procedimiento de despliegue. |
 
----
+Cada aplicación administra sus dependencias por separado. Los lockfiles fijan las resoluciones; las versiones con `^` en los manifiestos no son el inventario exacto instalado.
 
-## 🏗️ 3. Estructura del Monorepo Kaza
+## Cliente Flutter
 
-```text
-proyectoKaza/
-  ├── mobile/             # 📱 App en Flutter (Navegación 5-Tabs, Mapa Map-First)
-  ├── backend/            # 🛡️ Server NestJS (Guardián del Dominio & API Business Rules)
-  ├── admin/              # 🖥️ App Web Next.js (Backoffice de Moderación & AdminCases)
-  └── supabase/           # ⚡ Migraciones SQL PostgreSQL + PostGIS & Políticas RLS
+`lib/main.dart` valida configuración e inicializa Supabase. Si falla, muestra un error de arranque; no usa credenciales remotas predeterminadas. `app/routes/app_router.dart` configura la navegación y `app/theme` el sistema visual.
+
+`core/network/api_client.dart` centraliza URL, Bearer token, JSON, timeout, errores y cabecera de idempotencia. Los providers separan el estado por funcionalidad y reaccionan a los cambios de sesión. La búsqueda conserva su estado mientras la rama de navegación permanece montada.
+
+| Funcionalidad | Flujo actual |
+| --- | --- |
+| `auth` | Sesión Supabase, perfil propio y autenticación progresiva. |
+| `map` | Consulta por área visible, debounce de 300 ms, máximo 100 resultados; detalle mediante API. |
+| `publish` | Wizard con borrador propio, fotos, revisión y comando de publicación. |
+| `saved` | Favoritos propios con RLS; proyección pública del inmueble desde backend. |
+| `messages` | Conversaciones reales, últimos 100 mensajes por conversación y envío confirmado/idempotente. |
+| `profile` | Perfil, publicaciones propias y cambios de estado versionados. |
+| `organizations`, `crm` | Organizaciones, invitaciones, contactos, oportunidades y tareas con aislamiento. |
+| `developer` | Proyectos, etapas, unidades, documentos y registros; permisos por propietario/organización. |
+| `ai_assistant` | Llama al backend, que custodia la clave del proveedor. |
+| `financing` | Cliente de simulación financiera; disponible únicamente en backend demo. |
+| `collaborations`, `achievements`, `kaza_trust` | UI y esquema histórico; quedan flujos prototipo y acciones por completar. |
+
+Las fotos se redimensionan y recodifican antes de subir para retirar EXIF. Las ya cargadas quedan en el borrador; los archivos elegidos todavía no cargados se pierden al cerrar. El bucket actual es público y no debe contener documentos privados. El visor de tours mantiene una implementación web y una alternativa nativa mediante importación condicional.
+
+## Backend NestJS
+
+`bootstrap.ts` configura CORS explícito, límite de cuerpo JSON, validación global, requestId y errores seguros. `RateGuard` limita tráfico por proceso/IP antes de verificar identidad. `AuthGuard` verifica el token con Supabase Auth y comprueba claims, estado de cuenta y, para administración, MFA/membresía.
+
+`infrastructure/supabase/supabase.service.ts` encapsula el cliente de servicio, timeouts y traducción de errores SQL. Las RPC privilegiadas aceptan el actor derivado del JWT y vuelven a comprobar sus permisos sobre el recurso. `service_role` no se distribuye a clientes.
+
+| Módulo | Contratos HTTP principales |
+| --- | --- |
+| Salud | `GET /`, `GET /health/ready` públicos. |
+| Catálogo | `GET /api/catalog`, `GET /api/catalog/:id` públicos y acotados. |
+| Listings | `GET /api/listings/mine`, `GET /api/listings/limits`, `POST /api/listings`, `PATCH /api/listings/:id/status`. |
+| Disponibilidad/transferencia | `POST /api/listings/:id/refresh`, `POST /api/listings/:id/transfer-controller`, `POST /api/listings/transfers/:id/accept`. |
+| Conversaciones | `GET /api/conversations`, `POST /api/conversations/property/:id`, `POST /api/conversations/:id/messages`. |
+| Organizaciones | `POST /api/organizations`, `POST /api/organizations/:id/invitations`, `POST /api/invitations/respond`. |
+| Favoritos | `GET /api/saved`; escritura propia directamente con RLS. |
+| Admin | `GET /api/admin/dashboard`, `POST /api/admin/:id/moderate`. |
+| IA | `POST /api/ai/chat`. |
+| FinTech | `/api/fintech/*`, autenticado y exclusivo del modo demo. |
+| Promociones | Deshabilitadas hasta verificar pagos reales. |
+
+La publicación exige `Idempotency-Key`; un reintento con el mismo payload devuelve el resultado previo. Cambiar el payload reutilizando esa clave produce conflicto. Las mutaciones de estado exigen `version`. Las funciones de negocio son transaccionales; la carga de archivos ocurre fuera de la transacción SQL.
+
+## Modelo de datos
+
+```mermaid
+erDiagram
+    WORKSPACES ||--o{ ORGANIZATIONS : agrupa
+    ORGANIZATIONS ||--o{ ORGANIZATION_MEMBERSHIPS : autoriza
+    PROPERTIES ||--o{ MARKET_CYCLES : tiene
+    MARKET_CYCLES ||--o{ LISTINGS : comercializa
+    WORKSPACES ||--o{ LISTINGS : controla
+    LISTINGS ||--o{ CONVERSATIONS : recibe
+    CONVERSATIONS ||--o{ CONVERSATION_PARTICIPANTS : autoriza
+    CONVERSATIONS ||--o{ MESSAGES : contiene
 ```
 
----
+- **Property**: activo físico, ubicación canónica y atributos. La coordenada/dirección exacta es privada.
+- **MarketCycle**: ciclo comercial y operación — venta, alquiler o anticrético. Transferir controlador no reinicia el ciclo.
+- **Listing**: anuncio, workspace, operador, precio/moneda, estado, versión y moderación.
+- **Workspace / Organization / Membership**: contexto personal o empresarial y permisos vigentes.
+- **Profile / ProfessionalProfile**: identidad de aplicación y datos profesionales; no constituyen por sí mismos una verificación de confianza.
+- **CRM**: contactos, oportunidades y tareas con ámbito personal u organizativo y referencias consistentes.
+- **Developer**: proyectos, etapas, unidades, documentos y registros financieros del desarrollador.
+- **FinTech mock**: wallets, transferencias, KYC y solicitudes simuladas; no dinero ni aprobación bancaria real.
 
-## 💾 4. Esquema SQL (Supabase PostgreSQL + PostGIS)
+Tablas nuevas de control: `kaza_admins`, `kaza_entitlements`, `kaza_audit`, `kaza_requests`, `listing_drafts`, `listing_transfers`, `conversation_participants` y `organization_invitations`.
 
-El motor PostgreSQL de Supabase mantiene la integridad relacional de `Property` (permanente), `MarketCycle` (comercial) y `Listing` (publicación por controller):
+Las migraciones históricas se ordenan con `supabase/migration-order.json`, porque hay dos `00015` y dependencias `u08`. Las migraciones 00023–00026 endurecen permisos y añaden los comandos. Los seeds quedan fuera del proceso de actualización.
 
-```sql
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+## Flujos y seguridad
 
--- PROPERTIES (Activo Físico Permanente)
-CREATE TABLE public.properties (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    canonical_location GEOMETRY(Point, 4326) NOT NULL,
-    public_location GEOMETRY(Point, 4326) NOT NULL,
-    country_code VARCHAR(3) NOT NULL,
-    city_id VARCHAR(50) NOT NULL,
-    property_type VARCHAR(50) NOT NULL,
-    total_surface_m2 NUMERIC(10,2),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+**Explorar → contactar:** el catálogo devuelve campos públicos y ubicación aproximada; iniciar una conversación exige sesión y un listing disponible. El historial y Realtime se restringen a participantes autorizados. El callback de login retoma la acción si la ruta sigue montada; la recuperación tras recarga OAuth completa queda pendiente.
 
--- MARKET CYCLES (Episodio Comercial)
-CREATE TABLE public.market_cycles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
-    operation_type VARCHAR(20) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+**Borrador → publicar:** autoguardado propio → fotos → API validada → transacción property/cycle/listing → confirmación e invalidación del mapa. No se inserta el inmueble comercial directamente desde Flutter. Los cupos proceden de `kaza_entitlements`, no del plan editable histórico.
 
--- LISTINGS (Publicación Comercial)
-CREATE TABLE public.listings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    property_id UUID NOT NULL REFERENCES public.properties(id),
-    market_cycle_id UUID NOT NULL REFERENCES public.market_cycles(id),
-    workspace_id UUID NOT NULL,
-    controller_user_id UUID NOT NULL REFERENCES auth.users(id),
-    title VARCHAR(255) NOT NULL,
-    price_original NUMERIC(14,2),
-    currency_original VARCHAR(3) DEFAULT 'USD',
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+**Gestionar:** estados permitidos explícitamente, control de versión y auditoría. Retirar y cerrar requieren confirmación en la interfaz. Una transferencia exige aceptación por destinatario autorizado y no modifica la fecha de inicio del ciclo.
+
+**Moderar:** login + TOTP + alta independiente en `kaza_admins` → API → suspensión/restauración/resolución + motivo + auditoría en la misma transacción. La actualización de versión del panel se ofrece al usuario; no fuerza una recarga durante su trabajo.
+
+La seguridad no depende de esconder botones. RLS protege acceso directo a datos, las columnas privilegiadas no son autoeditables y las RPC históricas inseguras pierden ejecución pública. El catálogo excluye dirección exacta, dueño y contactos no consentidos. Las coordenadas se redondean a tres decimales; no se garantiza anonimato geográfico absoluto.
+
+## Configuración local
+
+Backend: completar `backend/.env.example` en `.env`, instalar con `npm ci` y ejecutar `npm run start:dev`. Requiere URL Supabase, clave de servicio y los orígenes de los clientes. Admin: completar `admin/.env.example`, `npm ci` y `npm run dev -- --port 3001`.
+
+Flutter:
+
+```sh
+flutter pub get --enforce-lockfile
+flutter run -d chrome --web-port 8080 --dart-define=SUPABASE_URL=https://TU_PROYECTO.supabase.co --dart-define=SUPABASE_ANON_KEY=TU_CLAVE_PUBLICA --dart-define=API_BASE_URL=http://localhost:3000
 ```
 
----
+En un teléfono, `localhost` apunta al teléfono: usar una URL alcanzable del backend. Nunca agregar claves de servicio/IA a `--dart-define` ni a variables `NEXT_PUBLIC_*`.
 
-## 🚀 5. Ventajas Estratégicas de esta Arquitectura
+`APP_ENV` distingue desarrollo, test, demo y producción en backend. Demo exige otra URL de proyecto respecto a la referencia de producción declarada. FinTech simulado devuelve 404 fuera de demo; planes/promociones no se activan por una acción de prueba del cliente.
 
-1. **NestJS como Guardián del Dominio:** Evita acoplar la lógica compleja del negocio inmobiliario a la base de datos o al cliente. NestJS centraliza las reglas del Master v0.2 (linaje de `Property`, `TransactionClaim`, no reiniciar DOM al transferir controller, etc.).
-2. **Supabase como Acelerador de Infraestructura:** Elimina la necesidad de programar servidores de autenticación, almacenamiento de imágenes o infraestructura de WebSockets desde cero.
-3. **Flutter como Front Único:** Permite rendimiento táctil cercano al nativo de 60-120 FPS para el renderizado geoespacial del mapa.
-4. **Next.js para el Backoffice:** Framework idóneo para paneles administrativos web con renderizado rápido en servidor (SSR), dashboards con gráficos y gestión de auditoría `AdminCase`.
+## Despliegue y comprobación
 
----
+El flujo del proyecto es **SQL manual en Supabase + código en GitHub + despliegue Vercel**. Seguir [la guía de despliegue](docs/DESPLIEGUE_GITHUB_VERCEL_SUPABASE.md), que detalla las variables por aplicación y el orden de actualización.
 
-## 🗂️ DEV11-E · Estados Representativos del Sistema
+El backend usa la detección nativa de NestJS en Vercel; el admin usa Next.js. Flutter se compila con `mobile/scripts/vercel-build.sh` y publica `build/web`. No se aplican migraciones SQL durante los builds.
 
-> **Estados representativos del sistema para asegurar claridad, confianza y recuperación.**
+```sh
+# backend/
+npm test
+# admin/
+npm run build
+# mobile/
+flutter analyze --no-fatal-infos --no-fatal-warnings
+flutter test
+```
 
-| 🎯 Claridad | ✅ Confianza | 🎛️ Control | 🔄 Recuperación | ♿ Accesibilidad |
-|:---|:---|:---|:---|:---|
-| Estados predecibles | Mensajes honestos | Acciones claras | Siempre posible | WCAG 2.2 AA |
+Las pruebas SQL utilizan PostgreSQL local mediante PGlite/PostGIS con fixtures de Auth/Storage. Cubren migración limpia/incremental, permisos, rollback e idempotencia. No equivalen a probar un despliegue Supabase completo. Los guards se prueban con verificación Auth simulada y existe una prueba HTTP local del arranque.
 
----
+El límite de solicitudes es local al proceso; escalado a múltiples instancias requiere coordinación externa. Existen liveness, readiness y logs con requestId, pero faltan alertas/retención operativa y pruebas de carga representativas. No se declaran alcanzados los objetivos p95 del plan.
 
-### Estados de la Interfaz
-
-| # | Estado | Descripción |
-|:--|:---|:---|
-| **01** | ⏳ **Loading** | El sistema está cargando contenido. |
-| **02** | 🔍 **Empty** | No hay resultados para la búsqueda. |
-| **03** | ⚠️ **Error** | Ocurrió un error inesperado. |
-| **04** | 🔒 **Restricted** | El contenido está restringido por políticas o región. |
-| **05** | 📍 **Permission Required** | Se requiere un permiso del dispositivo. |
-| **06** | ⭐ **Entitlement Required** | Se requiere un plan o permiso (no es tu rol). |
-| **07** | 📡 **Offline** | No hay conexión a internet. |
-| **08** | 📋 **Partial Data** | La información está incompleta. |
-| **09** | ❓ **Unknown** | La información no está disponible. |
-| **10** | ✅ **Confirmation Required** | Acción sensible que requiere confirmación. |
-| **11** | 🎉 **Backend Success** | Acción completada correctamente. |
-| **12** | 🔗 **Deep Link Reauthorization** | El enlace requiere revalidación. |
-
----
-
-### 📱 Detalle de cada Estado
-
-#### 01 · Loading
-**Cargando KAZA** — Preparando el mapa…
-
-#### 02 · Empty
-> *No encontramos propiedades — Intenta ajustar los filtros o ampliar la búsqueda.*
-
-Acciones: **Ajustar filtros** · Iniciar búsqueda
-
-#### 03 · Error
-> *Algo salió mal — No pudimos cargar la información. Inténtalo nuevamente.*
-
-Acciones: **Solucionar** · Si el sitio…
-
-#### 04 · Restricted
-> *Contenido no disponible — Este contenido no está disponible en tu zona o región.*
-
-Acciones: **Explorar otras zonas** · Más información
-
-#### 05 · Permission Required
-> *Necesitamos tu ubicación — Para mostrarte propiedades cercanas activa el permiso de ubicación.*
-
-Acciones: **Ir a Configuración** · Ahora no
-
-#### 06 · Entitlement Required
-> *Función exclusiva — Esta función está disponible para usuarios Plus, Pro o Business.*
-
-Acciones: **Ver planes** · Más información
-
-#### 07 · Offline
-> *Sin conexión — Verifica tu conexión a internet e intenta nuevamente.*
-
-Acciones: **Solucionar** · Ver contenido guardado
-
-#### 08 · Partial Data
-> *Información parcial — Mostramos información con datos incompletos.*
->
-> ⚠️ *Actualizado hace 7 días — Algunos números pueden variar.*
-
-Acciones: **Actualizar datos**
-
-#### 09 · Unknown
-> *Información no disponible — Aún no tenemos datos para esta propiedad o zona.*
-
-Acciones: **Explorar otras zonas**
-
-#### 10 · Confirmation Required
-> **Departamento de Budapest** — *¿Estás seguro? Vas a eliminar esta publicación. Esta acción no se puede deshacer.*
-
-Acciones: **Sí, eliminar** · Cancelar
-
-#### 11 · Backend Success
-> *¡Listo! — Tu publicación fue publicada correctamente.*
-
-Acciones: **Ver publicación** · Compartir
-
-#### 12 · Deep Link Reauthorization
-> *Revalidando acceso — Estamos verificando tu acceso a este contenido.*
-
----
-
-### 🔣 Iconografía de Estados
-
-| Ícono | Tipo |
-|:---:|:---|
-| ℹ️ | Información |
-| ✅ | Éxito |
-| ⚠️ | Advertencia |
-| ❌ | Error |
-| 🔒 | Bloqueo |
-| ❓ | Desconocido |
-
----
-
-### 🗣️ Tono de Mensajes
-
-- ✅ Honesto y transparente
-- ✅ Sin culpa, sin alarmismo
-- ✅ Informa el problema y la solución
-- ✅ Respeta el tiempo del usuario
-- ✅ Siempre orientado a la acción
-
----
-
-### 📏 Reglas Clave
-
-- ❌ Nunca ocultar errores
-- ❌ Nunca dejar pantallas en blanco
-- ❌ Nunca confundir *Loading* con *Rol*
-- ❌ Los estados no deben parecer promociones
-- ❌ No usar dark patterns
-
----
-
-### ⚠️ Nota Importante
-
-> Los estados son parte del **producto**, no excepciones ni experiencias.
-> Diseñados para generar **confianza** en cada situación.
-
----
-
-*DEV11-E · Representative States · v0.1 — Parte del Prototipo KAZA · P03*
+El estado verificado, los límites de la entrega y los pendientes se documentan en [IMPLEMENTACION_SEGURIDAD.md](docs/IMPLEMENTACION_SEGURIDAD.md). La compilación web remota, MFA/OAuth, restauración y recorridos reales todavía deben ensayarse. Las interfaces de transferencia, algunos flujos de colaboración y la limpieza de medios pendientes aún no completan todos los objetivos del [plan de mejora](docs/PLAN_MEJORA_FLUJOS_SEGURIDAD.md).

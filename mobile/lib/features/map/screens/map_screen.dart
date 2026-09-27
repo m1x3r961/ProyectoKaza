@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -26,9 +27,12 @@ class MapScreen extends ConsumerStatefulWidget {
   ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateMixin {
+class _MapScreenState extends ConsumerState<MapScreen>
+    with TickerProviderStateMixin {
+  Timer? _boundsDebounce;
   final MapController _mapController = MapController();
-  final LatLng _initialCenter = const LatLng(-17.7833, -63.1821); // Santa Cruz, Bolivia
+  final LatLng _initialCenter =
+      const LatLng(-17.7833, -63.1821); // Santa Cruz, Bolivia
   double _currentZoom = 13.5;
 
   PropertyMapItem? _selectedProperty;
@@ -76,9 +80,12 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   IconData _getIconForType(String type) {
     final t = type.toLowerCase();
     if (t.contains('casa')) return Icons.home_work_rounded;
-    if (t.contains('departamento') || t.contains('condominio')) return Icons.apartment_rounded;
-    if (t.contains('terreno') || t.contains('lote') || t.contains('rural')) return Icons.landscape_rounded;
-    if (t.contains('oficina') || t.contains('comercial') || t.contains('local')) return Icons.storefront_rounded;
+    if (t.contains('departamento') || t.contains('condominio'))
+      return Icons.apartment_rounded;
+    if (t.contains('terreno') || t.contains('lote') || t.contains('rural'))
+      return Icons.landscape_rounded;
+    if (t.contains('oficina') || t.contains('comercial') || t.contains('local'))
+      return Icons.storefront_rounded;
     if (t.contains('industrial')) return Icons.factory_rounded;
     return Icons.location_on_rounded;
   }
@@ -94,10 +101,12 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     if (_polygonPoints.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🗺️ Filtro aplicado: Polígono de ${_polygonPoints.length} vértices'),
+          content: Text(
+              '🗺️ Filtro aplicado: Polígono de ${_polygonPoints.length} vértices'),
           backgroundColor: KazaTheme.azulKaza,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -112,7 +121,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + kToolbarHeight),
+        padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + kToolbarHeight),
         child: ClusterBottomSheet(clusterItem: clusterItem),
       ),
     );
@@ -184,9 +194,17 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     return properties.where((prop) {
       // 1. Filter by operation
       final opLower = prop.operation.toLowerCase();
-      if (_selectedOperation == 'Comprar' && !opLower.contains('venta') && !opLower.contains('vender')) return false;
-      if (_selectedOperation == 'Alquilar' && !opLower.contains('alquiler') && !opLower.contains('alquilar') && !opLower.contains('temporal')) return false;
-      if (_selectedOperation == 'Anticrético' && !opLower.contains('anticretico') && !opLower.contains('anticrético') && !opLower.contains('anticret')) return false;
+      if (_selectedOperation == 'Comprar' &&
+          !opLower.contains('venta') &&
+          !opLower.contains('vender')) return false;
+      if (_selectedOperation == 'Alquilar' &&
+          !opLower.contains('alquiler') &&
+          !opLower.contains('alquilar') &&
+          !opLower.contains('temporal')) return false;
+      if (_selectedOperation == 'Anticrético' &&
+          !opLower.contains('anticretico') &&
+          !opLower.contains('anticrético') &&
+          !opLower.contains('anticret')) return false;
       // If 'Todas', we don't filter out anything based on operation
       // 2. Filter by min rooms
       if (_minRooms > 0 && prop.bedrooms < _minRooms) return false;
@@ -195,12 +213,13 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
     }).toList();
   }
 
-  List<PropertyMapItem> _clusterProperties(List<PropertyMapItem> items, double zoom) {
+  List<PropertyMapItem> _clusterProperties(
+      List<PropertyMapItem> items, double zoom) {
     if (items.isEmpty) return [];
-    
+
     // At high zoom, use tiny grid to only group identical coordinates
     double gridSize = zoom > 16.0 ? 0.00001 : (0.005 * math.pow(2, 14 - zoom));
-    
+
     Map<String, List<PropertyMapItem>> grid = {};
     for (var item in items) {
       int gridX = (item.location.latitude / gridSize).round();
@@ -208,7 +227,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
       String key = '$gridX,$gridY';
       grid.putIfAbsent(key, () => []).add(item);
     }
-    
+
     List<PropertyMapItem> clusters = [];
     for (var cell in grid.values) {
       if (cell.length == 1) {
@@ -266,7 +285,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
             ),
             data: (properties) {
               final filteredProperties = _filterProperties(properties);
-              final clusteredProperties = _clusterProperties(filteredProperties, _currentZoom);
+              final clusteredProperties =
+                  _clusterProperties(filteredProperties, _currentZoom);
 
               if (filteredProperties.isEmpty && properties.isNotEmpty) {
                 return Stack(
@@ -286,7 +306,11 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
               }
 
               // Build POI markers
-              final poiMarkers = (_showPoi || _showEducation || _showHealth || _showCommerce || _showTransport)
+              final poiMarkers = (_showPoi ||
+                      _showEducation ||
+                      _showHealth ||
+                      _showCommerce ||
+                      _showTransport)
                   ? PoiLayerBuilder.buildMarkers(
                       pois: _mockPois,
                       showEducation: _showEducation || _showPoi,
@@ -327,14 +351,18 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     child: Row(
                       children: [
                         const SizedBox(width: 16),
-                        const Icon(Icons.search_rounded, color: KazaTheme.grisMedio, size: 22),
+                        const Icon(Icons.search_rounded,
+                            color: KazaTheme.grisMedio, size: 22),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 14, color: KazaTheme.azulKaza),
+                            style: const TextStyle(
+                                fontSize: 14, color: KazaTheme.azulKaza),
                             decoration: InputDecoration(
-                              hintText: MediaQuery.of(context).size.width < 380 ? 'Buscar zona o barrio' : 'Buscar barrio, dirección o zona',
+                              hintText: MediaQuery.of(context).size.width < 380
+                                  ? 'Buscar zona o barrio'
+                                  : 'Buscar barrio, dirección o zona',
                               hintStyle: const TextStyle(
                                 color: Color(0xFF94A3B8),
                                 fontWeight: FontWeight.w400,
@@ -347,7 +375,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                         ),
                         // ── TOGGLE MAPA / LISTA ──────────────────────
                         Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 6),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF1F4F8),
                             borderRadius: BorderRadius.circular(20),
@@ -357,12 +386,16 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                             children: [
                               // Mapa
                               GestureDetector(
-                                onTap: () => setState(() => _showListOverlay = false),
+                                onTap: () =>
+                                    setState(() => _showListOverlay = false),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: !_showListOverlay ? KazaTheme.azulKaza : Colors.transparent,
+                                    color: !_showListOverlay
+                                        ? KazaTheme.azulKaza
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                   child: Row(
@@ -371,13 +404,17 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                                       Icon(
                                         Icons.map_rounded,
                                         size: 14,
-                                        color: !_showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                        color: !_showListOverlay
+                                            ? Colors.white
+                                            : KazaTheme.grisMedio,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Mapa',
                                         style: TextStyle(
-                                          color: !_showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                          color: !_showListOverlay
+                                              ? Colors.white
+                                              : KazaTheme.grisMedio,
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -388,12 +425,16 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                               ),
                               // Lista
                               GestureDetector(
-                                onTap: () => setState(() => _showListOverlay = true),
+                                onTap: () =>
+                                    setState(() => _showListOverlay = true),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: _showListOverlay ? KazaTheme.azulKaza : Colors.transparent,
+                                    color: _showListOverlay
+                                        ? KazaTheme.azulKaza
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                   child: Row(
@@ -402,13 +443,17 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                                       Icon(
                                         Icons.list_rounded,
                                         size: 14,
-                                        color: _showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                        color: _showListOverlay
+                                            ? Colors.white
+                                            : KazaTheme.grisMedio,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Lista',
                                         style: TextStyle(
-                                          color: _showListOverlay ? Colors.white : KazaTheme.grisMedio,
+                                          color: _showListOverlay
+                                              ? Colors.white
+                                              : KazaTheme.grisMedio,
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -479,10 +524,12 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                               foregroundColor: KazaTheme.azulKaza,
                               side: const BorderSide(color: KazaTheme.n100),
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                             onPressed: _clearPolygon,
-                            child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.w600)),
+                            child: const Text('Cancelar',
+                                style: TextStyle(fontWeight: FontWeight.w600)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -492,10 +539,14 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                               backgroundColor: KazaTheme.azulKaza,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
-                            onPressed: _polygonPoints.length >= 3 ? _applyPolygonFilter : null,
-                            child: const Text('Buscar aquí', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: _polygonPoints.length >= 3
+                                ? _applyPolygonFilter
+                                : null,
+                            child: const Text('Buscar aquí',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -508,7 +559,9 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
           // ━━━ 4. RIGHT-SIDE ACTION BUTTONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           Positioned(
             right: KazaResponsive.horizontalPadding(context),
-            bottom: _selectedProperty != null ? 260 : (_showListOverlay ? 320 : 110),
+            bottom: _selectedProperty != null
+                ? 260
+                : (_showListOverlay ? 320 : 110),
             child: Column(
               children: [
                 // Zoom In button
@@ -592,18 +645,23 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     },
                     onFavoriteTap: (prop) async {
                       try {
-                        final userId = SupabaseConfig.client.auth.currentUser?.id;
+                        final userId =
+                            SupabaseConfig.client.auth.currentUser?.id;
                         final payload = {'property_id': prop.id};
                         if (userId != null) payload['user_id'] = userId;
-                        await SupabaseConfig.client.from('saved_properties').insert(payload);
+                        await SupabaseConfig.client
+                            .from('saved_properties')
+                            .insert(payload);
                         ref.invalidate(savedPropertiesProvider);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${prop.title} guardado en favoritos'),
+                            content:
+                                Text('${prop.title} guardado en favoritos'),
                             backgroundColor: KazaTheme.azulKaza,
                             behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
                         );
                       } catch (e) {
@@ -657,15 +715,19 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                     final userId = SupabaseConfig.client.auth.currentUser?.id;
                     final payload = {'property_id': _selectedProperty!.id};
                     if (userId != null) payload['user_id'] = userId;
-                    await SupabaseConfig.client.from('saved_properties').insert(payload);
+                    await SupabaseConfig.client
+                        .from('saved_properties')
+                        .insert(payload);
                     ref.invalidate(savedPropertiesProvider);
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${_selectedProperty!.title} guardado en favoritos'),
+                        content: Text(
+                            '${_selectedProperty!.title} guardado en favoritos'),
                         backgroundColor: KazaTheme.azulKaza,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                     );
                   } catch (e) {
@@ -686,7 +748,8 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
   }
 
   /// Builds the base map with tile layer, polygon, and markers
-  Widget _buildBaseMap(List<PropertyMapItem> clusteredProperties, List<Marker> poiMarkers) {
+  Widget _buildBaseMap(
+      List<PropertyMapItem> clusteredProperties, List<Marker> poiMarkers) {
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
@@ -694,6 +757,17 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
         initialZoom: 13.5,
         onTap: _onMapTap,
         onPositionChanged: (camera, hasGesture) {
+          _boundsDebounce?.cancel();
+          _boundsDebounce = Timer(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            final b = camera.visibleBounds;
+            ref.read(mapBoundsProvider.notifier).state = {
+              'south': b.south,
+              'north': b.north,
+              'west': b.west,
+              'east': b.east
+            };
+          });
           if ((_currentZoom - camera.zoom).abs() > 0.5) {
             setState(() {
               _currentZoom = camera.zoom;
@@ -732,7 +806,11 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
                 point: prop.location,
                 // Cluster: mismo tamaño circular de siempre
                 // Pin precio: ancho dinámico según longitud del texto
-                width: hasCluster ? 52 : _priceLabel(prop.price).length > 5 ? 68 : 60,
+                width: hasCluster
+                    ? 52
+                    : _priceLabel(prop.price).length > 5
+                        ? 68
+                        : 60,
                 height: hasCluster ? 52 : 36,
                 child: GestureDetector(
                   onTap: () {
@@ -771,8 +849,7 @@ class _MapScreenState extends ConsumerState<MapScreen> with TickerProviderStateM
           ),
 
         // POI Marker Layer
-        if (poiMarkers.isNotEmpty)
-          MarkerLayer(markers: poiMarkers),
+        if (poiMarkers.isNotEmpty) MarkerLayer(markers: poiMarkers),
       ],
     );
   }
@@ -958,7 +1035,8 @@ class _PropertyPreviewCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: KazaTheme.azulKaza.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
@@ -974,7 +1052,8 @@ class _PropertyPreviewCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: KazaTheme.grisMedio.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
@@ -994,14 +1073,23 @@ class _PropertyPreviewCard extends StatelessWidget {
                   // Metrics row
                   Row(
                     children: [
-                      _MetricChip(icon: Icons.straighten_rounded, label: property.surface),
+                      _MetricChip(
+                          icon: Icons.straighten_rounded,
+                          label: property.surface),
                       const SizedBox(width: 12),
-                      _MetricChip(icon: Icons.king_bed_outlined, label: '${property.bedrooms} amb.'),
+                      _MetricChip(
+                          icon: Icons.king_bed_outlined,
+                          label: '${property.bedrooms} amb.'),
                       const SizedBox(width: 12),
-                      _MetricChip(icon: Icons.bathtub_outlined, label: '${property.bathrooms} baño${property.bathrooms != 1 ? 's' : ''}'),
+                      _MetricChip(
+                          icon: Icons.bathtub_outlined,
+                          label:
+                              '${property.bathrooms} baño${property.bathrooms != 1 ? 's' : ''}'),
                       if (property.floorsTotal > 1) ...[
                         const SizedBox(width: 12),
-                        _MetricChip(icon: Icons.apartment_rounded, label: '${property.floorsTotal}° piso'),
+                        _MetricChip(
+                            icon: Icons.apartment_rounded,
+                            label: '${property.floorsTotal}° piso'),
                       ],
                     ],
                   ),
@@ -1014,13 +1102,15 @@ class _PropertyPreviewCard extends StatelessWidget {
                         backgroundColor: KazaTheme.azulKaza,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
                       onPressed: onConsultPrice,
                       child: const Text(
                         'Consultar precio',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                     ),
                   ),
@@ -1029,7 +1119,8 @@ class _PropertyPreviewCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.favorite_border_rounded, size: 14, color: KazaTheme.grisMedio),
+                      Icon(Icons.favorite_border_rounded,
+                          size: 14, color: KazaTheme.grisMedio),
                       const SizedBox(width: 6),
                       const Text(
                         'Guarda esta propiedad para seguirla y recibir novedades',
@@ -1054,7 +1145,8 @@ class _PropertyPreviewCard extends StatelessWidget {
       height: 220,
       color: const Color(0xFFF0F4F8),
       width: double.infinity,
-      child: const Icon(Icons.home_work_rounded, color: Colors.black12, size: 48),
+      child:
+          const Icon(Icons.home_work_rounded, color: Colors.black12, size: 48),
     );
   }
 }

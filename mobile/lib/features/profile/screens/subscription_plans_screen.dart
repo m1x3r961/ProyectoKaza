@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/network/supabase_config.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -10,10 +9,12 @@ class SubscriptionPlansScreen extends ConsumerStatefulWidget {
   const SubscriptionPlansScreen({super.key});
 
   @override
-  ConsumerState<SubscriptionPlansScreen> createState() => _SubscriptionPlansScreenState();
+  ConsumerState<SubscriptionPlansScreen> createState() =>
+      _SubscriptionPlansScreenState();
 }
 
-class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScreen> {
+class _SubscriptionPlansScreenState
+    extends ConsumerState<SubscriptionPlansScreen> {
   bool _isLoading = false;
   String _currentTier = 'FREE';
 
@@ -27,15 +28,16 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
     try {
       final auth = ref.read(kazaAuthProvider);
       if (auth.userId == null) return;
-      
+
       final resp = await SupabaseConfig.client
           .from('profiles')
           .select('subscription_tier')
           .eq('id', auth.userId!)
           .maybeSingle();
-          
+
       if (resp != null && resp['subscription_tier'] != null) {
-        if (mounted) setState(() => _currentTier = resp['subscription_tier'] as String);
+        if (mounted)
+          setState(() => _currentTier = resp['subscription_tier'] as String);
       }
     } catch (e) {
       debugPrint('Error cargando tier: $e');
@@ -43,40 +45,9 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
   }
 
   Future<void> _upgradePlan(String newTier) async {
-    setState(() => _isLoading = true);
-    try {
-      // Usar la RPC definida en la migración 00014
-      await SupabaseConfig.client.rpc('fn_upgrade_subscription', params: {'p_tier': newTier});
-      
-      // Si el plan es PROPERTIES, asegurarnos de que el rol sea DEVELOPER
-      if (newTier == 'PROPERTIES') {
-        try {
-          await SupabaseConfig.client.rpc('fn_upsert_professional_profile', params: {
-            'p_role': 'DEVELOPER'
-          });
-        } catch (_) {}
-      }
-
-      if (mounted) {
-        setState(() => _currentTier = newTier);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('¡Felicidades! Ahora tienes una cuenta $newTier.'),
-            backgroundColor: KazaTheme.semanticSuccess,
-          ),
-        );
-        // Regresar el nuevo tier
-        context.pop(newTier);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cambiar plan: $e'), backgroundColor: KazaTheme.semanticError),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'La contratación de planes todavía no está habilitada. Tu plan no ha cambiado.')));
   }
 
   @override
@@ -86,10 +57,15 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
       appBar: AppBar(
         backgroundColor: KazaTheme.n000,
         elevation: 0,
-        title: const Text('Planes y Suscripciones', style: TextStyle(color: KazaTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Planes y Suscripciones',
+            style: TextStyle(
+                color: KazaTheme.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: KazaTheme.accentGold))
+          ? const Center(
+              child: CircularProgressIndicator(color: KazaTheme.accentGold))
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
@@ -98,16 +74,20 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                   const Text(
                     'Mejora tu cuenta KAZA',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary),
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: KazaTheme.textPrimary),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Obtén más alcance, mejores herramientas de gestión y conviértete en un profesional.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14),
+                    style:
+                        TextStyle(color: KazaTheme.textSecondary, fontSize: 14),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // PLAN FREE
                   _buildPlanCard(
                     title: 'FREE',
@@ -123,7 +103,7 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                     color: KazaTheme.textMuted,
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // PLAN PLUS
                   _buildPlanCard(
                     title: 'PLUS',
@@ -141,61 +121,63 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                     isPopular: true,
                   ),
                   const SizedBox(height: 16),
-                  
-                    // PLAN PRO
-                    _buildPlanCard(
-                      title: 'PRO',
-                      price: 'Bs 300 / mes',
-                      description: 'CRM y herramientas para agentes profesionales.',
-                      isActive: _currentTier == 'PRO',
-                      features: [
-                        'Todo lo de Plus',
-                        'CRM Inmobiliario Profesional',
-                        'Embudo de oportunidades y ventas',
-                        'Seguimiento y tareas inteligentes',
-                        'Reportes avanzados y analítica',
-                      ],
-                      onSelect: () => _upgradePlan('PRO'),
-                      color: KazaTheme.primaryCoral,
-                    ),
-                    const SizedBox(height: 16),
 
-                    // PLAN BUSINESS
-                    _buildPlanCard(
-                      title: 'BUSINESS',
-                      price: 'Bs 800 / mes',
-                      description: 'Para inmobiliarias y empresas organizadas.',
-                      isActive: _currentTier == 'BUSINESS',
-                      features: [
-                        'Todo lo de Pro',
-                        'Crear una Organización (Inmobiliaria)',
-                        'Gestión de equipo y permisos',
-                        'Inventario centralizado',
-                        'Pipeline consolidado de todos tus agentes',
-                      ],
-                      onSelect: () => _upgradePlan('BUSINESS'),
-                      color: const Color(0xFF7C4DFF), // Purple theme for business
-                    ),
-                    const SizedBox(height: 16),
+                  // PLAN PRO
+                  _buildPlanCard(
+                    title: 'PRO',
+                    price: 'Bs 300 / mes',
+                    description:
+                        'CRM y herramientas para agentes profesionales.',
+                    isActive: _currentTier == 'PRO',
+                    features: [
+                      'Todo lo de Plus',
+                      'CRM Inmobiliario Profesional',
+                      'Embudo de oportunidades y ventas',
+                      'Seguimiento y tareas inteligentes',
+                      'Reportes avanzados y analítica',
+                    ],
+                    onSelect: () => _upgradePlan('PRO'),
+                    color: KazaTheme.primaryCoral,
+                  ),
+                  const SizedBox(height: 16),
 
-                    // PLAN PROPERTIES
-                    _buildPlanCard(
-                      title: 'PROPERTIES',
-                      price: 'Consultar',
-                      description: 'Gestión avanzada para proyectos inmobiliarios.',
-                      isActive: _currentTier == 'PROPERTIES',
-                      features: [
-                        'Todo lo de Business',
-                        'Gestión de Proyectos',
-                        'Unidades y Etapas Ilimitadas',
-                        'Matriz visual de Disponibilidad',
-                        'Integración Fintech (Simulador y Reserva)',
-                        'Módulo CRM Desarrolladora',
-                      ],
-                      onSelect: () => _upgradePlan('PROPERTIES'),
-                      color: KazaTheme.azulKaza, // Blue theme for developers
-                    ),
-                    const SizedBox(height: 32),
+                  // PLAN BUSINESS
+                  _buildPlanCard(
+                    title: 'BUSINESS',
+                    price: 'Bs 800 / mes',
+                    description: 'Para inmobiliarias y empresas organizadas.',
+                    isActive: _currentTier == 'BUSINESS',
+                    features: [
+                      'Todo lo de Pro',
+                      'Crear una Organización (Inmobiliaria)',
+                      'Gestión de equipo y permisos',
+                      'Inventario centralizado',
+                      'Pipeline consolidado de todos tus agentes',
+                    ],
+                    onSelect: () => _upgradePlan('BUSINESS'),
+                    color: const Color(0xFF7C4DFF), // Purple theme for business
+                  ),
+                  const SizedBox(height: 16),
+
+                  // PLAN PROPERTIES
+                  _buildPlanCard(
+                    title: 'PROPERTIES',
+                    price: 'Consultar',
+                    description:
+                        'Gestión avanzada para proyectos inmobiliarios.',
+                    isActive: _currentTier == 'PROPERTIES',
+                    features: [
+                      'Todo lo de Business',
+                      'Gestión de Proyectos',
+                      'Unidades y Etapas Ilimitadas',
+                      'Matriz visual de Disponibilidad',
+                      'Integración Fintech (Simulador y Reserva)',
+                      'Módulo CRM Desarrolladora',
+                    ],
+                    onSelect: () => _upgradePlan('PROPERTIES'),
+                    color: KazaTheme.azulKaza, // Blue theme for developers
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -217,25 +199,36 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? color : KazaTheme.glassBorder, 
-          width: isActive ? 2 : 1
-        ),
+            color: isActive ? color : KazaTheme.glassBorder,
+            width: isActive ? 2 : 1),
         boxShadow: isActive
-            ? [BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))]
+            ? [
+                BoxShadow(
+                    color: color.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4))
+              ]
             : [],
       ),
       child: Stack(
         children: [
           if (isPopular)
             Positioned(
-              top: 0, right: 24,
+              top: 0,
+              right: 24,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                  borderRadius:
+                      const BorderRadius.vertical(bottom: Radius.circular(8)),
                 ),
-                child: const Text('MÁS POPULAR', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: const Text('MÁS POPULAR',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold)),
               ),
             ),
           Padding(
@@ -246,48 +239,72 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: color)),
                     if (isActive)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: KazaTheme.verifiedGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                        child: const Text('PLAN ACTUAL', style: TextStyle(color: KazaTheme.verifiedGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                            color:
+                                KazaTheme.verifiedGreen.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12)),
+                        child: const Text('PLAN ACTUAL',
+                            style: TextStyle(
+                                color: KazaTheme.verifiedGreen,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold)),
                       ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(price, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: KazaTheme.textPrimary)),
+                Text(price,
+                    style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: KazaTheme.textPrimary)),
                 const SizedBox(height: 4),
-                Text(description, style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
+                Text(description,
+                    style: const TextStyle(
+                        color: KazaTheme.textSecondary, fontSize: 14)),
                 const SizedBox(height: 24),
-                
                 ...features.map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.check_circle_rounded, color: color, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(f, style: const TextStyle(color: KazaTheme.textPrimary, fontSize: 14))),
-                    ],
-                  ),
-                )),
-                
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.check_circle_rounded,
+                              color: color, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: Text(f,
+                                  style: const TextStyle(
+                                      color: KazaTheme.textPrimary,
+                                      fontSize: 14))),
+                        ],
+                      ),
+                    )),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isActive ? KazaTheme.n100 : color,
-                      foregroundColor: isActive ? KazaTheme.textMuted : Colors.white,
+                      foregroundColor:
+                          isActive ? KazaTheme.textMuted : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: isActive ? 0 : 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: isActive ? null : onSelect,
                     child: Text(
                       isActive ? 'Plan Actual' : 'Seleccionar $title',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
                 ),

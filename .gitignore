@@ -9,6 +9,7 @@ out/
 .env.test.local
 .env.production.local
 npm-debug.log*
+*.tsbuildinfo
 yarn-debug.log*
 yarn-error.log*
 
@@ -23,5 +24,13 @@ mobile/.dart_tool/
 Thumbs.db
 .vscode/
 .idea/
+.vercel/
 *.suo
 *.user
+
+# Generated migration bundles (regenerate from the ordered sources)
+supabase/generated/
+# Local implementation scripts and verification logs
+tmp/implementation/
+tmp/*audit.json
+tmp/flutter-*.txt

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -43,9 +44,16 @@ class KazaAuthState {
 
 class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
   bool _pendingIsAgent = false;
+  StreamSubscription? _authSubscription;
 
   KazaAuthNotifier() : super(KazaAuthState()) {
     _initSupabaseAuth();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   void setPendingRole({required String role}) {
@@ -58,7 +66,8 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
       if (user != null) {
         _setUser(user);
       }
-      SupabaseConfig.client.auth.onAuthStateChange.listen((data) {
+      _authSubscription =
+          SupabaseConfig.client.auth.onAuthStateChange.listen((data) {
         final sessionUser = data.session?.user;
         if (sessionUser != null) {
           _setUser(sessionUser);
@@ -79,6 +88,7 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
         'Usuario Verificado';
     final email = user.email ?? 'usuario@kaza.bo';
 
+    if (!mounted) return;
     state = state.copyWith(
       isAuthenticated: true,
       userId: user.id,
@@ -96,61 +106,8 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
         'p_is_agent': finalIsAgent,
       });
     } catch (_) {
-      try {
-        await SupabaseConfig.client.from('profiles').upsert({
-          'id': user.id,
-          'email': email,
-          'full_name': name,
-          'system_role': 'USER',
-          'is_agent': finalIsAgent,
-        });
-      } catch (_) {}
-    }
-  }
-
-  Future<void> loginDemoUser({required String email, String? name, bool isAgent = false}) async {
-    final fullName = name ?? email.split('@').first;
-    state = state.copyWith(
-      isAuthenticated: true,
-      userId: SupabaseConfig.client.auth.currentUser?.id ?? 'usr-${DateTime.now().millisecondsSinceEpoch}',
-      email: email,
-      fullName: fullName,
-    );
-
-    // 1. Garantizar sesión permanente en Supabase Auth (guarda token en LocalStorage del navegador)
-    try {
-      try {
-        await SupabaseConfig.client.auth.signUp(
-          email: email,
-          password: 'GoogleOAuth2026!',
-        );
-      } catch (_) {
-        await SupabaseConfig.client.auth.signInWithPassword(
-          email: email,
-          password: 'GoogleOAuth2026!',
-        );
-      }
-    } catch (_) {}
-
-    // 2. Persistir usuario en la tabla profiles de Supabase DB mediante RPC SECURITY DEFINER
-    try {
-      await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
-        'p_id': state.userId,
-        'p_email': email,
-        'p_full_name': fullName,
-        'p_system_role': 'USER',
-        'p_is_agent': isAgent,
-      });
-    } catch (_) {
-      try {
-        await SupabaseConfig.client.from('profiles').upsert({
-          'id': state.userId,
-          'email': email,
-          'full_name': fullName,
-          'system_role': 'USER',
-          'is_agent': isAgent,
-        });
-      } catch (_) {}
+      debugPrint(
+          'No se pudo sincronizar el perfil; las acciones del servidor mantienen sus permisos.');
     }
   }
 
@@ -172,7 +129,8 @@ class KazaAuthNotifier extends StateNotifier<KazaAuthState> {
   }
 }
 
-final kazaAuthProvider = StateNotifierProvider<KazaAuthNotifier, KazaAuthState>((ref) {
+final kazaAuthProvider =
+    StateNotifierProvider<KazaAuthNotifier, KazaAuthState>((ref) {
   return KazaAuthNotifier();
 });
 
@@ -186,7 +144,7 @@ final userRoleProvider = FutureProvider<String>((ref) async {
         .select('role')
         .eq('id', authState.userId!)
         .maybeSingle();
-    
+
     if (response != null && response['role'] != null) {
       return response['role'] as String;
     }
@@ -204,7 +162,7 @@ final userTierProvider = FutureProvider<String>((ref) async {
         .select('subscription_tier')
         .eq('id', authState.userId!)
         .maybeSingle();
-    
+
     if (response != null && response['subscription_tier'] != null) {
       return response['subscription_tier'] as String;
     }
@@ -234,7 +192,8 @@ void checkProgressiveAuth({
         decoration: const BoxDecoration(
           color: KazaTheme.cardSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: KazaTheme.glassBorder, width: 1)),
+          border:
+              Border(top: BorderSide(color: KazaTheme.glassBorder, width: 1)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -253,12 +212,14 @@ void checkProgressiveAuth({
             const SizedBox(height: 20),
             Row(
               children: [
-                const Icon(Icons.shield_outlined, color: KazaTheme.primaryTealLight, size: 28),
+                const Icon(Icons.shield_outlined,
+                    color: KazaTheme.primaryTealLight, size: 28),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Registrarme para $actionName',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
               ],
@@ -266,7 +227,8 @@ void checkProgressiveAuth({
             const SizedBox(height: 12),
             const Text(
               'En Kaza puedes explorar el mapa, filtros y propiedades libremente. La autenticación solo se requiere cuando deseas conservar o avanzar un trámite.',
-              style: TextStyle(color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
+              style: TextStyle(
+                  color: KazaTheme.textMuted, fontSize: 13, height: 1.4),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -276,17 +238,20 @@ void checkProgressiveAuth({
                   backgroundColor: KazaTheme.primaryTeal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.login),
-                label: const Text('Iniciar Sesión / Registrarme', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text('Iniciar Sesión / Registrarme',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 onPressed: () async {
                   Navigator.pop(ctx);
                   await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   );
-                  if (ref.read(kazaAuthProvider).isAuthenticated) {
+                  if (context.mounted &&
+                      ref.read(kazaAuthProvider).isAuthenticated) {
                     onAuthenticatedAction();
                   }
                 },
@@ -297,7 +262,8 @@ void checkProgressiveAuth({
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Seguir explorando sin cuenta', style: TextStyle(color: KazaTheme.textMuted)),
+                child: const Text('Seguir explorando sin cuenta',
+                    style: TextStyle(color: KazaTheme.textMuted)),
               ),
             ),
             const SizedBox(height: 12),

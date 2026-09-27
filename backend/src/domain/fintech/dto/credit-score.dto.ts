@@ -1,6 +1,6 @@
-import { IsNumber, IsPositive, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsUUID, IsNumber, IsPositive, IsInt, Min, Max } from 'class-validator';
 
-/// DTO: Solicitud de pre-calificación de crédito hipotecario (Motor Banco Unión)
+/// DTO: Solicitud de pre-calificaciÃ³n de crÃ©dito hipotecario (Motor Banco UniÃ³n)
 export class CreditScoreDto {
   @IsNumber()
   @IsPositive()
@@ -22,8 +22,8 @@ export class CreditScoreDto {
   @IsInt()
   @Min(1)
   @Max(30)
-  termYears: number; // Plazo del crédito en años (1 a 30)
+  termYears: number; // Plazo del crÃ©dito en aÃ±os (1 a 30)
 
   // Referencia opcional a la propiedad en Kaza
-  listingId?: string;
+  @IsOptional() @IsUUID() listingId?: string;
 }

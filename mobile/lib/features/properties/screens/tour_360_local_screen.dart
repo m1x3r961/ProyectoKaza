@@ -1,9 +1,8 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
-import 'dart:ui_web' as ui_web;
+import 'tour_platform_stub.dart' if (dart.library.html) 'tour_platform_web.dart'
+    as tour_platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// ignore: undefined_prefixed_name
-import 'dart:html' as html;
 import '../../../app/theme/kaza_theme.dart';
 
 /// 🌐 TOUR 360° LOCAL — Visor esférico con imágenes panorámicas de la propiedad
@@ -58,7 +57,8 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
       duration: const Duration(milliseconds: 350),
       value: 1.0,
     );
-    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut);
+    _fadeAnim =
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut);
 
     if (kIsWeb) {
       _registerIframe();
@@ -69,19 +69,7 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
     if (_iframeRegistered) return;
     _iframeRegistered = true;
 
-    // ignore: undefined_prefixed_name
-    final iframe = html.IFrameElement()
-      ..src = 'pannellum_360.html'
-      ..style.border = 'none'
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..allowFullscreen = true
-      ..setAttribute('allow', 'fullscreen; gyroscope; accelerometer');
-
-    ui_web.platformViewRegistry.registerViewFactory(
-      'kaza-pannellum-360',
-      (int viewId) => iframe,
-    );
+    tour_platform.registerTourIframe();
   }
 
   @override
@@ -142,13 +130,12 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 12),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: KazaTheme.coralKaza.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: KazaTheme.coralKaza.withValues(alpha: 0.5)),
+              border:
+                  Border.all(color: KazaTheme.coralKaza.withValues(alpha: 0.5)),
             ),
             child: const Row(
               children: [
@@ -207,10 +194,11 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
 
         // HUD superior
         Positioned(
-          top: 0, left: 0, right: 0,
+          top: 0,
+          left: 0,
+          right: 0,
           child: Container(
-            padding:
-                const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -220,8 +208,7 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
             ),
             child: Row(
               children: [
-                Text(scene.icon,
-                    style: const TextStyle(fontSize: 22)),
+                Text(scene.icon, style: const TextStyle(fontSize: 22)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -235,14 +222,13 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
                               fontSize: 15)),
                       Text(scene.subtitle,
                           style: const TextStyle(
-                              color: Color(0xAAFFFFFF),
-                              fontSize: 12)),
+                              color: Color(0xAAFFFFFF), fontSize: 12)),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
@@ -263,11 +249,11 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
         // Hint de gesto
         Positioned(
           top: 80,
-          left: 0, right: 0,
+          left: 0,
+          right: 0,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.45),
                 borderRadius: BorderRadius.circular(20),
@@ -291,7 +277,9 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
 
         // Barra inferior de navegación
         Positioned(
-          bottom: 0, left: 0, right: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
             decoration: const BoxDecoration(
@@ -413,8 +401,7 @@ class _NavButton extends StatelessWidget {
         opacity: enabled ? 1.0 : 0.3,
         duration: const Duration(milliseconds: 200),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
           decoration: BoxDecoration(
             color: isNext
                 ? KazaTheme.coralKaza.withValues(alpha: 0.85)

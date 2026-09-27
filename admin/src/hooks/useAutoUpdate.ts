@@ -85,26 +85,6 @@ export function useAutoUpdate({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollInterval]);
 
-  // Countdown de auto-recarga
-  useEffect(() => {
-    if (!updateAvailable || dismissed) return;
-
-    setCountdown(autoReloadAfter);
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          window.location.reload();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateAvailable, dismissed]);
-
   return {
     updateAvailable: updateAvailable && !dismissed,
     countdown,

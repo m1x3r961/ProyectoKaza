@@ -1,22 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Configuración de cliente Supabase para Kaza
 class SupabaseConfig {
-  static const String supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://mgzbfklvtxprqofiaivl.supabase.co',
-  );
-
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_Hx6ofANMtz9ZIq8exX16xw_s0sVUHzc',
-  );
-
+  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const appEnv =
+      String.fromEnvironment('APP_ENV', defaultValue: 'development');
   static Future<void> initialize() async {
-    await Supabase.initialize(
-      url: supabaseUrl,
-      anonKey: supabaseAnonKey,
-    );
+    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty)
+      throw StateError('Configura SUPABASE_URL y SUPABASE_ANON_KEY.');
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   }
 
   static SupabaseClient get client => Supabase.instance.client;

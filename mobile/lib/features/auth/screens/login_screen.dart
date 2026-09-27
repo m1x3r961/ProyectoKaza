@@ -28,7 +28,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
-  
+
   bool _isLoading = false;
   bool _isLoginMode = false;
   Uint8List? _avatarBytes;
@@ -51,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (_emailController.text.isEmpty && authState.email != null) {
           _emailController.text = authState.email!;
         }
-        
+
         // Si tiene sesión activa y aterriza aquí, saltar a Datos Básicos (Paso 2)
         if (_pageController.hasClients && _pageController.page == 0) {
           _pageController.jumpToPage(2);
@@ -74,7 +74,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _nextPage() {
     if (_pageController.hasClients) {
-      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      _pageController.nextPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     }
   }
 
@@ -88,7 +89,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'), backgroundColor: Colors.redAccent));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -96,32 +98,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _saveBasicDataAndContinue() async {
-    if (_nameController.text.trim().isEmpty || _lastNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor completa tu nombre y apellidos'), backgroundColor: Colors.redAccent)
-      );
+    if (_nameController.text.trim().isEmpty ||
+        _lastNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Por favor completa tu nombre y apellidos'),
+          backgroundColor: Colors.redAccent));
       return;
     }
-    
+
     setState(() => _isLoading = true);
     try {
-      final fullName = '${_nameController.text.trim()} ${_lastNameController.text.trim()}';
+      final fullName =
+          '${_nameController.text.trim()} ${_lastNameController.text.trim()}';
       final user = SupabaseConfig.client.auth.currentUser;
       if (user == null) throw Exception('No hay usuario autenticado');
-      
+
       await SupabaseConfig.client.rpc('fn_upsert_profile', params: {
         'p_id': user.id,
         'p_email': _emailController.text.trim(),
         'p_full_name': fullName,
         'p_system_role': 'USER',
         'p_is_agent': false,
-        'p_phone': _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+        'p_phone': _phoneController.text.trim().isNotEmpty
+            ? _phoneController.text.trim()
+            : null,
       });
       _nextPage();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+              content: Text('Error al guardar: $e'),
+              backgroundColor: Colors.redAccent),
         );
       }
     } finally {
@@ -143,15 +151,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Seleccionar foto de perfil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: KazaTheme.textPrimary)),
+            const Text('Seleccionar foto de perfil',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: KazaTheme.textPrimary)),
             const SizedBox(height: 24),
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: KazaTheme.primaryTeal.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.camera_alt, color: KazaTheme.primaryTeal),
+                decoration: BoxDecoration(
+                    color: KazaTheme.primaryTeal.withValues(alpha: 0.1),
+                    shape: BoxShape.circle),
+                child:
+                    const Icon(Icons.camera_alt, color: KazaTheme.primaryTeal),
               ),
-              title: const Text('Tomar foto con la cámara', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text('Tomar foto con la cámara',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               onTap: () {
                 Navigator.pop(ctx);
                 _processImagePick(ImageSource.camera);
@@ -161,10 +177,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: KazaTheme.azulKaza.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.photo_library, color: KazaTheme.azulKaza),
+                decoration: BoxDecoration(
+                    color: KazaTheme.azulKaza.withValues(alpha: 0.1),
+                    shape: BoxShape.circle),
+                child:
+                    const Icon(Icons.photo_library, color: KazaTheme.azulKaza),
               ),
-              title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text('Elegir de la galería',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               onTap: () {
                 Navigator.pop(ctx);
                 _processImagePick(ImageSource.gallery);
@@ -179,7 +199,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _processImagePick(ImageSource source) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800);
+    final pickedFile =
+        await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800);
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -197,8 +218,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final data = json.decode(response.body);
         final address = data['address'] as Map<String, dynamic>?;
         if (address != null) {
-          final road = address['road'] ?? address['pedestrian'] ?? address['suburb'] ?? address['neighbourhood'] ?? address['city_district'];
-          final city = address['city'] ?? address['town'] ?? address['village'] ?? address['county'];
+          final road = address['road'] ??
+              address['pedestrian'] ??
+              address['suburb'] ??
+              address['neighbourhood'] ??
+              address['city_district'];
+          final city = address['city'] ??
+              address['town'] ??
+              address['village'] ??
+              address['county'];
           if (road != null && city != null) {
             return '$road, $city';
           } else if (road != null) {
@@ -213,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showLocationPicker() {
     LatLng currentCenter = const LatLng(-17.7833, -63.1821);
-    
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -233,13 +261,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on, color: KazaTheme.primaryTeal, size: 28),
+                      const Icon(Icons.location_on,
+                          color: KazaTheme.primaryTeal, size: 28),
                       const SizedBox(width: 12),
                       const Expanded(
-                        child: Text('Selecciona tu ubicación', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: KazaTheme.textPrimary)),
+                        child: Text('Selecciona tu ubicación',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: KazaTheme.textPrimary)),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: KazaTheme.textMuted),
+                        icon:
+                            const Icon(Icons.close, color: KazaTheme.textMuted),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -247,12 +281,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
-                  child: Text('Mueve el mapa para ajustar tu ubicación pública principal. Esto nos ayudará a mostrarte resultados relevantes.', style: TextStyle(color: KazaTheme.textSecondary, fontSize: 14)),
+                  child: Text(
+                      'Mueve el mapa para ajustar tu ubicación pública principal. Esto nos ayudará a mostrarte resultados relevantes.',
+                      style: TextStyle(
+                          color: KazaTheme.textSecondary, fontSize: 14)),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(24)),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -268,12 +306,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           children: [
                             TileLayer(
-                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                               userAgentPackageName: 'com.kaza.app',
                             ),
                           ],
                         ),
-                        const Icon(Icons.location_on, color: KazaTheme.coralKaza, size: 48),
+                        const Icon(Icons.location_on,
+                            color: KazaTheme.coralKaza, size: 48),
                       ],
                     ),
                   ),
@@ -287,17 +327,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         backgroundColor: KazaTheme.primaryTeal,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () async {
                         // Opcionalmente se podría mostrar un loader aquí, pero Nominatim es rápido
-                        final address = await _getAddressFromCoordinates(currentCenter.latitude, currentCenter.longitude);
+                        final address = await _getAddressFromCoordinates(
+                            currentCenter.latitude, currentCenter.longitude);
                         setState(() {
                           _locationController.text = address;
                         });
                         if (context.mounted) Navigator.pop(ctx);
                       },
-                      child: const Text('Confirmar Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: const Text('Confirmar Ubicación',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                 ),
@@ -315,31 +359,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       String? avatarUrl;
       final authState = ref.read(kazaAuthProvider);
       final email = authState.email ?? _emailController.text.trim();
-      
+
       if (_avatarBytes != null) {
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_$_avatarName';
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_$_avatarName';
         final filePath = '$email/$fileName';
-        
+
         await SupabaseConfig.client.storage.from('avatars').uploadBinary(
-          filePath,
-          _avatarBytes!,
-          fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
-        );
-        avatarUrl = SupabaseConfig.client.storage.from('avatars').getPublicUrl(filePath);
+              filePath,
+              _avatarBytes!,
+              fileOptions:
+                  const FileOptions(contentType: 'image/jpeg', upsert: true),
+            );
+        avatarUrl = SupabaseConfig.client.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
       }
 
       await SupabaseConfig.client.rpc('fn_update_profile_settings', params: {
         'p_email': email,
         'p_avatar_url': avatarUrl,
-        'p_biography': _bioController.text.trim().isNotEmpty ? _bioController.text.trim() : null,
-        'p_location': _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
+        'p_biography': _bioController.text.trim().isNotEmpty
+            ? _bioController.text.trim()
+            : null,
+        'p_location': _locationController.text.trim().isNotEmpty
+            ? _locationController.text.trim()
+            : null,
       });
-      
+
       _nextPage();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar ajustes: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+              content: Text('Error al guardar ajustes: $e'),
+              backgroundColor: Colors.redAccent),
         );
       }
     } finally {
@@ -352,7 +406,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_isLoginMode ? 'Iniciar Sesión' : 'Creación de Cuenta KAZA'),
+        title:
+            Text(_isLoginMode ? 'Iniciar Sesión' : 'Creación de Cuenta KAZA'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -390,7 +445,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               'assets/images/kaza_logo_tagline.png',
               width: 200,
               fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.home, size: 100, color: KazaTheme.primaryTeal),
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.home,
+                  size: 100,
+                  color: KazaTheme.primaryTeal),
             ),
           ),
           const SizedBox(height: 60),
@@ -402,7 +460,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const Text(
             'KAZA utiliza identidad digital única y segura. Sin roles ni planes, solo tú.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: KazaTheme.textMuted, fontSize: 14, height: 1.4),
+            style: TextStyle(
+                color: KazaTheme.textMuted, fontSize: 14, height: 1.4),
           ),
           const SizedBox(height: 40),
           SizedBox(
@@ -412,13 +471,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 backgroundColor: KazaTheme.primaryTeal,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
                 setState(() => _isLoginMode = false);
                 _nextPage();
               },
-              child: const Text('Crear cuenta nueva', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text('Crear cuenta nueva',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(height: 16),
@@ -429,13 +490,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 foregroundColor: KazaTheme.primaryTeal,
                 side: const BorderSide(color: KazaTheme.primaryTeal, width: 2),
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
                 setState(() => _isLoginMode = true);
                 _nextPage();
               },
-              child: const Text('Iniciar con cuenta existente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text('Iniciar con cuenta existente',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -460,8 +523,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               children: [
                 Text(
-                  _isLoginMode ? 'Inicia sesión con tu cuenta' : '¿Cómo quieres crear tu cuenta?',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  _isLoginMode
+                      ? 'Inicia sesión con tu cuenta'
+                      : '¿Cómo quieres crear tu cuenta?',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 30),
@@ -475,16 +541,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black87,
                         elevation: 2,
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: _handleGoogleAuth,
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.g_mobiledata, size: 32, color: Color(0xFF4285F4)),
+                          Icon(Icons.g_mobiledata,
+                              size: 32, color: Color(0xFF4285F4)),
                           SizedBox(width: 10),
-                          Text('Continuar con Google', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text('Continuar con Google',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -522,34 +593,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.person_outline, color: KazaTheme.primaryTealLight),
+                    Icon(Icons.person_outline,
+                        color: KazaTheme.primaryTealLight),
                     SizedBox(width: 10),
                     Expanded(
-                      child: Text('Completa tus datos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: Text('Completa tus datos',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Nombre *', prefixIcon: Icon(Icons.person), border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                      labelText: 'Nombre *',
+                      prefixIcon: Icon(Icons.person),
+                      border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _lastNameController,
-                  decoration: const InputDecoration(labelText: 'Apellidos *', prefixIcon: Icon(Icons.person_outline), border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                      labelText: 'Apellidos *',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _emailController,
                   enabled: false, // Sólo lectura desde Google
-                  decoration: const InputDecoration(labelText: 'Correo electrónico', prefixIcon: Icon(Icons.email), border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                      labelText: 'Correo electrónico',
+                      prefixIcon: Icon(Icons.email),
+                      border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Teléfono de Contacto', prefixIcon: Icon(Icons.phone), border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                      labelText: 'Teléfono de Contacto',
+                      prefixIcon: Icon(Icons.phone),
+                      border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 28),
                 if (_isLoading)
@@ -562,10 +648,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         backgroundColor: KazaTheme.primaryTeal,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _saveBasicDataAndContinue,
-                      child: const Text('Continuar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text('Continuar',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
               ],
@@ -585,13 +674,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: KazaTheme.primaryTealLight.withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle_outline, size: 80, color: KazaTheme.primaryTealLight),
+            decoration: BoxDecoration(
+                color: KazaTheme.primaryTealLight.withOpacity(0.1),
+                shape: BoxShape.circle),
+            child: const Icon(Icons.check_circle_outline,
+                size: 80, color: KazaTheme.primaryTealLight),
           ),
           const SizedBox(height: 24),
-          const Text('¡Cuenta Creada!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text('¡Cuenta Creada!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          const Text('Tu identidad digital única está lista. Ya puedes usar KAZA.', textAlign: TextAlign.center, style: TextStyle(color: KazaTheme.textMuted, fontSize: 14, height: 1.4)),
+          const Text(
+              'Tu identidad digital única está lista. Ya puedes usar KAZA.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: KazaTheme.textMuted, fontSize: 14, height: 1.4)),
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
@@ -600,10 +697,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 backgroundColor: KazaTheme.primaryTeal,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _nextPage,
-              child: const Text('Continuar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text('Continuar',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -621,7 +720,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: _nextPage,
-              child: const Text('Omitir', style: TextStyle(color: KazaTheme.textMuted)),
+              child: const Text('Omitir',
+                  style: TextStyle(color: KazaTheme.textMuted)),
             ),
           ),
           Container(
@@ -636,10 +736,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.settings_outlined, color: KazaTheme.primaryTealLight),
+                    Icon(Icons.settings_outlined,
+                        color: KazaTheme.primaryTealLight),
                     SizedBox(width: 10),
                     Expanded(
-                      child: Text('Completa tu perfil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: Text('Completa tu perfil',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -650,18 +753,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: CircleAvatar(
                       radius: 40,
                       backgroundColor: Colors.grey[200],
-                      backgroundImage: _avatarBytes != null ? MemoryImage(_avatarBytes!) : null,
-                      child: _avatarBytes == null ? const Icon(Icons.camera_alt, color: Colors.grey) : null,
+                      backgroundImage: _avatarBytes != null
+                          ? MemoryImage(_avatarBytes!)
+                          : null,
+                      child: _avatarBytes == null
+                          ? const Icon(Icons.camera_alt, color: Colors.grey)
+                          : null,
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Center(child: Text('Foto de perfil', style: TextStyle(fontSize: 12, color: KazaTheme.textMuted))),
+                const Center(
+                    child: Text('Foto de perfil',
+                        style: TextStyle(
+                            fontSize: 12, color: KazaTheme.textMuted))),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _bioController,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Biografía (opcional)', prefixIcon: Icon(Icons.edit_note), border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                      labelText: 'Biografía (opcional)',
+                      prefixIcon: Icon(Icons.edit_note),
+                      border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -670,10 +783,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: TextField(
                       controller: _locationController,
                       decoration: const InputDecoration(
-                        labelText: 'Ubicación (opcional)', 
-                        prefixIcon: Icon(Icons.location_on_outlined), 
+                        labelText: 'Ubicación (opcional)',
+                        prefixIcon: Icon(Icons.location_on_outlined),
                         border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.map, color: KazaTheme.primaryTeal),
+                        suffixIcon:
+                            Icon(Icons.map, color: KazaTheme.primaryTeal),
                       ),
                     ),
                   ),
@@ -689,10 +803,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         backgroundColor: KazaTheme.primaryTeal,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _saveProfileSettings,
-                      child: const Text('Guardar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text('Guardar',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
               ],
@@ -710,11 +827,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.rocket_launch, size: 80, color: KazaTheme.primaryTealLight),
+          const Icon(Icons.rocket_launch,
+              size: 80, color: KazaTheme.primaryTealLight),
           const SizedBox(height: 24),
-          const Text('¡Listo!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text('¡Listo!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          const Text('Tu Cuenta KAZA está lista para acompañarte.', textAlign: TextAlign.center, style: TextStyle(color: KazaTheme.textMuted, fontSize: 14, height: 1.4)),
+          const Text('Tu Cuenta KAZA está lista para acompañarte.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: KazaTheme.textMuted, fontSize: 14, height: 1.4)),
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
@@ -723,10 +845,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 backgroundColor: KazaTheme.primaryTeal,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () => context.go('/onboarding'),
-              child: const Text('Explorar KAZA', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              onPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  context.go('/onboarding');
+                }
+              },
+              child: const Text('Explorar KAZA',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
