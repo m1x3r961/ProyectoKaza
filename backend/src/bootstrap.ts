@@ -4,9 +4,9 @@ import { randomUUID } from 'crypto';
 import { AppModule } from './app.module';
 import { configuration } from './config';
 import { ErrorFilter } from './security/error.filter';
-export async function createApp() {
+export async function createApp(factory: typeof NestFactory = NestFactory) {
  const config = configuration();
- const app = await NestFactory.create(AppModule, { bodyParser: false });
+ const app = await factory.create(AppModule, { bodyParser: false });
  const express = require('express');
  app.use(express.json({ limit: '128kb' }));
  app.enableCors({ origin: config.origins, methods: ['GET','POST','PATCH','DELETE','OPTIONS'], allowedHeaders: ['Authorization','Content-Type','Idempotency-Key'], credentials: false });

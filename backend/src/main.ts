@@ -1,3 +1,5 @@
+import { NestFactory } from '@nestjs/core';
 import { createApp } from './bootstrap';
 import { configuration } from './config';
-createApp().then(app => app.listen(configuration().port));
+// Vercel detects NestJS through a direct import in this entrypoint.
+createApp(NestFactory).then(app => app.listen(configuration().port));

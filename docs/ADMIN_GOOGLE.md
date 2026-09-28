@@ -11,6 +11,18 @@ Configuración solicitada el 28/09/2026. Sustituye el acceso por contraseña y e
 
 ## Comportamiento
 
+### Autorizar manualmente a sczkaza@gmail.com
+
+Con 00023–00026 aplicadas, ejecuta completo `supabase/manual/grant_admin_sczkaza.sql` en SQL Editor como postgres. Incluye la configuración de 00027 si falta, dentro de la misma transacción que el alta. Busca una única cuenta existente por correo y añade su UUID a `kaza_admins`. Conserva otros administradores y la marca del primer acceso; repetirlo no duplica permisos ni auditorías. El resultado final debe mostrar el correo autorizado. No se ejecuta desde el navegador ni requiere incluir claves privadas en el admin.
+
+Si la versión anterior del script mostró «Primero aplica las migraciones 00023–00027», vuelve a abrir el archivo actualizado y ejecuta todo su contenido. No hace falta repetir `kaza-upgrade.sql`. Si el editor indica que la transacción está abortada (25P02), ejecuta `ROLLBACK;` y luego el script completo. Si también faltan las dependencias de 00023–00026, el script se detiene sin cambios; este archivo no sustituye esas migraciones.
+
+### Si aparece “Failed to fetch”
+
+Ese mensaje indica un fallo de conexión, no confirma una falta de permisos. El código anterior usaba `localhost:3000` cuando faltaba `NEXT_PUBLIC_API_BASE_URL`; en producción ahora muestra un error de configuración y no intenta esa conexión local.
+
+En el proyecto Vercel del admin, configura `NEXT_PUBLIC_API_BASE_URL` con el origen HTTPS del **backend NestJS**, sin `/api/admin` (no es la URL de Supabase ni de la app pública). Vuelve a desplegar el admin para incorporar la variable al JavaScript. En el backend, `CORS_ORIGINS` debe incluir `https://proyecto-kaza-admin.vercel.app`, conservando los demás orígenes necesarios separados por comas. Autorizar el correo por SQL no repara una conexión fallida.
+
 - La primera sesión Google que completa `POST /api/admin/access` obtiene el permiso. Registrarse solo en la app pública no asigna este rol.
 - El UUID de Supabase Auth se registra en `kaza_admins`; una marca única en `kaza_admin_bootstrap` deja constancia del primer administrador. No depende del navegador, de localStorage ni del correo enviado por el cliente.
 - Los intentos se serializan en PostgreSQL con un bloqueo común. Dos primeras cuentas no pueden obtener el alta inicial a la vez.

@@ -16,6 +16,8 @@ Cada aplicación usa su carpeta como **Root Directory**. Si ya existen los proye
 
 El backend utiliza el soporte actual de [NestJS en Vercel](https://vercel.com/docs/frameworks/backend/nestjs). La configuración anterior de Flutter tenía el build vacío y servía el artefacto ya guardado; ahora los cambios Dart se compilan en cada despliegue. Los archivos viejos de `build/web` no se regeneraron localmente en esta entrega.
 
+Si Vercel muestra `No entrypoint found which imports nestjs`, publica la corrección de `backend/src/main.ts` y `backend/src/bootstrap.ts`: el punto de entrada debe importar directamente `NestFactory` desde `@nestjs/core`. La configuración compartida de CORS, validación y autenticación sigue en `bootstrap.ts`. Repetir el despliegue del commit anterior `683316a` no incorpora esta corrección.
+
 **Backend**:
 
 ```text
