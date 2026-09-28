@@ -8,6 +8,12 @@ DO $$ DECLARE unknown text; BEGIN
  AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.classid='pg_class'::regclass AND d.objid=c.oid AND d.deptype='e');
  IF unknown IS NOT NULL THEN RAISE EXCEPTION 'Unrecognized public relations: %. Reconcile before applying security policies.',unknown; END IF;
 END $$;
+-- Compatibility with databases missing 00015_organization_crm_fields.sql.
+-- Existing rows stay personal (NULL); never infer organization membership.
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES public.organizations(id) ON DELETE SET NULL;
+ALTER TABLE public.crm_contacts ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES public.organizations(id) ON DELETE SET NULL;
+ALTER TABLE public.crm_opportunities ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES public.organizations(id) ON DELETE SET NULL;
+ALTER TABLE public.crm_tasks ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES public.organizations(id) ON DELETE SET NULL;
 CREATE SCHEMA IF NOT EXISTS kaza_private;
 REVOKE ALL ON SCHEMA kaza_private FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA kaza_private TO authenticated, service_role;

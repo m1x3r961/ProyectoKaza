@@ -4,6 +4,8 @@ KAZA es una plataforma inmobiliaria con búsqueda por mapa, publicación de inmu
 
 Actualizado el **27 de septiembre de 2026**. Este README describe el código local actual. Las migraciones y los despliegues remotos requieren la carga manual y verificación del propietario del proyecto. Algunas pantallas siguen siendo prototipos; su presencia no acredita un flujo productivo completo.
 
+**Cambio del 28/09/2026:** el admin usa Google y registra la primera cuenta administradora en el servidor, sin TOTP obligatorio. La guía vigente para este acceso y su migración 00027 está en [ADMIN_GOOGLE.md](docs/ADMIN_GOOGLE.md); sustituye las referencias a MFA obligatorio de la entrega anterior.
+
 ## Vista general
 
 ```mermaid

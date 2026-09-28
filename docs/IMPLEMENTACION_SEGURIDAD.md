@@ -2,6 +2,8 @@
 
 Actualizado: 27 de septiembre de 2026. Cambios locales; no desplegados ni aplicados a Supabase remoto.
 
+**Cambio solicitado el 28/09/2026:** acceso administrativo con Google y asignación persistente de la primera cuenta, sin contraseña ni TOTP obligatorio en el panel. [ADMIN_GOOGLE.md](ADMIN_GOOGLE.md) y la migración 00027 reemplazan el procedimiento anterior de alta/MFA descrito en este informe histórico. Los demás controles de permisos y auditoría se mantienen.
+
 ## Alcance implementado
 
 | Área del plan | Cambio en el repositorio | Límite de la verificación |

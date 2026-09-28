@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {database} from './database-helper.mjs';
+import {database,asUser} from './database-helper.mjs';
 import {migrationBundle} from '../scripts/migrations.mjs';
 import {readFile} from 'node:fs/promises';
 
@@ -14,6 +14,30 @@ test('fresh bundle is atomic and supplies the complete secured schema',async(t)=
 });
 test('manual SQL bundle matches its versioned migration sources',async()=>{
  assert.equal(await readFile(new URL('../../supabase/manual/kaza-upgrade.sql',import.meta.url),'utf8'),await migrationBundle('upgrade'));
+});
+
+test('upgrade repairs missing organization columns without exposing personal CRM rows',async(t)=>{
+ const db=await database({mode:'legacy'});t.after(()=>db.close());
+ const tables=['properties','crm_contacts','crm_opportunities','crm_tasks'];
+ for(const table of tables)await db.exec(`ALTER TABLE public.${table} DROP COLUMN organization_id`);
+ const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222';
+ for(const id of [a,b]){
+  await db.query('INSERT INTO auth.users(id,email) VALUES($1,$2)',[id,`${id}@test.local`]);
+  await db.query('INSERT INTO public.profiles(id,email,full_name) VALUES($1,$2,$3)',[id,`${id}@test.local`,'Existing user']);
+ }
+ await db.query("INSERT INTO public.crm_contacts(agent_id,first_name) VALUES($1,'Existing contact')",[a]);
+ await db.exec(await migrationBundle('upgrade'));
+ for(const table of tables){
+  const column=(await db.query("SELECT data_type,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 AND column_name='organization_id'",[table])).rows[0];
+  assert.deepEqual(column,{data_type:'uuid',is_nullable:'YES'});
+ }
+ await asUser(db,a,async()=>{
+  const rows=(await db.query('SELECT first_name,organization_id FROM public.crm_contacts')).rows;
+  assert.deepEqual(rows,[{first_name:'Existing contact',organization_id:null}]);
+  await assert.rejects(db.query("INSERT INTO public.crm_contacts(agent_id,first_name,organization_id) VALUES($1,'Invalid org',$2)",[a,b]),e=>e.code==='42501');
+ });
+ await asUser(db,b,async()=>assert.equal((await db.query('SELECT * FROM public.crm_contacts')).rows.length,0));
+ await assert.rejects(db.query("INSERT INTO public.crm_contacts(agent_id,first_name,organization_id) VALUES($1,'Invalid org',$2)",[a,b]),e=>e.code==='23503');
 });
 test('incremental upgrade preserves legacy inventory and supports explicit backfill',async(t)=>{
  const db=await database({mode:'legacy'});t.after(()=>db.close());

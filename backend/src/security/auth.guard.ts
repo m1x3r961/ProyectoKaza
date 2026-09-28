@@ -24,7 +24,14 @@ export class AuthGuard implements CanActivate {
     if (profile && profile.status !== 'ACTIVE') throw new ForbiddenException('Cuenta restringida.');
     req.actor = { id: data.user.id, token, aal: claims.aal };
     if (this.reflector.getAllAndOverride('admin', targets)) {
-      if (claims.aal !== 'aal2') throw new ForbiddenException('Verifica el segundo factor de autenticación.');
+      const google = data.user.app_metadata?.provider === 'google'
+        && data.user.identities?.some(identity => identity.provider === 'google')
+        && Array.isArray(claims.amr) && claims.amr.some(method => method.method === 'oauth');
+      if (!google) throw new ForbiddenException('Entra con Google para acceder al administrador.');
+      if (this.reflector.getAllAndOverride('adminBootstrap', targets)) {
+        const granted = await this.db.rpc('kaza_claim_initial_admin', { p_actor: data.user.id });
+        if (!granted) throw new ForbiddenException('Este panel ya tiene un administrador. Entra con la cuenta registrada.');
+      }
       const { data: admin, error: adminError } = await this.db.client.from('kaza_admins').select('user_id').eq('user_id', data.user.id).maybeSingle();
       if (adminError || !admin) throw new ForbiddenException('Acceso administrativo requerido.');
     }
