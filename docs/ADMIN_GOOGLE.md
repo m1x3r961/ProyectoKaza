@@ -17,6 +17,10 @@ Con 00023–00026 aplicadas, ejecuta completo `supabase/manual/grant_admin_sczka
 
 Si la versión anterior del script mostró «Primero aplica las migraciones 00023–00027», vuelve a abrir el archivo actualizado y ejecuta todo su contenido. No hace falta repetir `kaza-upgrade.sql`. Si el editor indica que la transacción está abortada (25P02), ejecuta `ROLLBACK;` y luego el script completo. Si también faltan las dependencias de 00023–00026, el script se detiene sin cambios; este archivo no sustituye esas migraciones.
 
+### Baja de usuarios desde el panel
+
+Después de publicar el código actualizado, ejecuta completo `supabase/manual/apply_00028_admin_user_deactivation.sql`. El botón **Eliminar** realiza una baja lógica: marca el perfil como `DELETED`, bloquea el acceso mediante las verificaciones existentes, suspende sus publicaciones y oculta la cuenta del panel. Conserva los registros relacionados y deja auditoría. El panel impide aplicar esta acción a la propia cuenta administradora o a cualquier otra cuenta incluida en `kaza_admins`.
+
 ### Si aparece “Failed to fetch”
 
 Ese mensaje indica un fallo de conexión, no confirma una falta de permisos. El código anterior usaba `localhost:3000` cuando faltaba `NEXT_PUBLIC_API_BASE_URL`; en producción ahora muestra un error de configuración y no intenta esa conexión local.

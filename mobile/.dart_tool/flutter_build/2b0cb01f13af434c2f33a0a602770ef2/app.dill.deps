@@ -2310,6 +2310,7 @@ file:///E:/proyectoKaza/mobile/.dart_tool/flutter_build/2b0cb01f13af434c2f33a0a6
 file:///E:/proyectoKaza/mobile/.dart_tool/package_config.json
 file:///E:/proyectoKaza/mobile/lib/app/routes/app_router.dart
 file:///E:/proyectoKaza/mobile/lib/app/theme/kaza_theme.dart
+file:///E:/proyectoKaza/mobile/lib/core/network/api_client.dart
 file:///E:/proyectoKaza/mobile/lib/core/network/supabase_config.dart
 file:///E:/proyectoKaza/mobile/lib/core/utils/responsive_utils.dart
 file:///E:/proyectoKaza/mobile/lib/core/widgets/kaza_badges.dart
@@ -2368,6 +2369,8 @@ file:///E:/proyectoKaza/mobile/lib/features/map/widgets/poi_layer_widget.dart
 file:///E:/proyectoKaza/mobile/lib/features/map/widgets/property_detail_sections.dart
 file:///E:/proyectoKaza/mobile/lib/features/media/models/kaza_media_item.dart
 file:///E:/proyectoKaza/mobile/lib/features/media/widgets/media_picker_widget.dart
+file:///E:/proyectoKaza/mobile/lib/features/messages/providers/chat_provider.dart
+file:///E:/proyectoKaza/mobile/lib/features/messages/screens/chat_detail_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/onboarding/screens/onboarding_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/models/organization_models.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/models/project_model.dart
@@ -2408,6 +2411,7 @@ file:///E:/proyectoKaza/mobile/lib/features/profile/screens/settings_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/profile/screens/subscription_plans_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/properties/screens/tour_360_local_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/properties/screens/tour_360_screen.dart
+file:///E:/proyectoKaza/mobile/lib/features/properties/screens/tour_platform_web.dart
 file:///E:/proyectoKaza/mobile/lib/features/publish/screens/publish_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/saved/screens/comparator_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/saved/screens/compare_tab_screen.dart

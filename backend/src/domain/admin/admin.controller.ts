@@ -3,7 +3,7 @@ import { IsIn, IsString, Length } from 'class-validator';
 import { Admin, AdminBootstrap, Actor, CurrentActor } from '../../security/access';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 class ModerateDto {
- @IsIn(['suspend_user','restore_user','suspend_listing','restore_listing','resolve_case']) action: string;
+ @IsIn(['suspend_user','restore_user','delete_user','suspend_listing','restore_listing','resolve_case']) action: string;
  @IsString() @Length(8,500) reason: string;
 }
 @Controller('api/admin') @Admin()

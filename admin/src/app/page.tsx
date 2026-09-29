@@ -168,7 +168,10 @@ function AdminDashboardSuite() {
     catch(e) { setOperationError((e as Error).message); }
     finally { setRefresh(false); }
   };
-  const delUser = (id:string) => moderate(id,'suspend_user');
+  const delUser = async (id:string) => {
+    if (!window.confirm('¿Dar de baja a este usuario? Perderá el acceso y dejará de aparecer en el panel. Sus datos se conservarán para auditoría.')) return;
+    await moderate(id,'delete_user');
+  };
   const resolveCase = (id:string) => moderate(id,'resolve_case');
   const toggleUser = (id:string,s:'ACTIVE'|'SUSPENDED') => moderate(id,s==='ACTIVE'?'restore_user':'suspend_user');
   const toggleList = (id:string,s:'PUBLISHED'|'BANNED') => moderate(id,s==='PUBLISHED'?'restore_listing':'suspend_listing');
@@ -359,7 +362,7 @@ function AdminDashboardSuite() {
                           <td style={{ padding: '11px 12px' }} data-label="Estado"><SBadge status={u.status} /></td>
                           <td style={{ padding: '11px 12px' }} data-label="Acciones"><div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {u.status === 'ACTIVE' ? <Btn color="#EF4444" outlined onClick={() => toggleUser(u.id, 'SUSPENDED')}>Suspender</Btn> : <Btn color="#10B981" onClick={() => toggleUser(u.id, 'ACTIVE')}>Activar</Btn>}
-                            <Btn color="#EF4444" onClick={() => delUser(u.id)}>Suspender</Btn>
+                            <Btn color="#EF4444" onClick={() => delUser(u.id)}>Eliminar</Btn>
                           </div></td>
                         </tr>
                       ))}</tbody>

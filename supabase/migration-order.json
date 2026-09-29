@@ -27,5 +27,6 @@
   "00024_listing_commands.sql",
   "00025_workflows.sql",
   "00026_integrity_and_realtime.sql",
-  "00027_google_first_admin.sql"
+  "00027_google_first_admin.sql",
+  "00028_admin_user_deactivation.sql"
 ]
