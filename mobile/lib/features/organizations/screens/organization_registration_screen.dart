@@ -138,7 +138,7 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
           const SizedBox(width: 16),
           const Expanded(
             child: Text(
-              'Registrar Desarrolladora',
+              'Registrar Agencia',
               style: TextStyle(color: KazaTheme.textPrimary, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5),
             ),
           ),

@@ -337,7 +337,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       context.push('/org-dashboard?mode=$mode');
                     },
                   ),
-                if (_tier == 'BUSINESS' || _tier == 'PROPERTIES' || _role == 'DEVELOPER')
+                if (_role == 'DEVELOPER')
                   _buildMainNavItem(
                     icon: Icons.construction, 
                     title: 'Panel Desarrolladora', 
@@ -364,7 +364,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       final mode = _selectedContext == 'Plus' ? 'pro' : 'business';
                       context.push('/org-dashboard?mode=$mode');
                     }),
-                    if (_tier == 'BUSINESS' || _tier == 'PROPERTIES' || _role == 'DEVELOPER')
+                    if (_role == 'DEVELOPER')
                       _buildAccessIcon(Icons.construction, 'Panel\nDesarrolladora', onTap: () {
                         context.go('/invest'); // Ir a la pestaña Invest donde está el CRM
                       }),
