@@ -446,9 +446,9 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
   }
 
   List<String> get _filteredPhotos {
-    final rawPhotos = widget.property.photos.isNotEmpty 
+    final List<String> rawPhotos = widget.property.photos.isNotEmpty 
         ? widget.property.photos 
-        : (widget.property.imageUrl != null ? [widget.property.imageUrl!] : []);
+        : (widget.property.imageUrl != null ? <String>[widget.property.imageUrl!] : <String>[]);
     return rawPhotos.where((url) => !url.contains('/360_')).toList();
   }
 
