@@ -357,7 +357,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         if (encoded == null)
           throw ApiException('No se pudo procesar la imagen.', 400);
         final bytes = encoded.buffer.asUint8List();
-        final path = '${user.id}/$_draftId/${ApiClient.newId()}.png';
+        final prefix = item.mediaType == KazaMediaType.tour360 ? '360_' : '';
+        final path = '${user.id}/$_draftId/$prefix${ApiClient.newId()}.png';
         await SupabaseConfig.client.storage
             .from('property-photos')
             .uploadBinary(path, bytes,

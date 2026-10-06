@@ -178,15 +178,23 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
             physics: const NeverScrollableScrollPhysics(),
             itemCount: images.length,
             itemBuilder: (ctx, i) {
+              final img = images[i];
               return InteractiveViewer(
                 minScale: 1.0,
                 maxScale: 3.5,
-                child: Image.asset(
-                  images[i],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
+                child: img.startsWith('http')
+                    ? Image.network(
+                        img,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      )
+                    : Image.asset(
+                        img,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
               );
             },
           ),

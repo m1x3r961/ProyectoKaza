@@ -72,6 +72,47 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
     }
   }
 
+  /// Seleccionar imágenes 360 desde galería/archivos
+  Future<void> _pick360ImagesFromGallery() async {
+    if (_isPickingImages) return;
+    setState(() => _isPickingImages = true);
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: true,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        for (final file in result.files) {
+          if (file.bytes != null) {
+            final newItem = KazaMediaItem(
+              id: 'img-${DateTime.now().millisecondsSinceEpoch}-${_items.length}',
+              url: '',
+              fileName: file.name,
+              bytes: file.bytes,
+              mediaType: KazaMediaType.tour360, // Especificamos que es un 360
+              isThumbnail: false, // Las 360 no deben ser portadas por defecto
+            );
+            setState(() {
+              _items.add(newItem);
+            });
+          }
+        }
+        widget.onChanged(_items);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar imágenes 360: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingImages = false);
+    }
+  }
+
   /// Tomar foto con cámara (solo Mobile, en Web no aplica)
   Future<void> _takePhoto() async {
     if (_isPickingImages) return;
@@ -141,6 +182,20 @@ class _MediaPickerWidgetState extends State<MediaPickerWidget> {
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImagesFromGallery();
+              },
+            ),
+            const SizedBox(height: 4),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: KazaTheme.coralKaza.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.threed_rotation_rounded, color: KazaTheme.coralKaza),
+              ),
+              title: const Text('Imagen 360 (Panorámica)', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Fotos envolventes para Tour Virtual', style: TextStyle(fontSize: 12, color: KazaTheme.textMuted)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pick360ImagesFromGallery();
               },
             ),
             // Solo mostrar opción de cámara en Mobile

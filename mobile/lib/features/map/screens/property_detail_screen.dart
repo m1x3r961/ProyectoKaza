@@ -759,20 +759,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
 
   // ─── VISOR 360° REAL CON IMÁGENES PANORÁMICAS ────────────────────────────────
   Widget _buildVirtualTourCard() {
-    const images = [
-      'assets/images/1.jpeg',
-      'assets/images/2.jpeg',
-      'assets/images/3.jpeg',
-      'assets/images/4.jpeg',
-      'assets/images/5.jpeg',
-    ];
-    const scenes = [
-      ('Entrada', '🏠'),
-      ('Cocina', '🍳'),
-      ('Salón', '🛋️'),
-      ('Pasillo', '🚪'),
-      ('Dormitorio', '🛏️'),
-    ];
+    final images = widget.property.photos.where((url) => url.contains('/360_')).toList();
+    if (images.isEmpty) return const SizedBox.shrink();
+
+    // Creamos escenas ficticias basadas en el número de fotos 360 reales
+    final scenes = List.generate(images.length, (i) => ('Escena ${i + 1}', '👁️'));
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -837,8 +828,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                               color: KazaTheme.coralKaza,
                               shape: BoxShape.circle)),
                       const SizedBox(width: 5),
-                      const Text('5 escenas',
-                          style: TextStyle(
+                      Text('${images.length} escenas',
+                          style: const TextStyle(
                               color: KazaTheme.coralKaza,
                               fontSize: 10,
                               fontWeight: FontWeight.w700)),

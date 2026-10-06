@@ -370,9 +370,10 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
   int _currentImageIndex = 0;
 
   void _openFullScreenGallery() {
-    final photos = widget.property.photos.isNotEmpty 
+    final rawPhotos = widget.property.photos.isNotEmpty 
         ? widget.property.photos 
         : (widget.property.imageUrl != null ? [widget.property.imageUrl!] : []);
+    final photos = rawPhotos.where((url) => !url.contains('/360_')).toList();
     
     if (photos.isEmpty) return;
 
@@ -444,6 +445,13 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
     );
   }
 
+  List<String> get _filteredPhotos {
+    final rawPhotos = widget.property.photos.isNotEmpty 
+        ? widget.property.photos 
+        : (widget.property.imageUrl != null ? [widget.property.imageUrl!] : []);
+    return rawPhotos.where((url) => !url.contains('/360_')).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return _sectionCard(
@@ -473,10 +481,11 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
               child: Stack(
                 children: [
                   Builder(builder: (context) {
-                    final photos = widget.property.photos.isNotEmpty 
+                    final rawPhotos = widget.property.photos.isNotEmpty 
                         ? widget.property.photos 
                         : (widget.property.imageUrl != null ? [widget.property.imageUrl!] : []);
-                    final currentUrl = photos.isNotEmpty ? photos[_currentImageIndex] : null;
+                    final photos = rawPhotos.where((url) => !url.contains('/360_')).toList();
+                    final currentUrl = photos.isNotEmpty ? photos[_currentImageIndex % (photos.isEmpty ? 1 : photos.length)] : null;
 
                     return currentUrl != null
                         ? Image.network(
@@ -511,7 +520,7 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_currentImageIndex + 1} / ${widget.property.photos.isEmpty ? 1 : widget.property.photos.length}',
+                        '${_currentImageIndex + 1} / ${_filteredPhotos.isEmpty ? 1 : _filteredPhotos.length}',
                         style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -527,11 +536,11 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
             height: 64,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: widget.property.photos.isEmpty ? 1 : widget.property.photos.length,
+              itemCount: _filteredPhotos.isEmpty ? 1 : _filteredPhotos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final isSelected = i == _currentImageIndex;
-                final photoUrl = widget.property.photos.isNotEmpty ? widget.property.photos[i] : widget.property.imageUrl;
+                final photoUrl = _filteredPhotos.isNotEmpty ? _filteredPhotos[i] : null;
                 return GestureDetector(
                   onTap: () => setState(() => _currentImageIndex = i),
                   child: ClipRRect(
