@@ -43,6 +43,9 @@ import '../../features/profile/screens/help_center_screen.dart';
 import '../../features/developer/screens/developer_dashboard_screen.dart';
 import '../../features/developer/screens/project_detail_screen.dart';
 import '../../features/developer/models/developer_models.dart';
+import '../../features/messages/screens/messages_screen.dart';
+import '../../features/auth/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -90,12 +93,20 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
 
-        // Tab 2: KAZA INVEST
+        // Tab 2: KAZA INVEST / MENSAJES
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/invest',
-              builder: (context, state) => const KazaInvestScreen(),
+              builder: (context, state) => Consumer(
+                builder: (context, ref, _) {
+                  final tier = ref.watch(userSubscriptionProvider).value ?? 'FREE';
+                  if (tier == 'PROPERTIES') {
+                    return const KazaInvestScreen();
+                  }
+                  return const MessagesScreen();
+                },
+              ),
             ),
           ],
         ),

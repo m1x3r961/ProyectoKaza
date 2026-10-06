@@ -2371,6 +2371,7 @@ file:///E:/proyectoKaza/mobile/lib/features/media/models/kaza_media_item.dart
 file:///E:/proyectoKaza/mobile/lib/features/media/widgets/media_picker_widget.dart
 file:///E:/proyectoKaza/mobile/lib/features/messages/providers/chat_provider.dart
 file:///E:/proyectoKaza/mobile/lib/features/messages/screens/chat_detail_screen.dart
+file:///E:/proyectoKaza/mobile/lib/features/messages/screens/messages_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/onboarding/screens/onboarding_screen.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/models/organization_models.dart
 file:///E:/proyectoKaza/mobile/lib/features/organizations/models/project_model.dart

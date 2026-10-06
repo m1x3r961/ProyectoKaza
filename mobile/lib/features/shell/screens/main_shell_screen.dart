@@ -22,6 +22,7 @@ class MainShellScreen extends ConsumerWidget {
     final bottomSafe = KazaResponsive.bottomSafeArea(context);
     final navHeight = KazaResponsive.bottomNavHeight(context);
     final screenWidth = KazaResponsive.screenWidth(context);
+    final tier = ref.watch(userSubscriptionProvider).value ?? 'FREE';
 
     return Scaffold(
       body: navigationShell,
@@ -84,13 +85,24 @@ class MainShellScreen extends ConsumerWidget {
               // ── BOTÓN CENTRAL: PUBLICAR ─────────────────────────────
               _buildPublishItem(context, ref, screenWidth),
 
-              // Tab 2: KAZA INVEST ── NUEVA TAB
-              _buildInvestNavItem(
-                index: 2,
-                currentIndex: currentIndex,
-                screenWidth: screenWidth,
-                onTap: () => navigationShell.goBranch(2),
-              ),
+              // Tab 2: KAZA INVEST o MENSAJES (dinámico por rol)
+              if (tier == 'PROPERTIES')
+                _buildInvestNavItem(
+                  index: 2,
+                  currentIndex: currentIndex,
+                  screenWidth: screenWidth,
+                  onTap: () => navigationShell.goBranch(2),
+                )
+              else
+                _buildNavItem(
+                  index: 2,
+                  icon: Icons.chat_bubble_outline_rounded,
+                  activeIcon: Icons.chat_bubble_rounded,
+                  label: 'Mensajes',
+                  currentIndex: currentIndex,
+                  screenWidth: screenWidth,
+                  onTap: () => navigationShell.goBranch(2),
+                ),
 
               // Tab 3: PERFIL
               _buildNavItem(
