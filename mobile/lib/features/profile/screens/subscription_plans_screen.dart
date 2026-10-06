@@ -45,9 +45,29 @@ class _SubscriptionPlansScreenState
   }
 
   Future<void> _upgradePlan(String newTier) async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            'La contratación de planes todavía no está habilitada. Tu plan no ha cambiado.')));
+    setState(() => _isLoading = true);
+    try {
+      await SupabaseConfig.client.rpc('fn_upgrade_subscription', params: {
+        'p_tier': newTier,
+      });
+
+      if (mounted) {
+        setState(() => _currentTier = newTier.toUpperCase());
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('¡Éxito! Tu plan ha cambiado a $newTier.'),
+          backgroundColor: Colors.green,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error al cambiar de plan: $e'),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
