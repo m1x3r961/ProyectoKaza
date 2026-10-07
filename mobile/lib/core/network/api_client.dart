@@ -56,9 +56,16 @@ class ApiClient {
             'Respuesta no válida del servidor.', response.statusCode);
       }
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        final message = data is Map ? data['message'] : null;
+        String? extractedMsg;
+        if (data is Map) {
+          if (data['message'] is String) extractedMsg = data['message'];
+          else if (data['message'] is List) extractedMsg = (data['message'] as List).join(', ');
+          else if (data['error'] is Map && data['error']['message'] is String) extractedMsg = data['error']['message'];
+          else if (data['error'] is String) extractedMsg = data['error'];
+        }
+        
         throw ApiException(
-            message is String ? message : 'No se pudo completar la operación.',
+            extractedMsg ?? 'Error ${response.statusCode}: no se pudo completar la operación.',
             response.statusCode);
       }
       return data;

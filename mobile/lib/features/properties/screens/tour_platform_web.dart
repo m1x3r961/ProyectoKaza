@@ -7,7 +7,7 @@ void registerTourIframe() {
   ui_web.platformViewRegistry.registerViewFactory(
       'kaza-pannellum-360',
       (int viewId) => html.IFrameElement()
-        ..src = 'pannellum_360.html'
+        ..src = 'pannellum_360.html?v=\${DateTime.now().millisecondsSinceEpoch}'
         ..style.border = 'none'
         ..style.width = '100%'
         ..style.height = '100%'

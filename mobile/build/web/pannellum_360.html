@@ -272,61 +272,62 @@
   // En Flutter Web los assets definidos en pubspec se copian en 'assets/assets/...'
   const BASE = 'assets/assets/images/';
 
-  const scenes = [
-    {
-      id: 'escena1',
-      title: 'Entrada Principal',
-      subtitle: 'Escalera & Hall',
-      icon: '🏠',
-      image: BASE + '1.jpeg',
-      hotspots: [
-        { pitch: -5, yaw: 10,  text: 'Ir a la Cocina →', target: 1 },
-      ],
-    },
-    {
-      id: 'escena2',
-      title: 'Cocina & Comedor',
-      subtitle: 'Área gourmet',
-      icon: '🍳',
-      image: BASE + '2.jpeg',
-      hotspots: [
-        { pitch: -8, yaw: 170, text: '← Volver a Entrada', target: 0 },
-        { pitch: -5, yaw: -30, text: 'Ir al Salón →', target: 2 },
-      ],
-    },
-    {
-      id: 'escena3',
-      title: 'Salón Principal',
-      subtitle: 'Sala de estar',
-      icon: '🛋️',
-      image: BASE + '3.jpeg',
-      hotspots: [
-        { pitch: -6, yaw: 170, text: '← Volver a Cocina', target: 1 },
-        { pitch: -5, yaw: 10,  text: 'Ir al Pasillo →',  target: 3 },
-      ],
-    },
-    {
-      id: 'escena4',
-      title: 'Pasillo & Dormitorios',
-      subtitle: 'Acceso privado',
-      icon: '🚪',
-      image: BASE + '4.jpeg',
-      hotspots: [
-        { pitch: -8, yaw: 170, text: '← Volver al Salón', target: 2 },
-        { pitch: -5, yaw: 0,   text: 'Ir al Dormitorio →', target: 4 },
-      ],
-    },
-    {
-      id: 'escena5',
-      title: 'Dormitorio Principal',
-      subtitle: 'Suite & closet',
-      icon: '🛏️',
-      image: BASE + '5.jpeg',
-      hotspots: [
-        { pitch: -6, yaw: 170, text: '← Volver al Pasillo', target: 3 },
-      ],
-    },
-  ];
+  let scenes = [];
+  
+  // 1. Leer localStorage inyectado por Flutter
+  const stored = localStorage.getItem('kaza_360_images');
+  if (stored) {
+    try {
+      const urls = JSON.parse(stored);
+      if (Array.isArray(urls) && urls.length > 0) {
+        scenes = urls.map((url, i) => ({
+          id: 'escena' + i,
+          title: 'Escena ' + (i + 1),
+          subtitle: 'Vista 360°',
+          icon: '📸',
+          image: url.startsWith('http') ? url : BASE + url,
+          hotspots: [] // Se llenan abajo
+        }));
+
+        // Crear navegación secuencial simple entre panorámicas
+        for (let i = 0; i < scenes.length; i++) {
+          if (i > 0) {
+            scenes[i].hotspots.push({ pitch: -5, yaw: 170, text: '← Anterior', target: i - 1 });
+          }
+          if (i < scenes.length - 1) {
+            scenes[i].hotspots.push({ pitch: -5, yaw: 10, text: 'Siguiente →', target: i + 1 });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error leyendo imágenes 360", e);
+    }
+  }
+
+  // Fallback a las imágenes locales si no hay nada en localStorage (ej. test local directo)
+  if (scenes.length === 0) {
+    scenes = [
+      {
+        id: 'escena1',
+        title: 'Entrada Principal',
+        subtitle: 'Escalera & Hall',
+        icon: '🏠',
+        image: BASE + '1.jpeg',
+        hotspots: [{ pitch: -5, yaw: 10, text: 'Ir a la Cocina →', target: 1 }],
+      },
+      {
+        id: 'escena2',
+        title: 'Cocina & Comedor',
+        subtitle: 'Área gourmet',
+        icon: '🍳',
+        image: BASE + '2.jpeg',
+        hotspots: [
+          { pitch: -8, yaw: 170, text: '← Volver a Entrada', target: 0 },
+          { pitch: -5, yaw: -30, text: 'Ir al Salón →', target: 2 },
+        ],
+      }
+    ];
+  }
 
   // ── ESTADO ────────────────────────────────────────────────────────────────
   let currentScene = 0;

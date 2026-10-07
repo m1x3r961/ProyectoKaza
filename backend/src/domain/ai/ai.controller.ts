@@ -2,12 +2,10 @@ import { Controller, Post, Body, ServiceUnavailableException } from '@nestjs/com
 import { IsString, Length } from 'class-validator';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 class AskDto { @IsString() @Length(1,2000) message: string; }
-import { Public } from '../../security/access';
 
 @Controller('api/ai')
 export class AiController {
  constructor(private readonly db: SupabaseService) {}
- @Public()
  @Post('chat') async chat(@Body() dto: AskDto) {
    const { geminiKey, geminiModel } = this.db.config;
    if (!geminiKey) throw new ServiceUnavailableException('Asistente no configurado.');

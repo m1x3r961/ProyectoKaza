@@ -11,5 +11,5 @@ export function configuration(env: NodeJS.ProcessEnv = process.env) {
   if (mode === 'demo' && (!productionRef || new URL(productionRef).origin === apiUrl.origin)) throw new Error('Demo requires a different Supabase project and PRODUCTION_SUPABASE_URL');
   return { mode, url: url.replace(/\/$/, ''), serviceKey: required('SUPABASE_SERVICE_ROLE_KEY'), origins,
     port: Number(env.PORT || 3000), demo: mode === 'demo', geminiKey: env.GEMINI_API_KEY,
-    geminiModel: env.GEMINI_MODEL || 'gemini-2.0-flash' };
+    geminiModel: env.GEMINI_MODEL || 'gemini-3.8-flash' };
 }

@@ -1,0 +1,38 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {database,asUser} from './database-helper.mjs';
+
+test('targeted test reset previews, protects dependencies and allows a new identity',async(t)=>{
+ const db=await database();t.after(()=>db.close());
+ const sql=await readFile(new URL('../../supabase/manual/reset_test_account_jmrj.sql',import.meta.url),'utf8');
+ const apply=sql.replace('apply_reset boolean := false','apply_reset boolean := true');
+ const old='11111111-1111-4111-8111-111111111111',fresh='22222222-2222-4222-8222-222222222222';
+ await db.query("INSERT INTO auth.users(id,email) VALUES($1,'jmrj.961@gmail.com')",[old]);
+ await db.query("INSERT INTO public.profiles(id,email,status) VALUES($1,'jmrj.961@gmail.com','DELETED')",[old]);
+ await db.exec(sql);
+ assert.equal((await db.query('SELECT count(*) AS n FROM auth.users')).rows[0].n,1);
+ await db.query('INSERT INTO public.kaza_admins(user_id) VALUES($1)',[old]);
+ await assert.rejects(db.exec(apply),/administradora/);await db.exec('ROLLBACK');
+ await db.query('DELETE FROM public.kaza_admins WHERE user_id=$1',[old]);
+ const workspace=(await db.query("INSERT INTO public.workspaces(name,owner_user_id) VALUES('Do not delete', $1) RETURNING id",[old])).rows[0].id;
+ await db.query('INSERT INTO public.conversations(workspace_id) VALUES($1)',[workspace]);
+ await assert.rejects(db.exec(apply),/conversations/);await db.exec('ROLLBACK');
+ assert.equal((await db.query('SELECT count(*) AS n FROM auth.users')).rows[0].n,1);
+ assert.equal((await db.query('SELECT count(*) AS n FROM public.workspaces')).rows[0].n,1);
+ await db.query('DELETE FROM public.conversations WHERE workspace_id=$1',[workspace]);
+ await db.query("UPDATE public.workspaces SET workspace_type='ORGANIZATION' WHERE id=$1",[workspace]);
+ await assert.rejects(db.exec(apply),/organización/);await db.exec('ROLLBACK');
+ await db.query("UPDATE public.workspaces SET workspace_type='PERSONAL' WHERE id=$1",[workspace]);
+ await db.query("INSERT INTO public.workspaces(name,owner_user_id) SELECT 'Empty', $1 FROM generate_series(1,3)",[old]);
+ await db.exec(sql);
+ assert.equal((await db.query('SELECT count(*) AS n FROM public.workspaces')).rows[0].n,4);
+ await db.exec(apply);
+ assert.equal((await db.query('SELECT count(*) AS n FROM public.workspaces')).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*) AS n FROM auth.users')).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*) AS n FROM public.profiles')).rows[0].n,0);
+ assert.equal((await db.query("SELECT count(*) AS n FROM public.kaza_audit WHERE action='manual_test_account_reset'")).rows[0].n,1);
+ await db.query("INSERT INTO auth.users(id,email) VALUES($1,'jmrj.961@gmail.com')",[fresh]);
+ await asUser(db,fresh,()=>db.query("SELECT public.fn_upsert_profile($1,'jmrj.961@gmail.com','Nueva cuenta')",[fresh]));
+ assert.equal((await db.query('SELECT status FROM public.profiles WHERE id=$1',[fresh])).rows[0].status,'ACTIVE');
+});
