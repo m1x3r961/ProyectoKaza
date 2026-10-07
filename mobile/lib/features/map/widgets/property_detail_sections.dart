@@ -488,12 +488,14 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
                     final currentUrl = photos.isNotEmpty ? photos[_currentImageIndex % (photos.isEmpty ? 1 : photos.length)] : null;
 
                     return currentUrl != null
-                        ? Image.network(
-                            currentUrl,
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _galleryPlaceholder(),
+                        ? AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: Image.network(
+                              currentUrl,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _galleryPlaceholder(),
+                            ),
                           )
                         : _galleryPlaceholder();
                   }),
@@ -533,7 +535,7 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
 
           // Thumbnail strip
           SizedBox(
-            height: 64,
+            height: 80,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _filteredPhotos.isEmpty ? 1 : _filteredPhotos.length,
@@ -546,7 +548,7 @@ class _PropertyGallerySectionState extends State<PropertyGallerySection> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      width: 64,
+                      width: 80,
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: isSelected ? KazaTheme.primaryCoral : Colors.transparent,
