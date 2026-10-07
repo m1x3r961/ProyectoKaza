@@ -2,7 +2,7 @@ import { Controller, Post, Body, ServiceUnavailableException } from '@nestjs/com
 import { IsString, Length } from 'class-validator';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 class AskDto { @IsString() @Length(1,2000) message: string; }
-import { Public } from '../../security/public.decorator';
+import { Public } from '../../security/access';
 
 @Controller('api/ai')
 export class AiController {
