@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/co
 @Catch()
 export class ErrorFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
+    console.error('Unhandled Exception:', error);
     const ctx = host.switchToHttp(); const req = ctx.getRequest(); const res = ctx.getResponse();
     const status = error instanceof HttpException ? error.getStatus() : 500;
     const body = error instanceof HttpException ? error.getResponse() : null;
