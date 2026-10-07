@@ -70,9 +70,13 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
         isLoading: false,
       );
     } catch (e) {
-      final errorText = e.toString().contains('Exception:')
-          ? e.toString().split('Exception:').last.trim()
-          : 'Lo siento, tuve un problema al conectarme. Intenta de nuevo en un momento.';
+      String errorText = e.toString();
+      if (errorText.contains('Exception:')) {
+        errorText = errorText.split('Exception:').last.trim();
+      }
+      if (errorText.contains('XMLHttpRequest') || errorText.contains('Failed to fetch')) {
+        errorText = 'Lo siento, tuve un problema al conectarme al servidor.';
+      }
 
       final errorMsg = ChatMessage(
         text: '⚠️ $errorText',
