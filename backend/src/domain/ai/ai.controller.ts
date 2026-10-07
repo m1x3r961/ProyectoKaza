@@ -1,7 +1,8 @@
-import { Controller, Post, Body, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Post, Get, Body, ServiceUnavailableException } from '@nestjs/common';
 import { IsString, Length } from 'class-validator';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 class AskDto { @IsString() @Length(1,2000) message: string; }
+import { Public } from '../../security/access';
 
 @Controller('api/ai')
 export class AiController {
