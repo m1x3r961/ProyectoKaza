@@ -75,7 +75,7 @@ class _OrganizationRegistrationScreenState extends ConsumerState<OrganizationReg
       contactPhone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
       city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
       address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-      orgType: 'DEVELOPER', // Siempre DEVELOPER por ahora
+      orgType: 'AGENCY', // Cambiado a AGENCY
     );
 
     setState(() => _isLoading = false);
