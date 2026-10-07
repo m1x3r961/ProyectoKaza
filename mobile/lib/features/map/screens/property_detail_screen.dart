@@ -871,7 +871,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.asset(images[i], fit: BoxFit.cover),
+                        Image.network(
+                          images[i],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                        ),
                         Positioned(
                           bottom: 0,
                           left: 0,
