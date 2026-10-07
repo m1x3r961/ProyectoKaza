@@ -7,6 +7,6 @@ export class ErrorFilter implements ExceptionFilter {
     const status = error instanceof HttpException ? error.getStatus() : 500;
     const body = error instanceof HttpException ? error.getResponse() : null;
     const detail = typeof body === 'object' && body ? (body as any).message : body;
-    res.status(status).json({ code: `HTTP_${status}`, message: detail || error.message || 'No se pudo completar la operación.', requestId: req.requestId, rawError: String(error) });
+    res.status(status).json({ code: `HTTP_${status}`, message: detail || (error as any).message || 'No se pudo completar la operación.', requestId: req.requestId, rawError: String(error) });
   }
 }
