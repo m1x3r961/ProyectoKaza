@@ -159,6 +159,7 @@ class _Tour360LocalScreenState extends State<Tour360LocalScreen>
 
   // ── WEB: Pannellum en iframe ──────────────────────────────────────────────
   Widget _buildWebView() {
+    tour_platform.setTourImages(widget.assetImages);
     return const HtmlElementView(viewType: 'kaza-pannellum-360');
   }
 

@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
+import 'dart:convert';
 
 void registerTourIframe() {
   ui_web.platformViewRegistry.registerViewFactory(
@@ -12,4 +13,8 @@ void registerTourIframe() {
         ..style.height = '100%'
         ..allowFullscreen = true
         ..setAttribute('allow', 'fullscreen; gyroscope; accelerometer'));
+}
+
+void setTourImages(List<String> images) {
+  html.window.localStorage['kaza_360_images'] = jsonEncode(images);
 }
