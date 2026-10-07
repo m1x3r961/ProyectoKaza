@@ -15,7 +15,7 @@ export class SupabaseService {
       if (error.code === 'P0002') throw new NotFoundException('Recurso no disponible.');
       if (['23505', '40001'].includes(error.code)) throw new ConflictException('El recurso cambió o el intento ya existe. Actualiza e inténtalo nuevamente.');
       if (['22023', '23514', '22P02'].includes(error.code)) throw new BadRequestException('Los datos o la transición no son válidos.');
-      throw new ServiceUnavailableException('No se pudo completar la operación.');
+      throw new ServiceUnavailableException('No se pudo completar la operación. ' + (error.message || ''));
     }
     return data;
   }
