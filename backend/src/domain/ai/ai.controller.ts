@@ -1,8 +1,7 @@
-import { Controller, Post, Get, Body, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Post, Body, ServiceUnavailableException } from '@nestjs/common';
 import { IsString, Length } from 'class-validator';
 import { SupabaseService } from '../../infrastructure/supabase/supabase.service';
 class AskDto { @IsString() @Length(1,2000) message: string; }
-import { Public } from '../../security/access';
 
 @Controller('api/ai')
 export class AiController {
@@ -17,7 +16,8 @@ export class AiController {
    });
    if (!response.ok) {
      const errText = await response.text().catch(() => 'Unknown Google API Error');
-     throw new ServiceUnavailableException('Error de Gemini (' + response.status + '): ' + errText);
+     console.error(`Gemini ${geminiModel} respondió ${response.status}:`, errText.slice(0, 2000));
+     throw new ServiceUnavailableException();
    }
    const result:any = await response.json(); const text = result.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('');
    if (!text) throw new ServiceUnavailableException();

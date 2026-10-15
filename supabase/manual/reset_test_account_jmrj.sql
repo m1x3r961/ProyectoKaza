@@ -34,11 +34,32 @@ BEGIN
   JOIN pg_attribute col ON col.attrelid=tbl.oid AND col.attnum=ANY(fk.conkey)
   WHERE fk.contype='f' AND ns.nspname='public'
    AND fk.confrelid IN ('auth.users'::regclass,'public.profiles'::regclass)
+   -- Los espacios personales vacíos se revisan aparte y se borran con la cuenta.
+   AND NOT (tbl.oid='public.workspaces'::regclass AND col.attname='owner_user_id')
  LOOP
   EXECUTE format('SELECT count(*) FROM %I.%I WHERE %I::text=$1',dependency.schema_name,dependency.table_name,dependency.column_name)
    INTO related_count USING target_id::text;
   IF related_count > 0 THEN
    RAISE EXCEPTION 'Hay % registros relacionados en %. No se borró nada; revisar esos datos antes de reiniciar.',related_count,dependency.table_name;
+  END IF;
+ END LOOP;
+
+ IF EXISTS(SELECT 1 FROM public.workspaces WHERE owner_user_id=target_id AND workspace_type<>'PERSONAL') THEN
+  RAISE EXCEPTION 'La cuenta es dueña de un espacio de organización. No se borró nada; transferirlo o revisarlo antes de reiniciar.';
+ END IF;
+ FOR dependency IN
+  SELECT ns.nspname AS schema_name, tbl.relname AS table_name, col.attname AS column_name
+  FROM pg_constraint fk
+  JOIN pg_class tbl ON tbl.oid=fk.conrelid
+  JOIN pg_namespace ns ON ns.oid=tbl.relnamespace
+  JOIN pg_attribute col ON col.attrelid=tbl.oid AND col.attnum=ANY(fk.conkey)
+  WHERE fk.contype='f' AND fk.confrelid='public.workspaces'::regclass
+ LOOP
+  EXECUTE format('SELECT count(*) FROM %I.%I WHERE %I IN (SELECT id FROM public.workspaces WHERE owner_user_id=$1)',
+   dependency.schema_name,dependency.table_name,dependency.column_name)
+   INTO related_count USING target_id;
+  IF related_count > 0 THEN
+   RAISE EXCEPTION 'Hay % registros relacionados en % dentro de sus espacios. No se borró nada; revisar esos datos antes de reiniciar.',related_count,dependency.table_name;
   END IF;
  END LOOP;
 
@@ -56,11 +77,12 @@ BEGIN
  IF related_count > 0 THEN RAISE EXCEPTION 'Hay archivos en la carpeta de la cuenta. Retíralos mediante Storage antes de reiniciar; no se borró nada.'; END IF;
 
  IF NOT apply_reset THEN
-  RAISE NOTICE 'REVISIÓN OK: correo jmrj.961@gmail.com, UUID %. Se borrarán su perfil y su cuenta Auth (incluidas sesiones e identidades vinculadas). La auditoría se conserva. Cambia apply_reset a true para aplicar.',target_id;
+  RAISE NOTICE 'REVISIÓN OK: correo jmrj.961@gmail.com, UUID %. Se borrarán sus espacios personales vacíos, su perfil y su cuenta Auth (incluidas sesiones e identidades vinculadas). La auditoría se conserva. Cambia apply_reset a true para aplicar.',target_id;
   RETURN;
  END IF;
  INSERT INTO public.kaza_audit(actor,action,target,reason)
  VALUES(target_id,'manual_test_account_reset',target_id,'Reinicio de prueba solicitado por el propietario; ejecutado por operador SQL ' || session_user || '. Actor identifica el destinatario, no una sesión del usuario.');
+ DELETE FROM public.workspaces WHERE owner_user_id=target_id AND workspace_type='PERSONAL';
  DELETE FROM public.profiles WHERE id=target_id;
  DELETE FROM auth.users WHERE id=target_id;
  RAISE NOTICE 'Reinicio completado para jmrj.961@gmail.com. Cierra sesión y regístrate con Google para obtener una cuenta nueva.';
