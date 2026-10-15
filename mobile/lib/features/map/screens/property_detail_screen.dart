@@ -306,10 +306,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       PropertyHeroSection(property: widget.property),
+                      _buildVirtualTourCard(),
                       PropertyDetailsSection(property: widget.property),
                       PropertyDescriptionSection(property: widget.property),
                       PropertyAmenitiesSection(property: widget.property),
-                      _buildVirtualTourCard(),
                       _buildFinancingBanner(context),
                       PropertyLocationSection(property: widget.property),
                       const PropertyAvailabilitySection(),
