@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,8 @@ import '../widgets/layers_selector_sheet.dart';
 import '../widgets/map_empty_states.dart';
 import '../widgets/map_list_toggle.dart';
 import '../widgets/poi_layer_widget.dart';
+import '../widgets/property_detail_sections.dart'
+    show GlassPill, formatPropertyPrice, propertyPhotos;
 import 'property_state_wrapper.dart';
 import 'cluster_bottom_sheet.dart';
 import '../../../core/network/supabase_config.dart';
@@ -692,62 +695,70 @@ class _MapScreenState extends ConsumerState<MapScreen>
             Positioned(
               left: KazaResponsive.horizontalPadding(context),
               right: KazaResponsive.horizontalPadding(context),
-              bottom: KazaResponsive.bottomSafeArea(context) + 12,
-              child: _PropertyPreviewCard(
-                property: _selectedProperty!,
-                onClose: () => setState(() => _selectedProperty = null),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PropertyStateWrapper(
-                        propertyId: _selectedProperty!.id,
-                        preloadedProperty: _selectedProperty,
-                      ),
-                    ),
-                  );
-                },
-                onConsultPrice: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PropertyStateWrapper(
-                        propertyId: _selectedProperty!.id,
-                        preloadedProperty: _selectedProperty,
-                      ),
-                    ),
-                  );
-                },
-                onFavorite: () async {
-                  try {
-                    final userId = SupabaseConfig.client.auth.currentUser?.id;
-                    final payload = {'property_id': _selectedProperty!.id};
-                    if (userId != null) payload['user_id'] = userId;
-                    await SupabaseConfig.client
-                        .from('saved_properties')
-                        .insert(payload);
-                    ref.invalidate(savedPropertiesProvider);
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            '${_selectedProperty!.title} guardado en favoritos'),
-                        backgroundColor: KazaTheme.azulKaza,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Error al guardar propiedad'),
-                        backgroundColor: Colors.red.shade400,
-                      ),
-                    );
-                  }
-                },
+              // On narrow screens lift the card above the shell's AI button.
+              bottom: KazaResponsive.bottomSafeArea(context) +
+                  (MediaQuery.of(context).size.width < 600 ? 84 : 16),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: _PropertyPreviewCard(
+                    property: _selectedProperty!,
+                    onClose: () => setState(() => _selectedProperty = null),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PropertyStateWrapper(
+                            propertyId: _selectedProperty!.id,
+                            preloadedProperty: _selectedProperty,
+                          ),
+                        ),
+                      );
+                    },
+                    onConsultPrice: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PropertyStateWrapper(
+                            propertyId: _selectedProperty!.id,
+                            preloadedProperty: _selectedProperty,
+                          ),
+                        ),
+                      );
+                    },
+                    onFavorite: () async {
+                      try {
+                        final userId =
+                            SupabaseConfig.client.auth.currentUser?.id;
+                        final payload = {'property_id': _selectedProperty!.id};
+                        if (userId != null) payload['user_id'] = userId;
+                        await SupabaseConfig.client
+                            .from('saved_properties')
+                            .insert(payload);
+                        ref.invalidate(savedPropertiesProvider);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                '${_selectedProperty!.title} guardado en favoritos'),
+                            backgroundColor: KazaTheme.azulKaza,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Error al guardar propiedad'),
+                            backgroundColor: Colors.red.shade400,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
               ),
             ),
         ],
@@ -954,242 +965,272 @@ class _PropertyPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Image + Close + Favorite buttons
-            Stack(
-              children: [
-                // Image
-                property.imageUrl != null
-                    ? Container(
-                        height: 220,
-                        width: double.infinity,
-                        color: const Color(0xFF1A1A2E),
-                        child: Image.network(
-                          property.imageUrl!,
-                          height: 220,
-                          width: double.infinity,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                        ),
-                      )
-                    : _imagePlaceholder(),
-                // Close button
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: _CircleButton(
-                    icon: Icons.close,
-                    onTap: onClose,
-                  ),
-                ),
-                // Favorite button
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: _CircleButton(
-                    icon: Icons.favorite_border_rounded,
-                    onTap: onFavorite,
-                  ),
+    final photos = propertyPhotos(property);
+    final cover = photos.isNotEmpty ? photos.first : null;
+    final price = property.price.trim();
+
+    return Material(
+      color: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
+              boxShadow: [
+                BoxShadow(
+                  color: KazaTheme.azulKaza.withValues(alpha: 0.18),
+                  blurRadius: 32,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
-            // Info
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    property.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: KazaTheme.azulKaza,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  // Address
-                  Text(
-                    property.address ?? 'Sin dirección específica',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: KazaTheme.grisMedio,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: KazaTheme.azulKaza.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Photo with floating glass controls
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            cover != null
+                                ? Image.network(
+                                    cover,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _imagePlaceholder(),
+                                  )
+                                : _imagePlaceholder(),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  stops: const [0, 0.35, 0.7, 1],
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.22),
+                                    Colors.transparent,
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.28),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 10,
+                              left: 10,
+                              child: GlassPill(
+                                tooltip: 'Cerrar',
+                                padding: const EdgeInsets.all(7),
+                                onTap: onClose,
+                                child: const Icon(Icons.close_rounded,
+                                    size: 18, color: KazaTheme.azulKaza),
+                              ),
+                            ),
+                            Positioned(
+                              top: 10,
+                              right: 10,
+                              child: GlassPill(
+                                tooltip: 'Guardar',
+                                padding: const EdgeInsets.all(7),
+                                onTap: onFavorite,
+                                child: const Icon(Icons.favorite_border_rounded,
+                                    size: 18, color: KazaTheme.azulKaza),
+                              ),
+                            ),
+                            Positioned(
+                              left: 10,
+                              bottom: 10,
+                              child: Row(
+                                children: [
+                                  _glassTag(property.operation),
+                                  const SizedBox(width: 6),
+                                  _glassTag(property.type),
+                                ],
+                              ),
+                            ),
+                            if (photos.length > 1)
+                              Positioned(
+                                right: 10,
+                                bottom: 10,
+                                child: GlassPill(
+                                  dark: true,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 9, vertical: 5),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.photo_library_outlined,
+                                          size: 13, color: Colors.white),
+                                      const SizedBox(width: 4),
+                                      Text('${photos.length}',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                        child: Text(
-                          property.operation.toUpperCase(),
-                          style: const TextStyle(
-                            color: KazaTheme.azulKaza,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 14, 10, 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  property.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 18,
+                                    letterSpacing: -0.3,
+                                    color: KazaTheme.azulKaza,
+                                  ),
+                                ),
+                              ),
+                              if (price.isNotEmpty) ...[
+                                const SizedBox(width: 10),
+                                Text(
+                                  formatPropertyPrice(price),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    color: KazaTheme.coralKaza,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: KazaTheme.grisMedio.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          property.type.toUpperCase(),
-                          style: const TextStyle(
-                            color: KazaTheme.grisMedio,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined,
+                                  size: 14, color: KazaTheme.grisMedio),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  property.address ??
+                                      'Ubicación aproximada en el mapa',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: KazaTheme.textSecondary,
+                                      fontSize: 13),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  // Metrics row
-                  Row(
-                    children: [
-                      _MetricChip(
-                          icon: Icons.straighten_rounded,
-                          label: property.surface),
-                      const SizedBox(width: 12),
-                      _MetricChip(
-                          icon: Icons.king_bed_outlined,
-                          label: '${property.bedrooms} amb.'),
-                      const SizedBox(width: 12),
-                      _MetricChip(
-                          icon: Icons.bathtub_outlined,
-                          label:
-                              '${property.bathrooms} baño${property.bathrooms != 1 ? 's' : ''}'),
-                      if (property.floorsTotal > 1) ...[
-                        const SizedBox(width: 12),
-                        _MetricChip(
-                            icon: Icons.apartment_rounded,
-                            label: '${property.floorsTotal}° piso'),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  // Consult price button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: KazaTheme.azulKaza,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                      onPressed: onConsultPrice,
-                      child: const Text(
-                        'Consultar precio',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (property.surface.isNotEmpty)
+                                _MetricChip(
+                                    icon: Icons.straighten_rounded,
+                                    label: property.surface),
+                              _MetricChip(
+                                  icon: Icons.king_bed_outlined,
+                                  label: '${property.bedrooms} dorm.'),
+                              _MetricChip(
+                                  icon: Icons.bathtub_outlined,
+                                  label:
+                                      '${property.bathrooms} baño${property.bathrooms != 1 ? 's' : ''}'),
+                              if (property.parkingSpaces > 0)
+                                _MetricChip(
+                                    icon: Icons.directions_car_outlined,
+                                    label: '${property.parkingSpaces} parq.'),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 46,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: KazaTheme.azulKaza,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
+                                elevation: 0,
+                              ),
+                              onPressed: onConsultPrice,
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('Ver propiedad',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14)),
+                                  SizedBox(width: 6),
+                                  Icon(Icons.arrow_forward_rounded, size: 18),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Save prompt
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.favorite_border_rounded,
-                          size: 14, color: KazaTheme.grisMedio),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Guarda esta propiedad para seguirla y recibir novedades',
-                        style: TextStyle(
-                          color: KazaTheme.grisMedio,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _glassTag(String label) {
+    return GlassPill(
+      radius: 999,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: Text(
+        label,
+        style: const TextStyle(
+            color: KazaTheme.azulKaza,
+            fontSize: 11,
+            fontWeight: FontWeight.w700),
       ),
     );
   }
 
   Widget _imagePlaceholder() {
     return Container(
-      height: 220,
-      color: const Color(0xFFF0F4F8),
-      width: double.infinity,
-      child:
-          const Icon(Icons.home_work_rounded, color: Colors.black12, size: 48),
-    );
-  }
-}
-
-/// Small circular button overlay on image
-class _CircleButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _CircleButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          shape: BoxShape.circle,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [KazaTheme.azulKaza, Color(0xFF1C3550)],
         ),
-        child: Icon(icon, size: 18, color: KazaTheme.azulKaza),
       ),
+      child: Icon(Icons.home_work_outlined,
+          color: Colors.white.withValues(alpha: 0.35), size: 44),
     );
   }
 }
 
-/// Metric chip (surface, rooms, bathrooms, floor)
+/// Metric chip (surface, rooms, bathrooms, parking)
 class _MetricChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1198,20 +1239,26 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: KazaTheme.grisMedio),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: KazaTheme.azulKaza,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: KazaTheme.azulKaza.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: KazaTheme.azulKaza),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+                color: KazaTheme.azulKaza,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
