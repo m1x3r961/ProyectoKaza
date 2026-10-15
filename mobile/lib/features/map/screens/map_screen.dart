@@ -268,13 +268,10 @@ class _MapScreenState extends ConsumerState<MapScreen>
       body: Stack(
         children: [
           // ━━━ 1. BASE MAP VIEWPORT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          // Keep the previous pins on screen while the new viewport loads.
           propertiesAsync.when(
-            loading: () => Stack(
-              children: [
-                _buildBaseMap([], []),
-                const MapSearchingState(),
-              ],
-            ),
+            skipLoadingOnReload: true,
+            loading: () => _buildBaseMap([], []),
             error: (err, stack) => Stack(
               children: [
                 _buildBaseMap([], []),
@@ -478,6 +475,16 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     onPriceTap: _showPriceFilter,
                     onRoomsTap: _showRoomsFilter,
                   ),
+                  // Non-blocking refresh hint while new results arrive.
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: propertiesAsync.isLoading
+                        ? const Padding(
+                            padding: EdgeInsets.only(top: 10),
+                            child: MapUpdatingPill(),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
@@ -629,6 +636,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               bottom: 0,
               height: MediaQuery.of(context).size.height * 0.4,
               child: propertiesAsync.when(
+                skipLoadingOnReload: true,
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (properties) {

@@ -125,6 +125,40 @@ class MapSearchingState extends StatelessWidget {
   }
 }
 
+/// Discreet pill shown under the filters while the visible area refreshes.
+class MapUpdatingPill extends StatelessWidget {
+  const MapUpdatingPill({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 3)),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: KazaTheme.coralKaza),
+          ),
+          SizedBox(width: 8),
+          Text(
+            'Actualizando propiedades…',
+            style: TextStyle(color: KazaTheme.azulKaza, fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// State: No connection
 class MapNoConnectionState extends StatelessWidget {
   final VoidCallback onRetry;
