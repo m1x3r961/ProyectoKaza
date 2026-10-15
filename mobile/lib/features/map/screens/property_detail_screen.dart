@@ -3,6 +3,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../messages/screens/chat_detail_screen.dart';
 // ignore_for_file: deprecated_member_use
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ import '../providers/map_properties_provider.dart';
 import '../../saved/screens/saved_screen.dart';
 import '../widgets/property_detail_sections.dart';
 import '../../properties/screens/tour_360_local_screen.dart';
+import '../../shell/screens/main_shell_screen.dart';
 
 /// 🏠 PROPERTY DETAIL SCREEN — Ficha Completa de Propiedad KAZA v2
 /// Prototipo B16 · Ficha completa con 12 secciones
@@ -31,6 +33,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
     with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   bool _showStickyHeader = false;
+  double _collapseOffset = 220;
 
   // 2D floor plan state
   int _selectedRoomIndex = 0;
@@ -82,7 +85,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
   void initState() {
     super.initState();
     _scrollController.addListener(() {
-      final show = _scrollController.offset > 220;
+      final show = _scrollController.offset > _collapseOffset;
       if (show != _showStickyHeader) {
         setState(() => _showStickyHeader = show);
       }
@@ -155,342 +158,259 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
     }
   }
 
+  static const double _maxContentWidth = 880;
+  static const double _sheetRadius = 28;
+
+  double _heroHeight(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return (size.width * 0.62).clamp(300.0, math.min(560.0, size.height * 0.62));
+  }
+
+  Widget _glassAction(IconData icon, String tooltip, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: GlassPill(
+        tooltip: tooltip,
+        padding: const EdgeInsets.all(9),
+        onTap: onTap,
+        child: Icon(icon, size: 20, color: KazaTheme.azulKaza),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF2F4F7),
-        body: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            // ── Sticky AppBar ──────────────────────────────────────────────
-            SliverAppBar(
-              pinned: true,
-              floating: false,
-              backgroundColor: Colors.white,
-              foregroundColor: KazaTheme.azulKaza,
-              elevation: _showStickyHeader ? 2 : 0,
-              surfaceTintColor: Colors.transparent,
-              shadowColor: Colors.black12,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: AnimatedOpacity(
-                opacity: _showStickyHeader ? 1 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.property.title,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: KazaTheme.azulKaza,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      widget.property.price,
-                      style: const TextStyle(
-                        color: KazaTheme.primaryCoral,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.bookmark_border_rounded, size: 22),
-                  onPressed: _saveProperty,
-                  tooltip: 'Guardar propiedad',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share_rounded, size: 22),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('🔗 Enlace copiado')),
-                    );
-                  },
-                  tooltip: 'Compartir',
-                ),
-              ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(1),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  height: 1,
-                  color: _showStickyHeader
-                      ? const Color(0xFFE2E8F0)
-                      : Colors.transparent,
-                ),
-              ),
-            ),
+    final size = MediaQuery.of(context).size;
+    final heroHeight = _heroHeight(context);
+    _collapseOffset = heroHeight - kToolbarHeight - MediaQuery.of(context).padding.top - 24;
+    final sidePad = math.max(0.0, (size.width - _maxContentWidth) / 2);
+    // The shell's AI button floats bottom-right; keep the CTA clear of it.
+    final insideShell = context.findAncestorWidgetOfExactType<MainShellScreen>() != null;
+    final reserveFab = insideShell && sidePad < 88;
 
-            // ── Page Header ────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (_showStickyHeader ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light)
+          .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: KazaTheme.grisClaro,
+        extendBody: true,
+        body: Stack(
+          children: [
+            // Soft colour fields behind the glass cards.
+            Positioned(
+              top: heroHeight + 40,
+              right: -120,
+              child: _glow(KazaTheme.coralKaza, 420, 0.22),
+            ),
+            Positioned(
+              top: heroHeight + 520,
+              left: -160,
+              child: _glow(KazaTheme.azulKaza, 520, 0.16),
+            ),
+            Positioned(
+              bottom: -140,
+              right: -100,
+              child: _glow(KazaTheme.accentGold, 420, 0.26),
+            ),
+            CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  stretch: true,
+                  expandedHeight: heroHeight,
+                  backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  automaticallyImplyLeading: false,
+                  leadingWidth: 64,
+                  leading: Center(
+                    child: _glassAction(
+                      Icons.arrow_back_ios_new_rounded,
+                      'Volver',
+                      () => Navigator.maybePop(context),
+                    ),
+                  ),
+                  title: AnimatedOpacity(
+                    opacity: _showStickyHeader ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
+                        Text(
+                          widget.property.title,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
                             color: KazaTheme.azulKaza,
-                            borderRadius: BorderRadius.circular(10),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
                           ),
-                          child: const Icon(Icons.apartment_rounded,
-                              color: Colors.white, size: 20),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Ficha completa de propiedad',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: KazaTheme.azulKaza,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Explora en detalle con transparencia, contexto y confianza.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: KazaTheme.textSecondary
-                                      .withValues(alpha: 0.8),
-                                ),
-                              ),
-                            ],
+                        Text(
+                          formatPropertyPrice(widget.property.price),
+                          style: const TextStyle(
+                            color: KazaTheme.coralKaza,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-
-                    // Trust pillars horizontal scroll
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _trustPillar(Icons.verified_outlined,
-                              'Datos oficiales\ny verificados'),
-                          const SizedBox(width: 8),
-                          _trustPillar(Icons.update_rounded,
-                              'Actualizado\ny transparente'),
-                          const SizedBox(width: 8),
-                          _trustPillar(Icons.bar_chart_rounded,
-                              'Cobertura y\nmetodología visibles'),
-                          const SizedBox(width: 8),
-                          _trustPillar(Icons.business_center_outlined,
-                              'Sin sesgos\ncomerciales'),
-                          const SizedBox(width: 8),
-                          _trustPillar(
-                              Icons.lock_outlined, 'Privado y\nseguro'),
-                        ],
-                      ),
-                    ),
+                  ),
+                  actions: [
+                    _glassAction(Icons.bookmark_border_rounded, 'Guardar', _saveProperty),
+                    _glassAction(Icons.ios_share_rounded, 'Compartir', () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('🔗 Enlace copiado')),
+                      );
+                    }),
+                    const SizedBox(width: 12),
                   ],
+                  flexibleSpace: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Frosted bar once the photo has scrolled away.
+                      AnimatedOpacity(
+                        opacity: _showStickyHeader ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: ClipRect(
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                border: Border(
+                                  bottom: BorderSide(color: KazaTheme.azulKaza.withValues(alpha: 0.08)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      FlexibleSpaceBar(
+                        collapseMode: CollapseMode.parallax,
+                        stretchModes: const [StretchMode.zoomBackground],
+                        background: PropertyHeroGallery(
+                          property: widget.property,
+                          sheetRadius: _sheetRadius,
+                          sheetColor: KazaTheme.grisClaro,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-
-            // ── 01 · Hero / Resumen ────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: PropertyHeroSection(
-                property: widget.property,
-                onScrollToGallery: () {
-                  _scrollController.animateTo(
-                    500,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOut,
-                  );
-                },
-              ),
-            ),
-
-            // ── 02 · Galería de fotos ──────────────────────────────────────
-            SliverToBoxAdapter(
-              child: PropertyGallerySection(property: widget.property),
-            ),
-
-            // ── 03 · Detalles de la propiedad ─────────────────────────────
-            SliverToBoxAdapter(
-              child: PropertyDetailsSection(property: widget.property),
-            ),
-
-            // ── 03a · Financiamiento Disponible ────────────────────────────
-            SliverToBoxAdapter(
-              child: _buildFinancingBanner(context),
-            ),
-
-            // ── 03b · Plano 2D Interactivo (Oculto por ahora porque era ficticio) ────────
-            /*
-            SliverToBoxAdapter(
-              child: _buildFloorPlanCard(),
-            ),
-            */
-
-            // ── 04 · Descripción y destacados ─────────────────────────────
-            SliverToBoxAdapter(
-              child: PropertyDescriptionSection(property: widget.property),
-            ),
-
-            // ── 05 · Amenidades y características ─────────────────────────
-            SliverToBoxAdapter(
-              child: PropertyAmenitiesSection(property: widget.property),
-            ),
-
-            // ── 06 · Disponibilidad y frescura ────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyAvailabilitySection(),
-            ),
-
-            // ── 07 · Ubicación y entorno ───────────────────────────────────
-            SliverToBoxAdapter(
-              child: PropertyLocationSection(property: widget.property),
-            ),
-
-            // ── 08 · Anunciante / Publicador ──────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyAgentSection(),
-            ),
-
-            // ── 09 · Documentos y legales ─────────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyDocumentsSection(),
-            ),
-
-            // ── 10 · Guardar, comparar y compartir ────────────────────────
-            SliverToBoxAdapter(
-              child: PropertySaveShareSection(
-                property: widget.property,
-                onSave: _saveProperty,
-              ),
-            ),
-
-            // ── 11 · Contacto y visitas ────────────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyContactSection(),
-            ),
-
-            // ── 12 · Reportar publicación ──────────────────────────────────
-            const SliverToBoxAdapter(
-              child: PropertyReportSection(),
-            ),
-
-            // ── Visor 3D (bonus — collapsible) ────────────────────────────
-            SliverToBoxAdapter(
-              child: _buildVirtualTourCard(),
-            ),
-
-            // Bottom spacing
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 100),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(sidePad, 0, sidePad, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      PropertyHeroSection(property: widget.property),
+                      PropertyDetailsSection(property: widget.property),
+                      PropertyDescriptionSection(property: widget.property),
+                      PropertyAmenitiesSection(property: widget.property),
+                      _buildVirtualTourCard(),
+                      _buildFinancingBanner(context),
+                      PropertyLocationSection(property: widget.property),
+                      const PropertyAvailabilitySection(),
+                      const PropertyAgentSection(),
+                      const PropertyDocumentsSection(),
+                      PropertySaveShareSection(property: widget.property, onSave: _saveProperty),
+                      const PropertyContactSection(),
+                      const PropertyReportSection(),
+                    ]),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
 
-        // ── Sticky Bottom CTA ──────────────────────────────────────────────
-        bottomNavigationBar: Container(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 12,
-            bottom: 12 + MediaQuery.of(context).padding.bottom,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, -4),
+        // ── Sticky glass CTA ───────────────────────────────────────────────
+        bottomNavigationBar: ClipRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.78),
+                border: Border(top: BorderSide(color: KazaTheme.azulKaza.withValues(alpha: 0.08))),
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: EdgeInsets.only(
+                left: 20 + sidePad,
+                right: (reserveFab ? 88 : 20) + (reserveFab ? 0 : sidePad),
+                top: 12,
+                bottom: 12 + MediaQuery.of(context).padding.bottom,
+              ),
+              child: Row(
                 children: [
-                  const Text(
-                    'Precio',
-                    style:
-                        TextStyle(color: KazaTheme.textSecondary, fontSize: 11),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.property.operation,
+                          style: const TextStyle(color: KazaTheme.textSecondary, fontSize: 12),
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            formatPropertyPrice(widget.property.price),
+                            style: const TextStyle(
+                              color: KazaTheme.azulKaza,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text(
-                    widget.property.price,
-                    style: const TextStyle(
-                      color: KazaTheme.azulKaza,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 150, maxWidth: 260),
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: KazaTheme.coralKaza,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                        label: const Text(
+                          'Contactar',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        ),
+                        onPressed: _contact,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: KazaTheme.primaryCoral,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.chat_rounded, size: 18),
-                  label: const Text(
-                    'Contactar anunciante',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  onPressed: _contact,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ─── TRUST PILLAR CHIP ──────────────────────────────────────────────────────
-  Widget _trustPillar(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: KazaTheme.azulKaza),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-                fontSize: 10, color: KazaTheme.textSecondary, height: 1.3),
+  Widget _glow(Color color, double size, double alpha) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -498,76 +418,60 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
   // ─── FINANCING BANNER ───────────────────────────────────────────────────────
   Widget _buildFinancingBanner(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: KazaTheme.azulKaza.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: KazaTheme.azulKaza.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: KazaTheme.glassBorder)),
-                child: const Icon(Icons.account_balance_outlined,
-                    color: KazaTheme.azulKaza, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Financiamiento disponible',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: KazaTheme.textPrimary)),
-                    Text('Conecta con entidades financieras',
-                        style: TextStyle(
-                            color: KazaTheme.textSecondary, fontSize: 12)),
-                  ],
-                ),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [KazaTheme.azulKaza, Color(0xFF1B3550)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: KazaTheme.azulKaza.withValues(alpha: 0.22),
+            blurRadius: 30,
+            offset: const Offset(0, 12),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                context.push('/financing');
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: KazaTheme.azulKaza),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Ver opciones de financiamiento',
-                      style: TextStyle(
-                          color: KazaTheme.azulKaza,
-                          fontWeight: FontWeight.bold)),
-                  SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded,
-                      color: KazaTheme.azulKaza, size: 18),
-                ],
-              ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
             ),
+            child: const Icon(Icons.account_balance_outlined, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Financiamiento disponible',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white)),
+                SizedBox(height: 2),
+                Text('Compara opciones con entidades financieras',
+                    style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 13)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          GlassPill(
+            dark: true,
+            tooltip: 'Ver opciones de financiamiento',
+            onTap: () => context.push('/financing'),
+            child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
           ),
         ],
       ),
     );
   }
+
 
   // ─── PLANO 2D CARD ──────────────────────────────────────────────────────────
   Widget _buildFloorPlanCard() {
@@ -766,18 +670,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
     final scenes = List.generate(images.length, (i) => ('Escena ${i + 1}', '👁️'));
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: propertyGlassDecoration(),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -788,25 +682,19 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
             child: Row(
               children: [
                 Container(
-                  width: 26,
-                  height: 26,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                      color: KazaTheme.azulKaza, shape: BoxShape.circle),
-                  child: const Text('+',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold)),
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: KazaTheme.azulKaza.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.view_in_ar_rounded, size: 18, color: KazaTheme.azulKaza),
                 ),
-                const SizedBox(width: 10),
-                const Icon(Icons.view_in_ar_rounded,
-                    size: 18, color: KazaTheme.azulKaza),
-                const SizedBox(width: 6),
+                const SizedBox(width: 12),
                 const Text('Tour Virtual 360°',
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
                         color: KazaTheme.azulKaza)),
                 const Spacer(),
                 Container(
