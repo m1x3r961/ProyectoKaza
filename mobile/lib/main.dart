@@ -61,7 +61,7 @@ class KazaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Kaza · Product & Architecture System',
+      title: 'KAZA',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _messengerKey,
       theme: KazaTheme.darkTheme,
