@@ -13,5 +13,7 @@ import { RateGuard } from './security/rate.guard';
 import { CatalogController } from './domain/catalog/catalog.controller';
 import { AdminController } from './domain/admin/admin.controller';
 import { AiController } from './domain/ai/ai.controller';
-@Module({imports:[FintechModule],controllers:[WorkflowsController,AppController,ListingsController,PromotionsController,CatalogController,AdminController,AiController],providers:[SupabaseService,ListingsService,PromotionsService,{provide:APP_GUARD,useClass:RateGuard},{provide:APP_GUARD,useClass:AuthGuard}]})
+import { AccountController } from './domain/account/account.controller';
+import { AccountService } from './domain/account/account.service';
+@Module({imports:[FintechModule],controllers:[WorkflowsController,AppController,ListingsController,PromotionsController,CatalogController,AdminController,AiController,AccountController],providers:[SupabaseService,ListingsService,PromotionsService,AccountService,{provide:APP_GUARD,useClass:RateGuard},{provide:APP_GUARD,useClass:AuthGuard}]})
 export class AppModule {}

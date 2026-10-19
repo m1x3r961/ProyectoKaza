@@ -8,13 +8,14 @@ const {ListingsService}=require('../dist/domain/listings/listings.service');
 const id='11111111-1111-4111-8111-111111111111';
 const config={url:'https://unit.supabase.co',demo:false};
 function token(extra={}){return 'header.'+Buffer.from(JSON.stringify({sub:id,iss:config.url+'/auth/v1',aud:'authenticated',exp:Math.floor(Date.now()/1000)+1000,aal:'aal1',amr:[{method:'oauth'}],...extra})).toString('base64url')+'.signature';}
-function fixture({admin=false,bootstrap=false,claimAllowed=false,google=true,publicRoute=false,demo=false,verified=true,status='ACTIVE',privileged=false}={}){
+function fixture({admin=false,bootstrap=false,claimAllowed=false,google=true,publicRoute=false,demo=false,verified=true,status='ACTIVE',privileged=false,allowDeleted=false}={}){
  const request={headers:{authorization:'Bearer '+token(),'x-user-id':'attacker'}};
  const handler=()=>{}; const klass=()=>{};
  if(admin)Reflect.defineMetadata('admin',true,handler);
  if(bootstrap)Reflect.defineMetadata('adminBootstrap',true,handler);
  if(publicRoute)Reflect.defineMetadata('public',true,handler);
  if(demo)Reflect.defineMetadata('demo',true,handler);
+ if(allowDeleted)Reflect.defineMetadata('allowDeleted',true,handler);
  const calls=[];
  const db={config,rpc:async(name,args)=>{calls.push({name,args});if(claimAllowed)privileged=true;return claimAllowed;},client:{auth:{getUser:async()=>({data:{user:verified?{id,app_metadata:{provider:google?'google':'email'},identities:[{provider:google?'google':'email'}]}:null},error:verified?null:{message:'invalid'}})},from:(table)=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:table==='profiles'?{status}:privileged?{user_id:id}:null,error:null})})})})}};
  const guard=new AuthGuard(new Reflector(),db);
@@ -47,6 +48,10 @@ test('only the explicit access endpoint claims the verified Google actor',async(
  const email=fixture({admin:true,bootstrap:true,google:false,claimAllowed:true});await assert.rejects(email.guard.canActivate(email.context),e=>e.getStatus()===403);assert.equal(email.calls.length,0);
 });
 test('suspended account and demo route are blocked',async()=>{for(const options of [{status:'SUSPENDED'},{demo:true}]){const f=fixture(options);await assert.rejects(f.guard.canActivate(f.context),e=>[403,404].includes(e.getStatus()));}});
+test('only the account deletion route accepts an already deleted profile',async()=>{
+ const retry=fixture({status:'DELETED',allowDeleted:true});assert.equal(await retry.guard.canActivate(retry.context),true);
+ for(const options of [{status:'DELETED'},{status:'SUSPENDED',allowDeleted:true}]){const f=fixture(options);await assert.rejects(f.guard.canActivate(f.context),e=>e.getStatus()===403);}
+});
 test('publish requires stable key and rejects photos owned by another user',async()=>{
  let called=false;const s=new ListingsService({config,rpc:async()=>{called=true;return{id:'persisted'};}});
  assert.throws(()=>s.createListing(id,{title:'House',priceOriginal:10},''));

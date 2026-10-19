@@ -21,7 +21,8 @@ export class AuthGuard implements CanActivate {
     if (claims.sub !== data.user.id || claims.iss !== `${this.db.config.url}/auth/v1` || !aud.includes('authenticated') || !Number.isFinite(claims.exp) || claims.exp <= Date.now()/1000) throw new UnauthorizedException();
     const { data: profile, error: profileError } = await this.db.client.from('profiles').select('status').eq('id', data.user.id).maybeSingle();
     if (profileError) throw new ForbiddenException('No se pudo verificar el estado de la cuenta.');
-    if (profile && profile.status !== 'ACTIVE') throw new ForbiddenException('Cuenta restringida.');
+    const retryingDeletion = profile?.status === 'DELETED' && this.reflector.getAllAndOverride('allowDeleted', targets);
+    if (profile && profile.status !== 'ACTIVE' && !retryingDeletion) throw new ForbiddenException('Cuenta restringida.');
     req.actor = { id: data.user.id, token, aal: claims.aal };
     if (this.reflector.getAllAndOverride('admin', targets)) {
       const google = data.user.app_metadata?.provider === 'google'
