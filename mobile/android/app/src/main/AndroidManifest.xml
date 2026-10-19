@@ -25,6 +25,8 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Only Supabase handles incoming links; GoRouter would show "Page Not Found". -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
             <!-- Supabase OAuth callback (Google sign-in returns to the app) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>

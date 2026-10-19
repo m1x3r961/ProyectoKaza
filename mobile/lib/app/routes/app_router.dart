@@ -57,6 +57,11 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
   redirect: (context, state) {
+    // OAuth callback (com.kaza.mobile://login-callback) belongs to Supabase;
+    // the splash then routes to registration or the map.
+    if (state.uri.scheme == 'com.kaza.mobile' || state.uri.host == 'login-callback') {
+      return '/splash';
+    }
     if (!isAppInitialized && state.uri.path != '/splash') {
       return '/splash';
     }
