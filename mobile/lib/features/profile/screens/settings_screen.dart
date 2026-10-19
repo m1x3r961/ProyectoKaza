@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/widgets/privacy_policy_link.dart';
 
 /// ⚙️ MENÚ DE AJUSTES (Lámina 06: Perfil y Cuenta)
 class SettingsScreen extends ConsumerWidget {
@@ -39,6 +40,7 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           _buildSectionHeader('Soporte'),
           _buildListTile(Icons.help_outline, 'Centro de ayuda', onTap: () => context.push('/help-center')),
+          _buildListTile(Icons.privacy_tip_outlined, 'Política de privacidad', onTap: () => showPrivacyPolicySheet(context)),
           _buildListTile(
             Icons.logout, 
             'Cerrar sesión', 

@@ -6,6 +6,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../core/network/supabase_config.dart';
 import '../../developer/providers/developer_provider.dart';
 import '../providers/my_listings_provider.dart';
+import '../../../core/widgets/privacy_policy_link.dart';
 
 /// 👤 PERFIL U18-A v0.6 FINAL
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -370,6 +371,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       }),
                     _buildAccessIcon(Icons.swap_horiz, 'Cambiar\ncontexto'),
                   ],
+                ),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Divider(color: KazaTheme.glassBorder, height: 1),
+                ),
+
+                // 6. LEGAL
+                _buildMainNavItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Política de privacidad',
+                  subtitle: 'Cómo usamos y protegemos tus datos',
+                  onTap: () => showPrivacyPolicySheet(context),
                 ),
               ],
             ),
