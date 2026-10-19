@@ -138,7 +138,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     saveAuthIntent(_isLoginMode ? 'login' : 'signup');
     try {
-      final redirectUrl = kIsWeb ? Uri.base.origin : null;
+      // Native builds return through the deep link declared in AndroidManifest.
+      final redirectUrl =
+          kIsWeb ? Uri.base.origin : 'com.kaza.mobile://login-callback/';
       await SupabaseConfig.client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirectUrl,

@@ -34,3 +34,7 @@ supabase/generated/
 tmp/implementation/
 tmp/*audit.json
 tmp/flutter-*.txt
+
+# Built Android packages
+*.apk
+*.aab
