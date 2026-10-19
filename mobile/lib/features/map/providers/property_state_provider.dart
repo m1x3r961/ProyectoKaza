@@ -193,7 +193,7 @@ PropertyMapItem _parseRow(Map<String, dynamic> row) {
     surface: '${_n(row['total_surface_m2'], 0).toStringAsFixed(0)} m²',
     isPlus: row['has_active_promotion'] == true,
     trustLabel: 'Información del anunciante',
-    isOrg: false,
+    isOrg: (row['advertiser'] as Map?)?['kind'] == 'ORGANIZATION',
     imageUrl: photos.isNotEmpty ? photos.first : null,
     photos: photos,
     description: row['description'] as String?,
@@ -210,5 +210,6 @@ PropertyMapItem _parseRow(Map<String, dynamic> row) {
     address: row['address_canonical'] as String?,
     status: row['status'] as String? ?? 'PUBLISHED',
     ownerId: row['owner_id'] as String?,
+    advertiser: (row['advertiser'] as Map?)?.cast<String, dynamic>(),
   );
 }

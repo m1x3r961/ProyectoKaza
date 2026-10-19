@@ -113,8 +113,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
           '/api/conversations/property/${widget.property.id}',
           method: 'POST');
       if (mounted)
-        await Navigator.push(
-            context,
+        // Root navigator: full-screen chat without the shell's tab bar or AI button.
+        await Navigator.of(context, rootNavigator: true).push(
             MaterialPageRoute(
                 builder: (_) => ChatDetailScreen(
                     title: widget.property.title,
@@ -313,7 +313,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                       _buildFinancingBanner(context),
                       PropertyLocationSection(property: widget.property),
                       const PropertyAvailabilitySection(),
-                      const PropertyAgentSection(),
+                      PropertyAgentSection(property: widget.property),
                       const PropertyDocumentsSection(),
                       PropertySaveShareSection(property: widget.property, onSave: _saveProperty),
                       const PropertyContactSection(),

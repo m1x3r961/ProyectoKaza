@@ -72,6 +72,10 @@ class PropertyMapItem {
   /// ID del dueño/publicador
   final String? ownerId;
 
+  /// Public advertiser summary from the catalog detail (kind, name, logo_url,
+  /// description, is_verified, member_since, active_listings).
+  final Map<String, dynamic>? advertiser;
+
   PropertyMapItem({
     required this.id,
     required this.title,
@@ -103,6 +107,7 @@ class PropertyMapItem {
     this.address,
     this.status = 'PUBLISHED',
     this.ownerId,
+    this.advertiser,
   });
 }
 
@@ -171,7 +176,7 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
     surface: '${_parseNum(row['total_surface_m2'], 0).toStringAsFixed(0)} m²',
     isPlus: row['has_active_promotion'] == true,
     trustLabel: 'Información del anunciante',
-    isOrg: false,
+    isOrg: (row['advertiser'] as Map?)?['kind'] == 'ORGANIZATION',
     imageUrl: firstPhoto,
     photos: photosList,
     description: row['description'] as String?,
@@ -188,6 +193,7 @@ PropertyMapItem _rowToItem(Map<String, dynamic> row) {
     address: row['address_canonical'] as String?,
     status: row['status'] as String? ?? 'PUBLISHED',
     ownerId: row['owner_id'] as String?,
+    advertiser: (row['advertiser'] as Map?)?.cast<String, dynamic>(),
   );
 }
 

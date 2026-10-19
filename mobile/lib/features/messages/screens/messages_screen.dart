@@ -30,8 +30,7 @@ class MessagesScreen extends ConsumerWidget {
                       return ListTile(
                           title: Text(title),
                           leading: const Icon(Icons.chat_outlined),
-                          onTap: () => Navigator.push(
-                              context,
+                          onTap: () => Navigator.of(context, rootNavigator: true).push(
                               MaterialPageRoute(
                                   builder: (_) => ChatDetailScreen(
                                       title: title,

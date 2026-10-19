@@ -1164,47 +1164,67 @@ class _TrianglePainter extends CustomPainter {
 // 08 · ANUNCIANTE / PUBLICADOR
 // ─────────────────────────────────────────────────────────────────────────────
 class PropertyAgentSection extends StatelessWidget {
-  const PropertyAgentSection({super.key});
+  final PropertyMapItem property;
+  const PropertyAgentSection({super.key, required this.property});
 
   @override
   Widget build(BuildContext context) {
+    final a = property.advertiser ?? const <String, dynamic>{};
+    final isOrg = a['kind'] == 'ORGANIZATION';
+    final name = (a['name'] as String?)?.trim();
+    final displayName = (name != null && name.isNotEmpty)
+        ? name
+        : (isOrg ? 'Inmobiliaria' : 'Anunciante particular');
+    final logo = a['logo_url'] as String?;
+    final description = (a['description'] as String?)?.trim();
+    final verified = a['is_verified'] == true;
+    final memberSince = a['member_since'] as String?;
+    final active = a['active_listings'];
+    final initials = displayName
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .take(2)
+        .map((w) => w[0].toUpperCase())
+        .join();
+
     return _sectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('08', 'Anunciante', icon: Icons.store_mall_directory_outlined),
-          const SizedBox(height: 16),
-
-          // Agent card
+          _sectionTitle('08', 'Anunciante', icon: Icons.storefront_outlined),
+          const SizedBox(height: 18),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 56,
+                  height: 56,
                   color: KazaTheme.azulKaza,
-                  borderRadius: BorderRadius.circular(14),
+                  alignment: Alignment.center,
+                  child: logo != null && logo.isNotEmpty
+                      ? Image.network(logo, width: 56, height: 56, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _initials(initials, isOrg))
+                      : _initials(initials, isOrg),
                 ),
-                child: const Icon(Icons.business, size: 28, color: Colors.white),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Torres Sky Park', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
-                    const SizedBox(height: 2),
-                    const Text('Desarrolladora Inmobiliaria', style: TextStyle(fontSize: 12, color: KazaTheme.textSecondary)),
-                    const SizedBox(height: 6),
-                    // Verification chips
+                    Text(displayName,
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: KazaTheme.azulKaza)),
+                    const SizedBox(height: 4),
                     Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _verifyChip('Identidad verificada'),
-                        _verifyChip('Empresa verificada'),
-                        _verifyChip('Documentos verificados'),
+                        _softChip(isOrg ? 'Inmobiliaria' : 'Particular',
+                            icon: isOrg ? Icons.business_rounded : Icons.person_rounded),
+                        if (verified)
+                          _softChip('Empresa verificada', icon: Icons.verified_rounded, color: KazaTheme.verdeEntorno),
                       ],
                     ),
                   ],
@@ -1212,77 +1232,66 @@ class PropertyAgentSection extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 16),
-
-          // Stats row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _agentStat('25', 'Publicaciones'),
-              _statDivider(),
-              _agentStat('4.8 ⭐', 'Calificación'),
-              _statDivider(),
-              _agentStat('3 años', 'Miembro en\nKAZA'),
-            ],
-          ),
-
-          _divider(),
-
-          // Sobre el anunciante
-          _subTitle('Sobre el anunciante'),
-          const Text(
-            'Desarrollamos proyectos inmobiliarios innovadores con los más altos estándares de calidad y compromiso con nuestros clientes.',
-            style: TextStyle(fontSize: 13, color: KazaTheme.textSecondary, height: 1.5),
-          ),
-          const SizedBox(height: 12),
-
-          OutlinedButton.icon(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              foregroundColor: KazaTheme.azulKaza,
-              side: const BorderSide(color: KazaTheme.azulKaza),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          if (active != null || memberSince != null) ...[
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                if (active != null)
+                  Expanded(child: _stat('$active', active == 1 ? 'Publicación activa' : 'Publicaciones activas')),
+                if (active != null && memberSince != null) const SizedBox(width: 10),
+                if (memberSince != null) Expanded(child: _stat(memberSince, 'En KAZA desde')),
+              ],
             ),
-            icon: const Icon(Icons.grid_view_outlined, size: 16),
-            label: const Text('Ver todas sus propiedades', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          ],
+          if (description != null && description.isNotEmpty) ...[
+            _divider(),
+            _subTitle(isOrg ? 'Sobre la inmobiliaria' : 'Sobre el anunciante'),
+            Text(description, style: const TextStyle(fontSize: 14, color: KazaTheme.textSecondary, height: 1.55)),
+          ],
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: KazaTheme.azulKaza.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.shield_outlined, size: 16, color: KazaTheme.azulKaza),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Escribe al anunciante con el botón Contactar; la conversación queda dentro de KAZA.',
+                      style: TextStyle(fontSize: 12, color: KazaTheme.textSecondary, height: 1.4)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _verifyChip(String label) {
+  Widget _initials(String initials, bool isOrg) => initials.isEmpty
+      ? Icon(isOrg ? Icons.business_rounded : Icons.person_rounded, color: Colors.white, size: 28)
+      : Text(initials, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800));
+
+  Widget _stat(String value, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
-        color: KazaTheme.verdeEntorno.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: KazaTheme.verdeEntorno.withValues(alpha: 0.3)),
+        color: KazaTheme.azulKaza.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _hairline),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check, size: 10, color: KazaTheme.verdeEntorno),
-          const SizedBox(width: 3),
-          Text(label, style: const TextStyle(fontSize: 10, color: KazaTheme.verdeEntorno, fontWeight: FontWeight.w600)),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: KazaTheme.azulKaza)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 12, color: KazaTheme.textSecondary)),
         ],
       ),
     );
-  }
-
-  Widget _agentStat(String value, String label) {
-    return Column(
-      children: [
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: KazaTheme.azulKaza)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: KazaTheme.textSecondary), textAlign: TextAlign.center),
-      ],
-    );
-  }
-
-  Widget _statDivider() {
-    return Container(width: 1, height: 36, color: _hairline);
   }
 }
 
