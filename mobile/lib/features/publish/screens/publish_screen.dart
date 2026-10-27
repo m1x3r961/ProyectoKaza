@@ -60,6 +60,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   // Descripción
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _tour3dCtrl = TextEditingController();
 
   // Amenities
   final List<String> _selectedAmenities = [];
@@ -105,7 +106,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         _titleCtrl,
         _descCtrl,
         _contactNameCtrl,
-        _contactPhoneCtrl
+        _contactPhoneCtrl,
+        _tour3dCtrl
       ];
   Map<String, dynamic> _draftPayload() => {
         'fields': _draftControllers.map((c) => c.text).toList(),
@@ -291,6 +293,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
     _descCtrl.dispose();
     _contactNameCtrl.dispose();
     _contactPhoneCtrl.dispose();
+    _tour3dCtrl.dispose();
     super.dispose();
   }
 
@@ -371,11 +374,21 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         await _saveDraft();
       }
       _mediaItems = [];
+      final tour3d = _tour3dCtrl.text.trim();
+      if (tour3d.isNotEmpty &&
+          !RegExp(r'^https?://[^\s\]]+$').hasMatch(tour3d)) {
+        throw ApiException(
+            'El enlace 3D debe empezar con http:// o https:// y no tener espacios.',
+            400);
+      }
+      final description = tour3d.isEmpty
+          ? _descCtrl.text
+          : '${_descCtrl.text.trimRight()}\n\n[3D:$tour3d]';
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim().isEmpty
             ? '$_propertyType en la zona seleccionada'
             : _titleCtrl.text.trim(),
-        'description': _descCtrl.text,
+        'description': description,
         'propertyType': _propertyType,
         'address': _addressCtrl.text,
         'operationType': _operationType == 'Anticrético'
@@ -928,6 +941,16 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
             labelText: 'Descripción detallada',
             hintText: 'Describe los ambientes, acabados, entorno...',
             alignLabelWithHint: true),
+      ),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _tour3dCtrl,
+        keyboardType: TextInputType.url,
+        decoration: const InputDecoration(
+            labelText: 'Enlace 3D (opcional)',
+            hintText: 'https://...',
+            helperText: 'Pega el enlace de tu recorrido 3D para mostrar el botón "Recorrer en 3D".',
+            prefixIcon: Icon(Icons.threed_rotation_rounded)),
       ),
     ]);
   }

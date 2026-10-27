@@ -15,6 +15,7 @@ import '../providers/map_properties_provider.dart';
 import '../../saved/screens/saved_screen.dart';
 import '../widgets/property_detail_sections.dart';
 import '../../properties/screens/tour_360_local_screen.dart';
+import '../../properties/screens/tour_360_screen.dart';
 import '../../shell/screens/main_shell_screen.dart';
 
 /// 🏠 PROPERTY DETAIL SCREEN — Ficha Completa de Propiedad KAZA v2
@@ -306,6 +307,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       PropertyHeroSection(property: widget.property),
+                      _buildTour3dCard(),
                       _buildVirtualTourCard(),
                       PropertyDetailsSection(property: widget.property),
                       PropertyDescriptionSection(property: widget.property),
@@ -662,6 +664,67 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
   }
 
   // ─── VISOR 360° REAL CON IMÁGENES PANORÁMICAS ────────────────────────────────
+  Widget _buildTour3dCard() {
+    final url = widget.property.tour3dUrl;
+    if (url == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: propertyGlassDecoration(),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: Row(children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: KazaTheme.azulKaza.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.threed_rotation_rounded,
+                    size: 18, color: KazaTheme.azulKaza),
+              ),
+              const SizedBox(width: 12),
+              const Text('Recorrido 3D',
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: KazaTheme.azulKaza)),
+            ]),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
+            child: Text('Camina por la propiedad como si estuvieras ahí.',
+                style: TextStyle(fontSize: 13, color: KazaTheme.textMuted)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: KazaTheme.coralKaza,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.directions_walk_rounded, size: 20),
+              label: const Text('Recorrer en 3D',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              onPressed: () => Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          Tour360Screen(url: url, title: 'Recorrido 3D'))),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildVirtualTourCard() {
     final images = widget.property.photos.where((url) => url.contains('/360_')).toList();
     if (images.isEmpty) return const SizedBox.shrink();

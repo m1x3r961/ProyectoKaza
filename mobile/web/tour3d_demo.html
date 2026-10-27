@@ -984,7 +984,7 @@ drawTv(0);
 goBtn.disabled = false; goBtn.textContent = 'Entrar al departamento';
 goBtn.addEventListener('click', () => { intro.classList.add('hide'); started = true; });
 if (qs.get('autostart') === '1') { intro.classList.add('hide'); started = true; }
-window.__kaza = {player, setMode, setTv, doors, slider, zones};
+window.__kaza = {player, setMode, setTv, doors, slider, zones, THREE, scene, world};
 loop();
 </script>
 </body>

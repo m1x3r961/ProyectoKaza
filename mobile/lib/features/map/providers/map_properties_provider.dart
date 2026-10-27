@@ -76,6 +76,17 @@ class PropertyMapItem {
   /// description, is_verified, member_since, active_listings).
   final Map<String, dynamic>? advertiser;
 
+  static final _tour3dRe = RegExp(r'\[3D:(https?://[^\s\]]+)\]');
+
+  /// Enlace al recorrido 3D, guardado como marcador `[3D:url]` dentro de la
+  /// descripción (así no hace falta una columna nueva en la base de datos).
+  String? get tour3dUrl => _tour3dRe.firstMatch(description ?? '')?.group(1);
+
+  /// Descripción sin el marcador del enlace 3D.
+  String? get descriptionText => description == null
+      ? null
+      : description!.replaceAll(_tour3dRe, '').trim();
+
   PropertyMapItem({
     required this.id,
     required this.title,

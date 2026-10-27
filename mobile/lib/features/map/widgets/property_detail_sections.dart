@@ -734,8 +734,8 @@ class _PropertyDescriptionSectionState extends State<PropertyDescriptionSection>
 
   @override
   Widget build(BuildContext context) {
-    final fullText = widget.property.description?.isNotEmpty == true
-        ? widget.property.description!
+    final fullText = widget.property.descriptionText?.isNotEmpty == true
+        ? widget.property.descriptionText!
         : 'Sin descripción detallada. Contacta al anunciante para más información.';
 
     final displayText = (_expanded || fullText.length < 120) ? fullText : '${fullText.substring(0, 120)}...';
