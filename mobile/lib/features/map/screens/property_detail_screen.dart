@@ -15,7 +15,7 @@ import '../providers/map_properties_provider.dart';
 import '../../saved/screens/saved_screen.dart';
 import '../widgets/property_detail_sections.dart';
 import '../../properties/screens/tour_360_local_screen.dart';
-import '../../properties/screens/tour_360_screen.dart';
+import '../../properties/screens/tour_3d_screen.dart';
 import '../../shell/screens/main_shell_screen.dart';
 
 /// 🏠 PROPERTY DETAIL SCREEN — Ficha Completa de Propiedad KAZA v2
@@ -717,7 +717,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen>
               onPressed: () => Navigator.of(context, rootNavigator: true).push(
                   MaterialPageRoute(
                       builder: (_) =>
-                          Tour360Screen(url: url, title: 'Recorrido 3D'))),
+                          Tour3DScreen(url: url))),
             ),
           ),
         ],

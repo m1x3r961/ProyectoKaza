@@ -18,3 +18,18 @@ void registerTourIframe() {
 void setTourImages(List<String> images) {
   html.window.localStorage['kaza_360_images'] = jsonEncode(images);
 }
+
+final _registeredIframes = <String>{};
+
+void registerIframeView(String viewType, String url) {
+  if (!_registeredIframes.add(viewType)) return;
+  ui_web.platformViewRegistry.registerViewFactory(
+      viewType,
+      (int viewId) => html.IFrameElement()
+        ..src = url
+        ..style.border = 'none'
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..allowFullscreen = true
+        ..setAttribute('allow', 'fullscreen; gyroscope; accelerometer'));
+}
