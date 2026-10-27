@@ -111,44 +111,6 @@ class PropertyMapItem {
   });
 }
 
-// =============================================================================
-// DEMO 3D — propiedad de demostración con recorrido 3D interactivo
-// (puertas, TV y luces). Vive solo en la app: no se guarda en la base de datos.
-// Poner kDemo3dEnabled = false para ocultarla.
-// =============================================================================
-const bool kDemo3dEnabled = true;
-const String kDemo3dPropertyId = 'demo-3d-kaza';
-const String kDemo3dBaseUrl = 'https://proyecto-kaza.vercel.app';
-
-final PropertyMapItem kDemo3dProperty = PropertyMapItem(
-  id: kDemo3dPropertyId,
-  title: 'DEMO 3D · Departamento con vista al mar',
-  price: 'USD 185000',
-  operation: 'VENTA',
-  type: 'Departamento',
-  location: const LatLng(-17.7752, -63.1795),
-  bedrooms: 1,
-  bathrooms: 1,
-  surface: '80 m²',
-  isPlus: true,
-  trustLabel: 'Propiedad de demostración',
-  isOrg: false,
-  imageUrl: '$kDemo3dBaseUrl/tour3d_cover.jpg',
-  photos: const ['$kDemo3dBaseUrl/tour3d_cover.jpg'],
-  description:
-      'Propiedad de demostración de KAZA para mostrar el recorrido 3D interactivo: '
-      'camina por el departamento, abre puertas, prende la TV y las luces y '
-      'cambia entre día, atardecer y noche. No es una oferta real.',
-  amenities: const ['Balcón con vista al mar', 'Cocina integrada', 'Smart TV'],
-  highlights: const ['Recorrido 3D interactivo', 'Puertas y luces con interacción'],
-  agentName: 'KAZA Demo',
-  coveredSurface: '80 m²',
-  parkingSpaces: 1,
-  ageYears: 0,
-  floorsTotal: 12,
-  address: 'Equipetrol, Santa Cruz de la Sierra (demo)',
-);
-
 class LocalPublishedPropertiesNotifier
     extends StateNotifier<List<PropertyMapItem>> {
   LocalPublishedPropertiesNotifier() : super([]);
@@ -249,14 +211,7 @@ final mapPropertiesProvider =
   }).query;
   final rows = await ApiClient()
       .request('/api/catalog?$query', authenticated: false) as List;
-  final items =
-      rows.map((row) => _rowToItem(Map<String, dynamic>.from(row))).toList();
-  final demo = kDemo3dProperty;
-  final inBounds = demo.location.latitude >= bounds['south']! &&
-      demo.location.latitude <= bounds['north']! &&
-      demo.location.longitude >= bounds['west']! &&
-      demo.location.longitude <= bounds['east']!;
-  yield [if (kDemo3dEnabled && inBounds) demo, ...items];
+  yield rows.map((row) => _rowToItem(Map<String, dynamic>.from(row))).toList();
 });
 
 double _extractLat(Map<String, dynamic> row) {
