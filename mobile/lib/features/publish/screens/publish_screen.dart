@@ -2,6 +2,8 @@ import 'dart:ui' as ui;
 import '../../../core/network/api_client.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -92,6 +94,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   String? _draftError;
   final List<String> _uploadedPhotos = [];
   final Set<KazaMediaItem> _uploadedItems = {};
+  String? _glbName;
+  Uint8List? _glbBytes;
+  String? _glbUrl;
   List<TextEditingController> get _draftControllers => [
         _addressCtrl,
         _terrainCtrl,
@@ -374,7 +379,19 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         await _saveDraft();
       }
       _mediaItems = [];
-      final tour3d = _tour3dCtrl.text.trim();
+      if (_glbBytes != null && _glbUrl == null) {
+        final glbPath = '${user.id}/$_draftId/model_${ApiClient.newId()}.glb';
+        await SupabaseConfig.client.storage
+            .from('property-models')
+            .uploadBinary(glbPath, _glbBytes!,
+                fileOptions: const FileOptions(
+                    contentType: 'model/gltf-binary'));
+        _glbUrl = SupabaseConfig.client.storage
+            .from('property-models')
+            .getPublicUrl(glbPath);
+      }
+      // El modelo subido tiene prioridad sobre el enlace manual.
+      final tour3d = _glbUrl ?? _tour3dCtrl.text.trim();
       if (tour3d.isNotEmpty &&
           !RegExp(r'^https?://[^\s\]]+$').hasMatch(tour3d)) {
         throw ApiException(
@@ -919,6 +936,84 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         initialItems: _mediaItems,
         onChanged: (items) => setState(() => _mediaItems = items),
       ),
+      const SizedBox(height: 24),
+      _buildGlbPicker(),
+    ]);
+  }
+
+  static const _maxGlbBytes = 50 * 1024 * 1024;
+
+  Future<void> _pickGlb() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['glb'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      if (!file.name.toLowerCase().endsWith('.glb')) {
+        return _showError('El modelo 3D debe ser un archivo .glb.');
+      }
+      if (file.size > _maxGlbBytes) {
+        return _showError('El modelo 3D debe pesar menos de 50 MB.');
+      }
+      final bytes = file.bytes;
+      if (bytes == null || bytes.isEmpty) {
+        return _showError('No se pudo leer el archivo.');
+      }
+      // Cabecera binaria glTF: "glTF" (0x67 0x6C 0x54 0x46).
+      if (bytes.length < 12 ||
+          bytes[0] != 0x67 ||
+          bytes[1] != 0x6C ||
+          bytes[2] != 0x54 ||
+          bytes[3] != 0x46) {
+        return _showError('El archivo no es un .glb válido.');
+      }
+      setState(() {
+        _glbName = file.name;
+        _glbBytes = bytes;
+        _glbUrl = null;
+      });
+    } catch (_) {
+      _showError('No se pudo seleccionar el archivo 3D.');
+    }
+  }
+
+  Widget _buildGlbPicker() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Modelo 3D (opcional)',
+          style: TextStyle(fontWeight: FontWeight.w600)),
+      const SizedBox(height: 4),
+      const Text('Archivo .glb, máximo 50 MB.',
+          style: TextStyle(fontSize: 12, color: KazaTheme.textMuted)),
+      const SizedBox(height: 8),
+      if (_glbName == null)
+        OutlinedButton.icon(
+          onPressed: _isPublishing ? null : _pickGlb,
+          icon: const Icon(Icons.threed_rotation_rounded),
+          label: const Text('Seleccionar archivo .glb'),
+        )
+      else
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.view_in_ar_rounded),
+            title: Text(_glbName!, overflow: TextOverflow.ellipsis),
+            subtitle: Text(
+                '${((_glbBytes?.length ?? 0) / (1024 * 1024)).toStringAsFixed(1)} MB'),
+            trailing: IconButton(
+              tooltip: 'Quitar',
+              icon: const Icon(Icons.close_rounded),
+              onPressed: _isPublishing
+                  ? null
+                  : () => setState(() {
+                        _glbName = null;
+                        _glbBytes = null;
+                        _glbUrl = null;
+                      }),
+            ),
+          ),
+        ),
     ]);
   }
 

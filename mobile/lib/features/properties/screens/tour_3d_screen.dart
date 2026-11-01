@@ -5,6 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'tour_360_screen.dart';
 
+/// Origen publico de la app web, donde vive `glb_viewer.html` (visor de modelos).
+const _kWebOrigin = 'https://proyecto-kaza.vercel.app';
+
+/// Un enlace directo a un `.glb` se descargaria en vez de verse: se abre en el visor.
+String _resolveTourUrl(String url) {
+  final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+  if (!path.endsWith('.glb')) return url;
+  final origin = kIsWeb ? Uri.base.origin : _kWebOrigin;
+  return '$origin/glb_viewer.html?src=${Uri.encodeComponent(url)}';
+}
+
 /// Recorrido 3D a pantalla completa para el enlace que pegó el anunciante.
 /// En web se embebe en un iframe; en nativo se abre en un WebView.
 class Tour3DScreen extends StatelessWidget {
@@ -15,10 +26,11 @@ class Tour3DScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return Tour360Screen(url: url, title: title);
+    final target = _resolveTourUrl(url);
+    if (!kIsWeb) return Tour360Screen(url: target, title: title);
 
-    final viewType = 'kaza-tour3d-${url.hashCode}';
-    tour_platform.registerIframeView(viewType, url);
+    final viewType = 'kaza-tour3d-${target.hashCode}';
+    tour_platform.registerIframeView(viewType, target);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
