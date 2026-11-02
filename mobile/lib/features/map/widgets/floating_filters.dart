@@ -8,6 +8,8 @@ class FloatingFilters extends StatelessWidget {
   final ValueChanged<String> onOperationChanged;
   final VoidCallback onPriceTap;
   final VoidCallback onRoomsTap;
+  final bool isPriceActive;
+  final bool isRoomsActive;
 
   const FloatingFilters({
     super.key,
@@ -15,6 +17,8 @@ class FloatingFilters extends StatelessWidget {
     required this.onOperationChanged,
     required this.onPriceTap,
     required this.onRoomsTap,
+    this.isPriceActive = false,
+    this.isRoomsActive = false,
   });
 
   @override
@@ -34,12 +38,14 @@ class FloatingFilters extends StatelessWidget {
           _FilterPill(
             label: 'Precio',
             onTap: onPriceTap,
+            isActive: isPriceActive,
           ),
           const SizedBox(width: 8),
           // Ambientes pill
           _FilterPill(
             label: 'Ambientes',
             onTap: onRoomsTap,
+            isActive: isRoomsActive,
           ),
         ],
       ),
