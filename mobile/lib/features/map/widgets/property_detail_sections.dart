@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../../core/utils/map_tiles.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../../../core/widgets/kaza_badges.dart';
 import '../providers/map_properties_provider.dart';
@@ -663,7 +664,7 @@ class PropertyDetailsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('03', 'Detalles de la propiedad', icon: Icons.tune_rounded),
+          _sectionTitle('03', 'Detalles y amenidades', icon: Icons.tune_rounded),
           const SizedBox(height: 18),
           LayoutBuilder(builder: (context, c) {
             final cols = c.maxWidth >= 560 ? 3 : 2;
@@ -678,6 +679,8 @@ class PropertyDetailsSection extends StatelessWidget {
           _divider(),
           _detailRow(Icons.check_circle_outline, 'Estado', 'Disponible', valueColor: KazaTheme.verdeEntorno),
           _detailRow(Icons.sell_outlined, 'Operación', property.operation),
+          _divider(),
+          PropertyAmenitiesSection(property: property),
         ],
       ),
     );
@@ -829,12 +832,11 @@ class PropertyAmenitiesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _sectionCard(
-      child: Column(
+    // Se muestra dentro de la tarjeta "Detalles de la propiedad".
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('05', 'Amenidades', icon: Icons.auto_awesome_outlined),
-          const SizedBox(height: 18),
+          _subTitle('Amenidades'),
           if (property.amenities.isEmpty)
             const Text(
               'No se especificaron amenidades.',
@@ -872,7 +874,6 @@ class PropertyAmenitiesSection extends StatelessWidget {
           _detailRow(Icons.elevator_outlined, 'Ascensores', 'Sí'),
           _detailRow(Icons.local_parking_outlined, 'Parqueo para visitas', property.parkingSpaces > 0 ? 'Sí' : 'No'),
         ],
-      ),
     );
   }
 }
@@ -1031,7 +1032,7 @@ class PropertyLocationSection extends StatelessWidget {
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        urlTemplate: kazaTileUrl,
                         userAgentPackageName: 'com.kaza.app',
                         maxNativeZoom: 19,
                       ),
@@ -1187,12 +1188,10 @@ class PropertyAgentSection extends StatelessWidget {
         .map((w) => w[0].toUpperCase())
         .join();
 
-    return _sectionCard(
-      child: Column(
+    // Se muestra dentro de la tarjeta "Anunciante y contacto".
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('08', 'Anunciante', icon: Icons.storefront_outlined),
-          const SizedBox(height: 18),
           Row(
             children: [
               ClipRRect(
@@ -1248,26 +1247,7 @@ class PropertyAgentSection extends StatelessWidget {
             _subTitle(isOrg ? 'Sobre la inmobiliaria' : 'Sobre el anunciante'),
             Text(description, style: const TextStyle(fontSize: 14, color: KazaTheme.textSecondary, height: 1.55)),
           ],
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: KazaTheme.azulKaza.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.shield_outlined, size: 16, color: KazaTheme.azulKaza),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('Escribe al anunciante con el botón Contactar; la conversación queda dentro de KAZA.',
-                      style: TextStyle(fontSize: 12, color: KazaTheme.textSecondary, height: 1.4)),
-                ),
-              ],
-            ),
-          ),
         ],
-      ),
     );
   }
 
@@ -1566,7 +1546,8 @@ class PropertySaveShareSection extends StatelessWidget {
 // 11 · CONTACTO Y VISITAS
 // ─────────────────────────────────────────────────────────────────────────────
 class PropertyContactSection extends StatelessWidget {
-  const PropertyContactSection({super.key});
+  final PropertyMapItem property;
+  const PropertyContactSection({super.key, required this.property});
 
   @override
   Widget build(BuildContext context) {
@@ -1574,8 +1555,10 @@ class PropertyContactSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('11', 'Contacto y visitas', icon: Icons.contact_phone_outlined),
-          const SizedBox(height: 16),
+          _sectionTitle('11', 'Anunciante y contacto', icon: Icons.contact_phone_outlined),
+          const SizedBox(height: 18),
+          PropertyAgentSection(property: property),
+          _divider(),
 
           Container(
             padding: const EdgeInsets.all(12),

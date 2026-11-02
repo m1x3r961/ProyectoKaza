@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>KAZA · Modelo 3D</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  html,body{margin:0;height:100%;background:#05070d;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
+  model-viewer{width:100%;height:100%;--poster-color:#05070d;background:radial-gradient(circle at 50% 30%,#18283a,#05070d)}
+  #msg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;color:#c8d3de}
+  #hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(15,31,46,.6);border:1px solid rgba(255,255,255,.16);font-size:12px;pointer-events:none}
+</style>
+</head>
+<body>
+<model-viewer id="mv" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1" exposure="1.1" interaction-prompt="none"></model-viewer>
+<div id="msg"></div>
+<div id="hint">Arrastra para girar · pellizca o usa la rueda para acercar</div>
+<script>
+  // Solo se aceptan modelos servidos por https (evita esquemas raros como javascript: o file:).
+  const src = new URLSearchParams(location.search).get('src') || '';
+  const mv = document.getElementById('mv'), msg = document.getElementById('msg');
+  const fail = (t) => { msg.textContent = t; msg.style.display = 'flex'; mv.style.display = 'none'; document.getElementById('hint').style.display = 'none'; };
+  if (!/^https:\/\/[^\s]+$/i.test(src)) fail('No se pudo abrir el modelo 3D.');
+  else { mv.src = src; mv.addEventListener('error', () => fail('No se pudo cargar el modelo 3D.')); }
+</script>
+</body>
+</html>

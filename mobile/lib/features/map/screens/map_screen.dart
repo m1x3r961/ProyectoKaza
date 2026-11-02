@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../../core/utils/map_tiles.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -211,9 +212,33 @@ class _MapScreenState extends ConsumerState<MapScreen>
       // If 'Todas', we don't filter out anything based on operation
       // 2. Filter by min rooms
       if (_minRooms > 0 && prop.bedrooms < _minRooms) return false;
+      // 3. Filter by price range (only when the range was narrowed)
+      if (_isPriceFilterActive) {
+        final usd = _priceInUsd(prop.price);
+        // "Consultar" / unparseable prices are hidden while filtering by price
+        if (usd == null) return false;
+        if (usd < _priceRange.start) return false;
+        // Max at the slider limit means "no upper bound"
+        if (_priceRange.end < _kPriceMax && usd > _priceRange.end) return false;
+      }
 
       return true;
     }).toList();
+  }
+
+  static const double _kPriceMax = 1000000;
+  static const double _bobPerUsd = 6.96;
+
+  bool get _isPriceFilterActive =>
+      _priceRange.start > 0 || _priceRange.end < _kPriceMax;
+
+  /// Parses strings like "USD 120000" or "Bs. 500000" into USD.
+  /// Returns null when there is no numeric price (e.g. "Consultar").
+  double? _priceInUsd(String price) {
+    final digits = price.replaceAll(RegExp(r'[^0-9.]'), '');
+    final value = double.tryParse(digits);
+    if (value == null || value <= 0) return null;
+    return price.contains('Bs') ? value / _bobPerUsd : value;
   }
 
   List<PropertyMapItem> _clusterProperties(
@@ -477,6 +502,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     },
                     onPriceTap: _showPriceFilter,
                     onRoomsTap: _showRoomsFilter,
+                    isPriceActive: _isPriceFilterActive,
+                    isRoomsActive: _minRooms > 0,
                   ),
                   // Non-blocking refresh hint while new results arrive.
                   AnimatedSwitcher(
@@ -796,7 +823,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: kazaTileUrl,
           userAgentPackageName: 'com.kaza.app',
           maxNativeZoom: 19,
         ),
