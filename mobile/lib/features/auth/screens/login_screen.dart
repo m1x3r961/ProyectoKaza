@@ -29,6 +29,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _obscurePassword = true;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
@@ -59,6 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _nameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _phoneController.dispose();
     _bioController.dispose();
     _locationController.dispose();
@@ -151,6 +154,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Error: $e'), backgroundColor: Colors.redAccent));
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.redAccent));
+  }
+
+  /// Correo + contraseña: inicia sesión o crea la cuenta según el modo actual.
+  /// Después reutiliza el mismo flujo que Google (perfil completo → mapa;
+  /// perfil incompleto → formulario de registro).
+  Future<void> _handleEmailAuth() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+      _showError('Ingresa un correo válido');
+      return;
+    }
+    if (password.length < 6) {
+      _showError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final auth = SupabaseConfig.client.auth;
+      if (_isLoginMode) {
+        await auth.signInWithPassword(email: email, password: password);
+      } else {
+        final res = await auth.signUp(email: email, password: password);
+        if (res.session == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  'Te enviamos un correo a $email para confirmar tu cuenta. Luego inicia sesión.'),
+              backgroundColor: KazaTheme.azulKaza,
+              behavior: SnackBarBehavior.floating,
+            ));
+            setState(() => _isLoginMode = true);
+          }
+          return;
+        }
+      }
+      if (mounted) setState(() => _isLoading = false);
+      await _resolveSignedInUser();
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError('Error: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -756,14 +810,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Una sola identidad KAZA, segura y sin contraseñas.',
+              'Una sola identidad KAZA, segura y simple.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, height: 1.45, color: KazaTheme.textSecondary),
             ),
             const SizedBox(height: 24),
             benefit(Icons.bookmark_border_rounded, 'Guarda y compara propiedades'),
             benefit(Icons.chat_bubble_outline_rounded, 'Habla directo con anunciantes'),
-            benefit(Icons.lock_outline_rounded, 'Entras con Google, sin contraseñas'),
+            benefit(Icons.lock_outline_rounded, 'Entras con correo y contraseña o con Google'),
             const SizedBox(height: 12),
             _primaryButton('Crear cuenta', () {
               setState(() => _isLoginMode = false);
@@ -797,10 +851,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               _isLoginMode ? Icons.login_rounded : Icons.person_add_alt_1_rounded,
               _isLoginMode ? 'Inicia sesión' : 'Crea tu cuenta',
               _isLoginMode
-                  ? 'Entra con la cuenta de Google que usaste para registrarte. Si aún no tienes cuenta, te llevaremos al registro.'
-                  : 'Usaremos tu cuenta de Google como identificador. No necesitas contraseña.',
+                  ? 'Entra con tu correo y contraseña, o con la cuenta de Google que usaste para registrarte.'
+                  : 'Crea tu cuenta con correo y contraseña, o usa tu cuenta de Google.',
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              autofillHints: const [AutofillHints.email],
+              decoration: _input('Correo electrónico', Icons.mail_outline_rounded),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              autofillHints: [
+                _isLoginMode ? AutofillHints.password : AutofillHints.newPassword
+              ],
+              onSubmitted: (_) => _isLoading ? null : _handleEmailAuth(),
+              decoration: _input(
+                'Contraseña',
+                Icons.lock_outline_rounded,
+                suffix: IconButton(
+                  icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      size: 20,
+                      color: KazaTheme.grisMedio),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _primaryButton(_isLoginMode ? 'Iniciar sesión' : 'Crear cuenta',
+                _handleEmailAuth),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                    child: Divider(color: KazaTheme.azulKaza.withValues(alpha: 0.12))),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('o',
+                      style: TextStyle(fontSize: 13, color: KazaTheme.textSecondary)),
+                ),
+                Expanded(
+                    child: Divider(color: KazaTheme.azulKaza.withValues(alpha: 0.12))),
+              ],
+            ),
+            const SizedBox(height: 16),
             SizedBox(
               height: 54,
               child: OutlinedButton(
@@ -857,7 +959,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Icon(Icons.verified_user_outlined, size: 14, color: KazaTheme.textSecondary),
           SizedBox(width: 6),
           Flexible(
-            child: Text('Tu correo de Google será tu identificador en KAZA.',
+            child: Text('Tu correo será tu identificador en KAZA.',
                 style: TextStyle(fontSize: 12, color: KazaTheme.textSecondary)),
           ),
         ],
