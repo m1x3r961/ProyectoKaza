@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/kaza_theme.dart';
 import '../providers/map_properties_provider.dart';
+import 'property_detail_sections.dart';
 
 /// 📋 MAP LIST TOGGLE — "07 TOGGLE LISTA"
 /// Overlay list view that shows properties in a scrollable list
@@ -182,7 +183,7 @@ class _PropertyListItem extends StatelessWidget {
                     ),
                   const SizedBox(height: 4),
                   Text(
-                    'Consultar precio',
+                    _priceText(property.price),
                     style: TextStyle(
                       color: KazaTheme.azulKaza,
                       fontWeight: FontWeight.w700,
@@ -208,6 +209,11 @@ class _PropertyListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _priceText(String raw) {
+    final hasNumber = RegExp(r'\d').hasMatch(raw);
+    return hasNumber ? formatPropertyPrice(raw) : 'Consultar precio';
   }
 
   Widget _imagePlaceholder() {
