@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Soporte · KAZA</title>
+  <meta name="description" content="Ayuda y contacto de soporte de KAZA.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root {
+      --navy: #0F1F2E;
+      --coral: #FF5A3C;
+      --text: #475569;
+      --bg: #F2F4F7;
+      --line: rgba(15, 31, 46, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      line-height: 1.7;
+      background:
+        radial-gradient(600px 400px at 100% 0%, rgba(255, 90, 60, 0.14), transparent 70%),
+        radial-gradient(600px 500px at 0% 60%, rgba(15, 31, 46, 0.08), transparent 70%),
+        var(--bg);
+      background-attachment: fixed;
+    }
+    main {
+      max-width: 780px;
+      margin: 32px auto 48px;
+      padding: 40px 36px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 28px;
+      box-shadow: 0 16px 40px rgba(15, 31, 46, 0.08);
+      backdrop-filter: blur(16px);
+    }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    header img { width: 40px; height: 40px; }
+    header span { font-weight: 800; font-size: 20px; color: var(--navy); letter-spacing: 0.5px; }
+    h1 { color: var(--navy); font-size: 30px; line-height: 1.2; letter-spacing: -0.5px; margin: 16px 0 4px; }
+    .lead { font-size: 16px; margin: 0 0 24px; }
+    h2 { color: var(--navy); font-size: 19px; margin: 32px 0 8px; padding-top: 20px; border-top: 1px solid var(--line); }
+    p, li { font-size: 15px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    strong { color: var(--navy); }
+    a { color: var(--coral); font-weight: 600; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .note {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(255, 90, 60, 0.07);
+      border: 1px solid rgba(255, 90, 60, 0.2);
+      color: var(--navy);
+    }
+    footer { text-align: center; font-size: 13px; margin-bottom: 32px; }
+    @media (max-width: 600px) {
+      main { margin: 0; border-radius: 0; padding: 28px 20px; }
+      h1 { font-size: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="icons/Icon-192.png" alt="">
+      <span>KAZA</span>
+    </header>
+
+    <h1>Soporte de KAZA</h1>
+    <p class="lead">¿Tienes un problema o una duda con la app? Escríbenos y te ayudamos.</p>
+
+    <div class="note">
+      <strong>Contacto:</strong>
+      <a href="mailto:sczkaza@gmail.com?subject=Soporte%20KAZA">sczkaza@gmail.com</a>
+    </div>
+
+    <h2>Qué incluir en tu mensaje</h2>
+    <p>Para ayudarte más rápido, cuéntanos:</p>
+    <ul>
+      <li>Qué estabas haciendo y qué pasó (si puedes, adjunta una captura de pantalla).</li>
+      <li>El modelo de tu iPhone y su versión de iOS.</li>
+      <li>El correo con el que te registraste en KAZA.</li>
+    </ul>
+
+    <h2>Preguntas frecuentes</h2>
+
+    <p><strong>¿Necesito una cuenta para usar KAZA?</strong><br>
+      No para explorar: puedes ver el mapa, los filtros y las propiedades sin cuenta. Necesitas iniciar sesión para
+      publicar una propiedad, guardar favoritos y usar mensajes.</p>
+
+    <p><strong>¿Cómo publico una propiedad?</strong><br>
+      Inicia sesión, toca <strong>Publicar</strong> en la barra inferior y completa los pasos: datos, fotos y revisión.</p>
+
+    <p><strong>¿Cómo elimino mi cuenta?</strong><br>
+      Desde la app: <strong>Perfil › Configuración (ícono de engranaje) › Eliminar o desactivar cuenta</strong>.
+      También puedes pedirlo por correo a
+      <a href="mailto:sczkaza@gmail.com?subject=Eliminar%20mi%20cuenta%20KAZA">sczkaza@gmail.com</a>
+      desde el correo con el que te registraste.</p>
+
+    <p><strong>¿Cómo se usan mis datos?</strong><br>
+      Lee nuestra <a href="privacidad.html">política de privacidad</a>.</p>
+
+    <h2>Otros enlaces</h2>
+    <ul>
+      <li><a href="privacidad.html">Política de privacidad</a></li>
+      <li><a href="/">Abrir KAZA en la web</a></li>
+    </ul>
+  </main>
+  <footer>© 2026 KAZA</footer>
+</body>
+</html>
